@@ -2321,7 +2321,7 @@ int main(int argc, char **argv)
   destHeight = (sizeOption+1)*srcHeight;
   
   surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-                             SDL_ANYFORMAT|SDL_HWSURFACE|SDL_DOUBLEBUF|
+                             SDL_SWSURFACE|
                              (fullscreen ? SDL_FULLSCREEN : 0));
   
   if(surface == NULL) {
@@ -3379,7 +3379,7 @@ void systemGbBorderOn()
   destHeight = (sizeOption+1)*srcHeight;
   
   surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-                             SDL_ANYFORMAT|SDL_HWSURFACE|SDL_DOUBLEBUF|
+                             SDL_SWSURFACE|
                              (fullscreen ? SDL_FULLSCREEN : 0));  
 #ifndef C_CORE
   sdlMakeStretcher(srcWidth);
