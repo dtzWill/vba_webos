@@ -39,6 +39,37 @@
 #include "gb/GB.h"
 #include "gb/gbGlobals.h"
 
+#include <SDL_opengles.h>
+#include <SDL_video.h>
+#include <assert.h>
+#include "esFunc.h"
+
+//#define DEBUG_GL
+
+#ifdef DEBUG_GL
+void checkError()
+{
+    /* Check for error conditions. */
+    GLenum gl_error = glGetError( );
+
+    if( gl_error != GL_NO_ERROR ) {
+        fprintf( stderr, "testgl: OpenGL error: %x\n", gl_error );
+        while(1);
+        exit( 1 );
+    }
+
+    char * sdl_error = SDL_GetError( );
+
+    if( sdl_error[0] != '\0' ) {
+        fprintf(stderr, "testgl: SDL error '%s'\n", sdl_error);
+        while(1);
+        exit( 2 );
+    }
+}
+#else
+#define checkError()
+#endif
+
 #ifndef WIN32
 # include <unistd.h>
 # define GETCWD getcwd
@@ -130,6 +161,8 @@ struct EmulatedSystem emulator = {
 SDL_Surface *surface = NULL;
 SDL_Overlay *overlay = NULL;
 SDL_Rect overlay_rect;
+
+GLuint texture;
 
 int systemSpeed = 0;
 int systemRedShift = 0;
@@ -1742,16 +1775,19 @@ void sdlPollEvents()
         emulating = 0;
         break;
       case SDLK_f:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          int flags = 0;
-          fullscreen = !fullscreen;
-          if(fullscreen)
-            flags |= SDL_FULLSCREEN;
-          SDL_SetVideoMode(destWidth, destHeight, systemColorDepth, flags);
-          //          if(SDL_WM_ToggleFullScreen(surface))
-          //            fullscreen = !fullscreen;
-        }
+        //Can't change modes when using openGL
+        printf( "Not supported!\n" );
+        exit( -1 );
+//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//          int flags = 0;
+//          fullscreen = !fullscreen;
+//          if(fullscreen)
+//            flags |= SDL_FULLSCREEN;
+//          SDL_SetVideoMode(destWidth, destHeight, systemColorDepth, flags);
+//          //          if(SDL_WM_ToggleFullScreen(surface))
+//          //            fullscreen = !fullscreen;
+//        }
         break;
       case SDLK_F11:
         if(dbgMain != debuggerMain) {
@@ -1932,6 +1968,146 @@ Long options only:\n\
       --show-speed-normal      Show emulation speed\n\
       --show-speed-detailed    Show detailed speed data\n\
 ");
+}
+
+// Handle to a program object
+GLuint programObject;
+
+// Attribute locations
+GLint  positionLoc;
+GLint  texCoordLoc;
+
+// Sampler location
+GLint samplerLoc;
+
+// Matrix that handles perspective/translations
+//ESMatrix  mvpMatrix;
+
+// Uniform location for that matrix
+GLint  mvpLoc;
+
+void GL_Init()
+{
+    // setup 2D gl environment
+    //glViewport(0, 0, destWidth, destHeight);
+    //glViewport(0, 0, destHeight/2, destWidth/2);
+    checkError();
+    glClearColor( 0.0f, 0.0f, 1.0f, 1.0f );//blue
+    checkError();
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthFunc( GL_ALWAYS );
+    checkError();
+    glDisable(GL_CULL_FACE);
+    checkError();
+
+    GLbyte vShaderStr[] =  
+        //"uniform mat4 u_mvpMatrix;    \n"
+        "attribute vec4 a_position;   \n"
+        "attribute vec2 a_texCoord;   \n"
+        "varying vec2 v_texCoord;     \n"
+        "void main()                  \n"
+        "{                            \n"
+        "   gl_Position = a_position; \n"
+        "   v_texCoord = a_texCoord;  \n"
+        "}                            \n";
+
+    GLbyte fShaderStr[] =  
+        "precision mediump float;                            \n"
+        "varying vec2 v_texCoord;                            \n"
+        "uniform sampler2D s_texture;                        \n"
+        "void main()                                         \n"
+        "{                                                   \n"
+        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
+        "}                                                   \n";
+
+    // Load the shaders and get a linked program object
+    programObject = esLoadProgram ( ( char *)vShaderStr, (char *)fShaderStr );
+    checkError();
+
+    // Get the attribute locations
+    positionLoc = glGetAttribLocation ( programObject, "a_position" );
+    checkError();
+    texCoordLoc = glGetAttribLocation ( programObject, "a_texCoord" );
+    checkError();
+
+    // Get the sampler location
+    samplerLoc = glGetUniformLocation ( programObject, "s_texture" );
+    checkError();
+
+    ////Get the mvpMatrix location
+    //mvpLoc = glGetUniformLocation( programObject, "u_mvpMatrix" );
+    //checkError();
+}
+
+void GL_InitMVP()
+{
+    return;
+//    ESMatrix perspective;
+//    ESMatrix modelview;
+//    //GLfloat aspect;
+//
+//    // Compute the window aspect ratio
+//    //aspect = (GLfloat) destWidth / (GLfloat) destHeight;
+//
+//    // Generate a perspective matrix with a 60 degree FOV
+//    esMatrixLoadIdentity( &perspective );
+//    checkError();
+//    esOrtho( &perspective, 0.0, destHeight, 0, destWidth, 0, 1 );
+//    //esPerspective( &perspective, 180.0f, 1/aspect, 0.0f, 1.0f );
+//    checkError();
+//
+//    // Generate a model view matrix to rotate/translate the cube
+//    esMatrixLoadIdentity( &modelview );
+//    checkError();
+//
+//    // Translate away from the viewer
+//    //esTranslate( &modelview, 0.0f, 0.0f, 0.0f );
+//    checkError();
+//
+//    // Compute the final MVP by multiplying the 
+//    // modevleiw and perspective matrices together
+//    esMatrixMultiply( &mvpMatrix, &modelview, &perspective );
+//    checkError();
+}
+
+void GL_InitTexture()
+{
+    //delete it if we already have one
+    if ( texture )
+    {
+        glDeleteTextures( 1, &texture );
+        texture = 0;
+    }
+
+    glGenTextures(1, &texture);
+    checkError();
+    glBindTexture(GL_TEXTURE_2D, texture);
+    checkError();
+    
+    //sanity check
+    int num;
+    glGetIntegerv( GL_TEXTURE_BINDING_2D, &num );
+    assert( num == texture );
+    glGetIntegerv( GL_ACTIVE_TEXTURE, &num );
+    assert( num == GL_TEXTURE0 );
+    checkError();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    checkError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    checkError();
+
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+    //checkError();
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+    //checkError();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
+            GL_UNSIGNED_BYTE, NULL );
+    checkError();
+
+    return;
 }
 
 int main(int argc, char **argv)
@@ -2317,11 +2493,22 @@ int main(int argc, char **argv)
     srcHeight = 240;
   }
   
-  destWidth = (sizeOption+1)*srcWidth;
-  destHeight = (sizeOption+1)*srcHeight;
+  destWidth = 240;
+  destHeight = 160;
   
-  surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-                             SDL_SWSURFACE|
+  assert( !SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 ) );
+ //assert( !SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, -1 ) );
+
+  surface = SDL_SetVideoMode( 320, 480, 32,
+                             SDL_OPENGLES|
                              (fullscreen ? SDL_FULLSCREEN : 0));
   
   if(surface == NULL) {
@@ -2329,230 +2516,112 @@ int main(int argc, char **argv)
     SDL_Quit();
     exit(-1);
   }
-  
-  systemRedShift = sdlCalculateShift(surface->format->Rmask);
-  systemGreenShift = sdlCalculateShift(surface->format->Gmask);
-  systemBlueShift = sdlCalculateShift(surface->format->Bmask);
-  
-  systemColorDepth = surface->format->BitsPerPixel;
-  if(systemColorDepth == 15)
-    systemColorDepth = 16;
 
-  if(yuv) {
-    Init_Overlay(surface, yuvType);
-    systemColorDepth = 32;
-    systemRedShift = 3;
-    systemGreenShift = 11;
-    systemBlueShift =  19;
-  }
+  GL_Init();
+  GL_InitMVP();
+  GL_InitTexture();
   
-  if(systemColorDepth != 16 && systemColorDepth != 24 &&
-     systemColorDepth != 32) {
-    fprintf(stderr,"Unsupported color depth '%d'.\nOnly 16, 24 and 32 bit color depths are supported\n", systemColorDepth);
-    exit(-1);
-  }
+  //RGBA format
+  systemRedShift = 24;
+  systemGreenShift = 16;
+  systemBlueShift = 8;
 
-#ifndef C_CORE
-  sdlMakeStretcher(srcWidth);
-#else
-  switch(systemColorDepth) {
-  case 16:
-    sdlStretcher = sdlStretcher16[sizeOption];
-    break;
-  case 24:
-    sdlStretcher = sdlStretcher24[sizeOption];
-    break;
-  case 32:
-    sdlStretcher = sdlStretcher32[sizeOption];
-    break;
-  default:
-    fprintf(stderr, "Unsupported resolution: %d\n", systemColorDepth);
-    exit(-1);
-  }
-#endif
-
-  fprintf(stderr,"Color depth: %d\n", systemColorDepth);
+  //systemRedShift = 3;
+  //systemGreenShift = 11;
+  //systemBlueShift = 19;
+  systemColorDepth = 32;
   
-  if(systemColorDepth == 16) {
-    if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
-      Init_2xSaI(565);
-      RGB_LOW_BITS_MASK = 0x821;
-    } else {
-      Init_2xSaI(555);
-      RGB_LOW_BITS_MASK = 0x421;      
-    }
-    if(cartridgeType == 2) {
-      for(int i = 0; i < 0x10000; i++) {
-        systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-          (((i & 0x7c0) >> 6) << systemGreenShift) |
-          (((i & 0xf800) >> 11) << systemRedShift);  
-      }      
-    } else {
-      for(int i = 0; i < 0x10000; i++) {
-        systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
+  
+  if(systemColorDepth != 32)
+      filterFunction = NULL;
+  RGB_LOW_BITS_MASK = 0x010101;
+  //if(systemColorDepth == 32) {
+  //    Init_2xSaI(32);
+  //}
+  for(int i = 0; i < 0x10000; i++) {
+      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
           (((i & 0x3e0) >> 5) << systemGreenShift) |
           (((i & 0x7c00) >> 10) << systemBlueShift);  
-      }
-    }
-    srcPitch = srcWidth * 2+4;
-  } else {
-    if(systemColorDepth != 32)
-      filterFunction = NULL;
-    RGB_LOW_BITS_MASK = 0x010101;
-    if(systemColorDepth == 32) {
-      Init_2xSaI(32);
-    }
-    for(int i = 0; i < 0x10000; i++) {
-      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
-        (((i & 0x3e0) >> 5) << systemGreenShift) |
-        (((i & 0x7c00) >> 10) << systemBlueShift);  
-    }
-    if(systemColorDepth == 32)
+  }
+  if(systemColorDepth == 32)
       srcPitch = srcWidth*4 + 4;
-    else
+  else
       srcPitch = srcWidth*3;
+
+  switch(filter) {
+      case 0:
+          filterFunction = NULL;
+          break;
+      case 1:
+          filterFunction = ScanlinesTV32;
+          break;
+      case 2:
+          filterFunction = _2xSaI32;
+          break;
+      case 3:
+          filterFunction = Super2xSaI32;
+          break;
+      case 4:
+          filterFunction = SuperEagle32;
+          break;
+      case 5:
+          filterFunction = Pixelate32;
+          break;
+      case 6:
+          filterFunction = MotionBlur32;
+          break;
+      case 7:
+          filterFunction = AdMame2x32;
+          break;
+      case 8:
+          filterFunction = Simple2x32;
+          break;
+      case 9:
+          filterFunction = Bilinear32;
+          break;
+      case 10:
+          filterFunction = BilinearPlus32;
+          break;
+      case 11:
+          filterFunction = Scanlines32;
+          break;
+      case 12:
+          filterFunction = hq2x32;
+          break;
+      case 13:
+          filterFunction = lq2x32;
+          break;
+      default:
+          filterFunction = NULL;
+          break;
   }
 
-  if(systemColorDepth != 32) {
-    switch(filter) {
-    case 0:
-      filterFunction = NULL;
-      break;
-    case 1:
-      filterFunction = ScanlinesTV;
-      break;
-    case 2:
-      filterFunction = _2xSaI;
-      break;
-    case 3:
-      filterFunction = Super2xSaI;
-      break;
-    case 4:
-      filterFunction = SuperEagle;
-      break;
-    case 5:
-      filterFunction = Pixelate;
-      break;
-    case 6:
-      filterFunction = MotionBlur;
-      break;
-    case 7:
-      filterFunction = AdMame2x;
-      break;
-    case 8:
-      filterFunction = Simple2x;
-      break;
-    case 9:
-      filterFunction = Bilinear;
-      break;
-    case 10:
-      filterFunction = BilinearPlus;
-      break;
-    case 11:
-      filterFunction = Scanlines;
-      break;
-    case 12:
-      filterFunction = hq2x;
-      break;
-    case 13:
-      filterFunction = lq2x;
-      break;
-    default:
-      filterFunction = NULL;
-      break;
-    }
-  } else {
-    switch(filter) {
-    case 0:
-      filterFunction = NULL;
-      break;
-    case 1:
-      filterFunction = ScanlinesTV32;
-      break;
-    case 2:
-      filterFunction = _2xSaI32;
-      break;
-    case 3:
-      filterFunction = Super2xSaI32;
-      break;
-    case 4:
-      filterFunction = SuperEagle32;
-      break;
-    case 5:
-      filterFunction = Pixelate32;
-      break;
-    case 6:
-      filterFunction = MotionBlur32;
-      break;
-    case 7:
-      filterFunction = AdMame2x32;
-      break;
-    case 8:
-      filterFunction = Simple2x32;
-      break;
-    case 9:
-      filterFunction = Bilinear32;
-      break;
-    case 10:
-      filterFunction = BilinearPlus32;
-      break;
-    case 11:
-      filterFunction = Scanlines32;
-      break;
-    case 12:
-      filterFunction = hq2x32;
-      break;
-    case 13:
-      filterFunction = lq2x32;
-      break;
-    default:
-      filterFunction = NULL;
-      break;
-    }
+  switch(ifbType) {
+      case 0:
+      default:
+          ifbFunction = NULL;
+          break;
+      case 1:
+          ifbFunction = MotionBlurIB32;
+          break;
+      case 2:
+          ifbFunction = SmartIB32;
+          break;
   }
-  
-  if(systemColorDepth == 16) {
-    switch(ifbType) {
-    case 0:
-    default:
-      ifbFunction = NULL;
-      break;
-    case 1:
-      ifbFunction = MotionBlurIB;
-      break;
-    case 2:
-      ifbFunction = SmartIB;
-      break;
-    }
-  } else if(systemColorDepth == 32) {
-    switch(ifbType) {
-    case 0:
-    default:
-      ifbFunction = NULL;
-      break;
-    case 1:
-      ifbFunction = MotionBlurIB32;
-      break;
-    case 2:
-      ifbFunction = SmartIB32;
-      break;
-    }
-  } else
-    ifbFunction = NULL;
 
   if(delta == NULL) {
-    delta = (u8*)malloc(322*242*4);
-    memset(delta, 255, 322*242*4);
+      delta = (u8*)malloc(322*242*4);
+      memset(delta, 255, 322*242*4);
   }
-  
+
   emulating = 1;
   renderedFrames = 0;
 
   if(!soundOffFlag)
-    soundInit();
+      soundInit();
 
   autoFrameSkipLastTime = throttleLastTime = systemGetClock();
-  
+
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
   while(emulating) {
@@ -2620,8 +2689,117 @@ void systemMessage(int num, const char *msg, ...)
 
 void systemDrawScreen()
 {
-  renderedFrames++;
-  
+    renderedFrames++;
+
+    u8*data = pix + destWidth*4+4;
+
+    glClear( GL_COLOR_BUFFER_BIT );
+    checkError();
+
+    u8*ptr = pix;
+
+    // Use the program object
+    glUseProgram ( programObject );
+    checkError();
+
+    float vertexCoords[] =
+    {
+        -destWidth, -destHeight,
+        destWidth, -destHeight,
+        -destWidth, destHeight,
+        destWidth, destHeight
+    };
+
+    //Why are the texCoords not in range [0-1]?
+    float texCoords[] =
+    {
+        0.0, 0.0,
+        0.0, destHeight,
+        destWidth, 0.0,
+        destWidth, destHeight
+    };
+
+    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
+    checkError();
+    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+    checkError();
+
+    glEnableVertexAttribArray( positionLoc );
+    checkError();
+    glEnableVertexAttribArray( texCoordLoc );
+    checkError();
+
+    ptr = pix;
+    for ( int i = 0; i < (destWidth + 1)*(destHeight+1)*4; i+= 4 )
+    {
+        //go 4 bytes at a time (32bpp)
+        if ( ptr[0] > 100 )
+        {
+            printf( "R: %d, G: %d, B: %d\n", ptr[0], ptr[1], ptr[2] );
+        }
+        ptr[3] = 255;
+        ptr += 4;
+    }
+    //for ( int i = 0; i < (destWidth + 1 )*(destHeight+1)*4; i+=8 )
+    //{
+    //    *ptr++ = 0x0F;
+    //    *ptr++ = 0x00;
+    //    *ptr++ = 0x00;
+    //    *ptr++ = 0x0F;
+    //    *ptr++ = 0x0F;
+    //    *ptr++ = 0x00;
+    //    *ptr++ = 0x0F;
+    //    *ptr++ = 0x0F;
+    //}
+    //glActiveTexture( GL_TEXTURE0 );
+    //checkError();
+    glBindTexture( GL_TEXTURE_2D, texture );
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D( GL_TEXTURE_2D,0,
+            0,0, destWidth,destHeight,
+            GL_RGBA,GL_UNSIGNED_BYTE,pix);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
+    //        GL_UNSIGNED_SHORT_4_4_4_4, pix );
+    checkError();
+    for( int y = 0; y < destHeight; y++ )
+    {
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, destWidth, 1, GL_RGBA, GL_UNSIGNED_BYTE, data );
+        checkError();
+        //printf( "%d\n", y );
+        data += destWidth*4 + 4;
+    }
+
+    //sampler texture unit to 0
+    glUniform1i( samplerLoc, 0 );
+    checkError();
+
+    static float c = 0.0f;
+    //cycle colors
+    //glUniform1f( u_color, c );
+    //checkError();
+    //c += 0.2f;
+    //if ( c > 1.0f ) c = 0.0f;
+
+    //// Load the MVP matrix
+    //glUniformMatrix4fv( mvpLoc, 1, GL_FALSE, (GLfloat*) &mvpMatrix.m[0][0] );
+    //checkError();
+
+    GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
+    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+    checkError();
+
+
+    //Push to screen
+    SDL_GL_SwapBuffers();
+    //glFlush();
+    //glFinish();
+    checkError();
+
+    return;
+
+#if 0
   if(yuv) {
     Draw_Overlay(surface, sizeOption+1);
     return;
@@ -2743,6 +2921,7 @@ void systemDrawScreen()
   SDL_UnlockSurface(surface);
   //  SDL_UpdateRect(surface, 0, 0, destWidth, destHeight);
   SDL_Flip(surface);
+#endif //if 0
 }
 
 bool systemReadJoypads()
@@ -3369,74 +3548,77 @@ inline void Draw_Overlay(SDL_Surface *display, int size)
 
 void systemGbBorderOn()
 {
-  srcWidth = 256;
-  srcHeight = 224;
-  gbBorderLineSkip = 256;
-  gbBorderColumnSkip = 48;
-  gbBorderRowSkip = 40;
-
-  destWidth = (sizeOption+1)*srcWidth;
-  destHeight = (sizeOption+1)*srcHeight;
-  
-  surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-                             SDL_SWSURFACE|
-                             (fullscreen ? SDL_FULLSCREEN : 0));  
-#ifndef C_CORE
-  sdlMakeStretcher(srcWidth);
-#else
-  switch(systemColorDepth) {
-  case 16:
-    sdlStretcher = sdlStretcher16[sizeOption];
-    break;
-  case 24:
-    sdlStretcher = sdlStretcher24[sizeOption];
-    break;
-  case 32:
-    sdlStretcher = sdlStretcher32[sizeOption];
-    break;
-  default:
-    fprintf(stderr, "Unsupported resolution: %d\n", systemColorDepth);
-    exit(-1);
-  }
-#endif
-
-  if(systemColorDepth == 16) {
-    if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
-      Init_2xSaI(565);
-      RGB_LOW_BITS_MASK = 0x821;
-    } else {
-      Init_2xSaI(555);
-      RGB_LOW_BITS_MASK = 0x421;      
-    }
-    if(cartridgeType == 2) {
-      for(int i = 0; i < 0x10000; i++) {
-        systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-          (((i & 0x7c0) >> 6) << systemGreenShift) |
-          (((i & 0xf800) >> 11) << systemRedShift);  
-      }      
-    } else {
-      for(int i = 0; i < 0x10000; i++) {
-        systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-          (((i & 0x3e0) >> 5) << systemGreenShift) |
-          (((i & 0x7c00) >> 10) << systemBlueShift);  
-      }
-    }
-    srcPitch = srcWidth * 2+4;
-  } else {
-    if(systemColorDepth != 32)
-      filterFunction = NULL;
-    RGB_LOW_BITS_MASK = 0x010101;
-    if(systemColorDepth == 32) {
-      Init_2xSaI(32);
-    }
-    for(int i = 0; i < 0x10000; i++) {
-      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
-        (((i & 0x3e0) >> 5) << systemGreenShift) |
-        (((i & 0x7c00) >> 10) << systemBlueShift);  
-    }
-    if(systemColorDepth == 32)
-      srcPitch = srcWidth*4 + 4;
-    else
-      srcPitch = srcWidth*3;
-  }
+  printf( "Not supported!\n" );
+  exit( -1 );
+//
+//  srcWidth = 256;
+//  srcHeight = 224;
+//  gbBorderLineSkip = 256;
+//  gbBorderColumnSkip = 48;
+//  gbBorderRowSkip = 40;
+//
+//  destWidth = (sizeOption+1)*srcWidth;
+//  destHeight = (sizeOption+1)*srcHeight;
+//  
+//  surface = SDL_SetVideoMode(destWidth, destHeight, 16,
+//                             SDL_SWSURFACE|
+//                             (fullscreen ? SDL_FULLSCREEN : 0));  
+//#ifndef C_CORE
+//  sdlMakeStretcher(srcWidth);
+//#else
+//  switch(systemColorDepth) {
+//  case 16:
+//    sdlStretcher = sdlStretcher16[sizeOption];
+//    break;
+//  case 24:
+//    sdlStretcher = sdlStretcher24[sizeOption];
+//    break;
+//  case 32:
+//    sdlStretcher = sdlStretcher32[sizeOption];
+//    break;
+//  default:
+//    fprintf(stderr, "Unsupported resolution: %d\n", systemColorDepth);
+//    exit(-1);
+//  }
+//#endif
+//
+//  if(systemColorDepth == 16) {
+//    if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
+//      Init_2xSaI(565);
+//      RGB_LOW_BITS_MASK = 0x821;
+//    } else {
+//      Init_2xSaI(555);
+//      RGB_LOW_BITS_MASK = 0x421;      
+//    }
+//    if(cartridgeType == 2) {
+//      for(int i = 0; i < 0x10000; i++) {
+//        systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
+//          (((i & 0x7c0) >> 6) << systemGreenShift) |
+//          (((i & 0xf800) >> 11) << systemRedShift);  
+//      }      
+//    } else {
+//      for(int i = 0; i < 0x10000; i++) {
+//        systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
+//          (((i & 0x3e0) >> 5) << systemGreenShift) |
+//          (((i & 0x7c00) >> 10) << systemBlueShift);  
+//      }
+//    }
+//    srcPitch = srcWidth * 2+4;
+//  } else {
+//    if(systemColorDepth != 32)
+//      filterFunction = NULL;
+//    RGB_LOW_BITS_MASK = 0x010101;
+//    if(systemColorDepth == 32) {
+//      Init_2xSaI(32);
+//    }
+//    for(int i = 0; i < 0x10000; i++) {
+//      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
+//        (((i & 0x3e0) >> 5) << systemGreenShift) |
+//        (((i & 0x7c00) >> 10) << systemBlueShift);  
+//    }
+//    if(systemColorDepth == 32)
+//      srcPitch = srcWidth*4 + 4;
+//    else
+//      srcPitch = srcWidth*3;
+//  }
 }
