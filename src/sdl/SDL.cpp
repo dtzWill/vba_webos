@@ -1980,15 +1980,12 @@ GLint  texCoordLoc;
 // Sampler location
 GLint samplerLoc;
 
-// Matrix that handles perspective/translations
-//ESMatrix  mvpMatrix;
-
-// Uniform location for that matrix
-GLint  mvpLoc;
-
 void GL_Init()
 {
     // setup 2D gl environment
+    // NOT specifying viewport makes this work--why?
+    // XXX: Use glGet to figure out what the default is
+    // and figure out why this works!
     //glViewport(0, 0, destWidth, destHeight);
     //glViewport(0, 0, destHeight/2, destWidth/2);
     checkError();
@@ -2001,8 +1998,10 @@ void GL_Init()
     glDisable(GL_CULL_FACE);
     checkError();
 
+    //XXX:
+    //v_texCoord always ends up being a_position. seems inefficient
+    //ALSO 'a_position' should be (if possible) a compile-time constant
     GLbyte vShaderStr[] =  
-        //"uniform mat4 u_mvpMatrix;    \n"
         "attribute vec4 a_position;   \n"
         "attribute vec2 a_texCoord;   \n"
         "varying vec2 v_texCoord;     \n"
@@ -2034,42 +2033,8 @@ void GL_Init()
     // Get the sampler location
     samplerLoc = glGetUniformLocation ( programObject, "s_texture" );
     checkError();
-
-    ////Get the mvpMatrix location
-    //mvpLoc = glGetUniformLocation( programObject, "u_mvpMatrix" );
-    //checkError();
 }
 
-void GL_InitMVP()
-{
-    return;
-//    ESMatrix perspective;
-//    ESMatrix modelview;
-//    //GLfloat aspect;
-//
-//    // Compute the window aspect ratio
-//    //aspect = (GLfloat) destWidth / (GLfloat) destHeight;
-//
-//    // Generate a perspective matrix with a 60 degree FOV
-//    esMatrixLoadIdentity( &perspective );
-//    checkError();
-//    esOrtho( &perspective, 0.0, destHeight, 0, destWidth, 0, 1 );
-//    //esPerspective( &perspective, 180.0f, 1/aspect, 0.0f, 1.0f );
-//    checkError();
-//
-//    // Generate a model view matrix to rotate/translate the cube
-//    esMatrixLoadIdentity( &modelview );
-//    checkError();
-//
-//    // Translate away from the viewer
-//    //esTranslate( &modelview, 0.0f, 0.0f, 0.0f );
-//    checkError();
-//
-//    // Compute the final MVP by multiplying the 
-//    // modevleiw and perspective matrices together
-//    esMatrixMultiply( &mvpMatrix, &modelview, &perspective );
-//    checkError();
-}
 
 void GL_InitTexture()
 {
@@ -2098,9 +2063,9 @@ void GL_InitTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     checkError();
 
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+    //glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     //checkError();
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+    //glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     //checkError();
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
@@ -2518,13 +2483,13 @@ int main(int argc, char **argv)
   }
 
   GL_Init();
-  GL_InitMVP();
   GL_InitTexture();
   
   //RGBA format
-  systemRedShift = 24;
-  systemGreenShift = 16;
-  systemBlueShift = 8;
+  int shift_offset = 3;
+  systemRedShift = 24 + shift_offset;
+  systemGreenShift = 16 + shift_offset;
+  systemBlueShift = 8 + shift_offset;
 
   //systemRedShift = 3;
   //systemGreenShift = 11;
@@ -2691,12 +2656,8 @@ void systemDrawScreen()
 {
     renderedFrames++;
 
-    u8*data = pix + destWidth*4+4;
-
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
-
-    u8*ptr = pix;
 
     // Use the program object
     glUseProgram ( programObject );
@@ -2730,7 +2691,8 @@ void systemDrawScreen()
     glEnableVertexAttribArray( texCoordLoc );
     checkError();
 
-    ptr = pix;
+    //Probably only have to do this once....not like they'll be overriding alpha!
+    u8 * ptr = pix;
     for ( int i = 0; i < (destWidth + 1)*(destHeight+1)*4; i+= 4 )
     {
         //go 4 bytes at a time (32bpp)
@@ -2741,28 +2703,17 @@ void systemDrawScreen()
         ptr[3] = 255;
         ptr += 4;
     }
-    //for ( int i = 0; i < (destWidth + 1 )*(destHeight+1)*4; i+=8 )
-    //{
-    //    *ptr++ = 0x0F;
-    //    *ptr++ = 0x00;
-    //    *ptr++ = 0x00;
-    //    *ptr++ = 0x0F;
-    //    *ptr++ = 0x0F;
-    //    *ptr++ = 0x00;
-    //    *ptr++ = 0x0F;
-    //    *ptr++ = 0x0F;
-    //}
-    //glActiveTexture( GL_TEXTURE0 );
-    //checkError();
-    glBindTexture( GL_TEXTURE_2D, texture );
 
+    glBindTexture( GL_TEXTURE_2D, texture );
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexSubImage2D( GL_TEXTURE_2D,0,
-            0,0, destWidth,destHeight,
-            GL_RGBA,GL_UNSIGNED_BYTE,pix);
+    //glTexSubImage2D( GL_TEXTURE_2D,0,
+    //        0,0, destWidth,destHeight,
+    //        GL_RGBA,GL_UNSIGNED_BYTE,pix);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
-    //        GL_UNSIGNED_SHORT_4_4_4_4, pix );
+    //        GL_UNSIGNED_BYTE, pix );
+
     checkError();
+    u8*data = pix + destWidth*4+4;
     for( int y = 0; y < destHeight; y++ )
     {
         glTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, destWidth, 1, GL_RGBA, GL_UNSIGNED_BYTE, data );
