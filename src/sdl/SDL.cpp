@@ -2938,6 +2938,7 @@ void systemShowSpeed(int speed)
   showRenderedFrames = renderedFrames;
   renderedFrames = 0;  
 
+  printf( "FPS: %d\n", showRenderedFrames );
   if(!fullscreen && showSpeed) {
     char buffer[80];
     if(showSpeed == 1)
