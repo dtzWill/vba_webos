@@ -44,7 +44,7 @@
 #include <assert.h>
 #include "esFunc.h"
 
-#define DEBUG_GL
+//#define DEBUG_GL
 
 #ifdef DEBUG_GL
 void checkError()
