@@ -1972,16 +1972,13 @@ void GL_Init()
     glDisable(GL_CULL_FACE);
     checkError();
 
-    //XXX:
-    //v_texCoord always ends up being a_position. seems inefficient
-    //ALSO 'a_position' should be (if possible) a compile-time constant
     GLbyte vShaderStr[] =  
         "attribute vec4 a_position;   \n"
         "attribute vec2 a_texCoord;   \n"
         "varying vec2 v_texCoord;     \n"
         "void main()                  \n"
         "{                            \n"
-        "   gl_Position = a_position; \n"
+        "   gl_Position = 2.0 * a_position - 1.0; \n"
         "   v_texCoord = a_texCoord;  \n"
         "}                            \n";
 
@@ -1991,8 +1988,9 @@ void GL_Init()
         "uniform sampler2D s_texture;                        \n"
         "void main()                                         \n"
         "{                                                   \n"
-        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
-        //"    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );     \n"
+        "  float flipy = 1.0 - v_texCoord.y;                 \n"
+        "  vec2 newvec = vec2( v_texCoord.x, flipy );        \n"
+        "  gl_FragColor = texture2D( s_texture, newvec );    \n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -2034,9 +2032,11 @@ void GL_InitTexture()
     checkError();
 
     //Eventually we'll probably want something like GL_NEAREST_MIPMAP_LINEAR
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    int filter = GL_LINEAR;//GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
     checkError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
     checkError();
 
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -2046,8 +2046,6 @@ void GL_InitTexture()
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
             GL_UNSIGNED_BYTE, NULL );
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB,
-    //        GL_UNSIGNED_BYTE, NULL );
     checkError();
 
     return;
@@ -2933,12 +2931,6 @@ void systemSetTitle(const char *title)
 
 void systemShowSpeed(int speed)
 {
-    static int counter = 0;
-    if ( counter++ > 10 )
-    {
-        printf( "done!\n" );
-        exit( 1 );
-    }
   systemSpeed = speed;
 
   showRenderedFrames = renderedFrames;
