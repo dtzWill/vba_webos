@@ -288,12 +288,12 @@ enum {
 };
 
 u16 joypad[4][12] = {
-  { SDLK_LEFT,  SDLK_RIGHT,
-    SDLK_UP,    SDLK_DOWN,
-    SDLK_z,     SDLK_x,
-    SDLK_RETURN,SDLK_BACKSPACE,
-    SDLK_a,     SDLK_s,
-    SDLK_SPACE, SDLK_F12
+  { SDLK_a,  SDLK_d,
+    SDLK_w,    SDLK_s,
+    SDLK_k,     SDLK_l,
+    SDLK_RETURN,SDLK_SPACE,
+    SDLK_q,     SDLK_p,
+    SDLK_AT, SDLK_PERIOD
   },
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -1721,85 +1721,42 @@ void sdlPollEvents()
       break;
     case SDL_KEYUP:
       switch(event.key.keysym.sym) {
-      case SDLK_r:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          if(emulating) {
-            emulator.emuReset();
-
-            systemScreenMessage("Reset");
-          }
-        }
-        break;
-      case SDLK_b:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          if(emulating && emulator.emuReadMemState && rewindMemory 
-             && rewindCount) {
-            rewindPos = --rewindPos & 7;
-            emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos], 
-                                     REWIND_SIZE);
-            rewindCount--;
-            rewindCounter = 0;
-            systemScreenMessage("Rewind");
-          }
-        }
-        break;
-      case SDLK_p:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          paused = !paused;
-          SDL_PauseAudio(paused);
-          if(paused)
-            wasPaused = true;
-        }
-        break;
-      case SDLK_ESCAPE:
-        emulating = 0;
-        break;
-      case SDLK_f:
-        //Can't change modes when using openGL
-        printf( "Not supported!\n" );
-        exit( -1 );
+          //      XXX: bind these to something useful
+//      case SDLK_r:
 //        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
 //           (event.key.keysym.mod & KMOD_CTRL)) {
-//          int flags = 0;
-//          fullscreen = !fullscreen;
-//          if(fullscreen)
-//            flags |= SDL_FULLSCREEN;
-//          SDL_SetVideoMode(destWidth, destHeight, systemColorDepth, flags);
-//          //          if(SDL_WM_ToggleFullScreen(surface))
-//          //            fullscreen = !fullscreen;
+//          if(emulating) {
+//            emulator.emuReset();
+//
+//            systemScreenMessage("Reset");
+//          }
 //        }
-        break;
-      case SDLK_F11:
-        if(dbgMain != debuggerMain) {
-          if(armState) {
-            armNextPC -= 4;
-            reg[15].I -= 4;
-          } else {
-            armNextPC -= 2;
-            reg[15].I -= 2;
-          }
-        }
-        debugger = true;
-        break;
-      case SDLK_F1:
-      case SDLK_F2:
-      case SDLK_F3:
-      case SDLK_F4:
-      case SDLK_F5:
-      case SDLK_F6:
-      case SDLK_F7:
-      case SDLK_F8:
-      case SDLK_F9:
-      case SDLK_F10:
-        if(!(event.key.keysym.mod & MOD_NOSHIFT) &&
-           (event.key.keysym.mod & KMOD_SHIFT)) {
-          sdlWriteState(event.key.keysym.sym-SDLK_F1);
-        } else if(!(event.key.keysym.mod & MOD_KEYS)) {
-          sdlReadState(event.key.keysym.sym-SDLK_F1);
-        }
+//        break;
+//      case SDLK_b:
+//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//          if(emulating && emulator.emuReadMemState && rewindMemory 
+//             && rewindCount) {
+//            rewindPos = --rewindPos & 7;
+//            emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos], 
+//                                     REWIND_SIZE);
+//            rewindCount--;
+//            rewindCounter = 0;
+//            systemScreenMessage("Rewind");
+//          }
+//        }
+//        break;
+//      case SDLK_p:
+//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//          paused = !paused;
+//          SDL_PauseAudio(paused);
+//          if(paused)
+//            wasPaused = true;
+//        }
+//        break;
+      case SDLK_ESCAPE:
+        emulating = 0;
         break;
       case SDLK_1:
       case SDLK_2:
@@ -1846,14 +1803,14 @@ void sdlPollEvents()
           layerEnable = DISPCNT & layerSettings;
         }
         break;
-      case SDLK_n:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          if(paused)
-            paused = false;
-          pauseNextFrame = true;
-        }
-        break;
+//      case SDLK_n:
+//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//          if(paused)
+//            paused = false;
+//          pauseNextFrame = true;
+//        }
+//        break;
       default:
         break;
       }
@@ -2936,7 +2893,6 @@ void systemShowSpeed(int speed)
   showRenderedFrames = renderedFrames;
   renderedFrames = 0;  
 
-  printf( "FPS: %d\n", showRenderedFrames );
   if(!fullscreen && showSpeed) {
     char buffer[80];
     if(showSpeed == 1)
