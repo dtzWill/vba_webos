@@ -3558,7 +3558,7 @@ void CPULoop(int ticks)
               switch(systemColorDepth) {
               case 16:
                 {
-                  u16 *dest = (u16 *)pix + 242 * (VCOUNT+1);
+                  u16 *dest = (u16 *)pix + 240 * (VCOUNT);
                   for(int x = 0; x < 240;) {
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
@@ -3581,7 +3581,7 @@ void CPULoop(int ticks)
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                   }
                   // for filters that read past the screen
-                  *dest++ = 0;
+                  //*dest++ = 0;
                 }
                 break;
               case 24:

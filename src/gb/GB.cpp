@@ -2854,7 +2854,7 @@ void gbEmulate(int ticksToStop)
                 case 16:
                   {
                     u16 * dest = (u16 *)pix +
-                      (gbBorderLineSkip+2) * (register_LY + gbBorderRowSkip+1)
+                      (gbBorderLineSkip) * (register_LY + gbBorderRowSkip)
                       + gbBorderColumnSkip;
                     for(int x = 0; x < 160; ) {
                       *dest++ = systemColorMap16[gbLineMix[x++]];
@@ -2879,7 +2879,7 @@ void gbEmulate(int ticksToStop)
                     }
                     if(gbBorderOn)
                       dest += gbBorderColumnSkip;
-                    *dest++ = 0; // for filters that read one pixel more
+                    //*dest++ = 0; // for filters that read one pixel more
                   }
                   break;
                 case 24:

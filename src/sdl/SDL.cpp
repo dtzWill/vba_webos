@@ -2669,24 +2669,11 @@ void systemDrawScreen()
     
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
-    //This would be faster.  However since the buffer is
-    //(w+offset)x(h+offset) instead of the (w)x(h) gl expects (and makes sense)
-    //we have to upload the texture row-by-row.
-    //The reasons for it being the way it is are gone now, so a TODO is to 
-    //change the code to no longer render with that extra space.
-    //glTexSubImage2D( GL_TEXTURE_2D,0,
-    //        0,0, srcWidth,srcHeight,
-    //        GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
+    glTexSubImage2D( GL_TEXTURE_2D,0,
+            0,0, srcWidth,srcHeight,
+            GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
 
     checkError();
-    //Skip the first row, due to buffer offset
-    u8*data = pix + destWidth*2+4;
-    for( int y = 0; y < srcHeight; y++ )
-    {
-        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, srcWidth, 1, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data );
-        checkError();
-        data += srcWidth*2 + 4;//+4;//destWidth*4 + 4;
-    }
 
     //sampler texture unit to 0
     glUniform1i( samplerLoc, 0 );
