@@ -2706,10 +2706,10 @@ void systemDrawScreen()
     //Useful to decouple pixel format issues from openGL rendering ones.
     //testPattern();
 
-    glBindTexture( GL_TEXTURE_2D, texture );
+    //glBindTexture( GL_TEXTURE_2D, texture );
 
     
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
     //This would be faster.  However since the buffer is
     //(w+offset)x(h+offset) instead of the (w)x(h) gl expects (and makes sense)
@@ -2933,6 +2933,12 @@ void systemSetTitle(const char *title)
 
 void systemShowSpeed(int speed)
 {
+    static int counter = 0;
+    if ( counter++ > 10 )
+    {
+        printf( "done!\n" );
+        exit( 1 );
+    }
   systemSpeed = speed;
 
   showRenderedFrames = renderedFrames;
