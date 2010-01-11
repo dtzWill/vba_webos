@@ -290,7 +290,7 @@ enum {
 u16 joypad[4][12] = {
   { SDLK_a,  SDLK_d,
     SDLK_w,    SDLK_s,
-    SDLK_k,     SDLK_l,
+    SDLK_l,     SDLK_k,
     SDLK_RETURN,SDLK_SPACE,
     SDLK_q,     SDLK_p,
     SDLK_AT, SDLK_PERIOD
@@ -2432,8 +2432,11 @@ int main(int argc, char **argv)
 
   //See above for the format, these are the shifts for each component
   //RGB format
+  //
+  //Note that 5-6-5 has green at offset '5' not '6', but
+  //we only have 2^5 blue values to represent, so we shift it.
   systemRedShift = 11;
-  systemGreenShift = 5;
+  systemGreenShift = 6;
   systemBlueShift = 0;
 
   systemColorDepth = 16;
