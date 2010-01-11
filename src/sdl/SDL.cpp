@@ -44,7 +44,7 @@
 #include <assert.h>
 #include "esFunc.h"
 
-//#define DEBUG_GL
+#define DEBUG_GL
 
 #ifdef DEBUG_GL
 void checkError()
@@ -53,7 +53,7 @@ void checkError()
     GLenum gl_error = glGetError( );
 
     if( gl_error != GL_NO_ERROR ) {
-        fprintf( stderr, "testgl: OpenGL error: %x\n", gl_error );
+        fprintf( stderr, "VBA: OpenGL error: %x\n", gl_error );
         while(1);
         exit( 1 );
     }
@@ -61,7 +61,7 @@ void checkError()
     char * sdl_error = SDL_GetError( );
 
     if( sdl_error[0] != '\0' ) {
-        fprintf(stderr, "testgl: SDL error '%s'\n", sdl_error);
+        fprintf(stderr, "VBA: SDL error '%s'\n", sdl_error);
         while(1);
         exit( 2 );
     }
@@ -93,42 +93,10 @@ extern "C" bool cpu_mmx;
 extern bool soundEcho;
 extern bool soundLowPass;
 extern bool soundReverse;
-extern int Init_2xSaI(u32);
-extern void _2xSaI(u8*,u32,u8*,u8*,u32,int,int);
-extern void _2xSaI32(u8*,u32,u8*,u8*,u32,int,int);  
-extern void Super2xSaI(u8*,u32,u8*,u8*,u32,int,int);
-extern void Super2xSaI32(u8*,u32,u8*,u8*,u32,int,int);
-extern void SuperEagle(u8*,u32,u8*,u8*,u32,int,int);
-extern void SuperEagle32(u8*,u32,u8*,u8*,u32,int,int);  
-extern void Pixelate(u8*,u32,u8*,u8*,u32,int,int);
-extern void Pixelate32(u8*,u32,u8*,u8*,u32,int,int);
-extern void MotionBlur(u8*,u32,u8*,u8*,u32,int,int);
-extern void MotionBlur32(u8*,u32,u8*,u8*,u32,int,int);
-extern void AdMame2x(u8*,u32,u8*,u8*,u32,int,int);
-extern void AdMame2x32(u8*,u32,u8*,u8*,u32,int,int);
-extern void Simple2x(u8*,u32,u8*,u8*,u32,int,int);
-extern void Simple2x32(u8*,u32,u8*,u8*,u32,int,int);
-extern void Bilinear(u8*,u32,u8*,u8*,u32,int,int);
-extern void Bilinear32(u8*,u32,u8*,u8*,u32,int,int);
-extern void BilinearPlus(u8*,u32,u8*,u8*,u32,int,int);
-extern void BilinearPlus32(u8*,u32,u8*,u8*,u32,int,int);
-extern void Scanlines(u8*,u32,u8*,u8*,u32,int,int);
-extern void Scanlines32(u8*,u32,u8*,u8*,u32,int,int);
-extern void ScanlinesTV(u8*,u32,u8*,u8*,u32,int,int);
-extern void ScanlinesTV32(u8*,u32,u8*,u8*,u32,int,int);
-extern void hq2x(u8*,u32,u8*,u8*,u32,int,int);
-extern void hq2x32(u8*,u32,u8*,u8*,u32,int,int);
-extern void lq2x(u8*,u32,u8*,u8*,u32,int,int);
-extern void lq2x32(u8*,u32,u8*,u8*,u32,int,int);
 
-extern void SmartIB(u8*,u32,int,int);
-extern void SmartIB32(u8*,u32,int,int);
-extern void MotionBlurIB(u8*,u32,int,int);
-extern void MotionBlurIB32(u8*,u32,int,int);
-
-void Init_Overlay(SDL_Surface *surface, int overlaytype);
-void Quit_Overlay(void);
-void Draw_Overlay(SDL_Surface *surface, int size);
+//void Init_Overlay(SDL_Surface *surface, int overlaytype);
+//void Quit_Overlay(void);
+//void Draw_Overlay(SDL_Surface *surface, int size);
 
 extern void remoteInit();
 extern void remoteCleanUp();
@@ -162,7 +130,22 @@ SDL_Surface *surface = NULL;
 SDL_Overlay *overlay = NULL;
 SDL_Rect overlay_rect;
 
+
+/*-----------------------------------------------------------------------------
+ *  GL variables
+ *-----------------------------------------------------------------------------*/
 GLuint texture;
+
+// Handle to a program object
+GLuint programObject;
+
+// Attribute locations
+GLint  positionLoc;
+GLint  texCoordLoc;
+
+// Sampler location
+GLint samplerLoc;
+
 
 int systemSpeed = 0;
 int systemRedShift = 0;
@@ -1970,22 +1953,13 @@ Long options only:\n\
 ");
 }
 
-// Handle to a program object
-GLuint programObject;
-
-// Attribute locations
-GLint  positionLoc;
-GLint  texCoordLoc;
-
-// Sampler location
-GLint samplerLoc;
-
 void GL_Init()
 {
     // setup 2D gl environment
     // NOT specifying viewport makes this work--why?
     // XXX: Use glGet to figure out what the default is
     // and figure out why this works!
+    //glViewport(0, 0, destWidth, destHeight);
     //glViewport(0, 0, destWidth, destHeight);
     //glViewport(0, 0, destHeight/2, destWidth/2);
     checkError();
@@ -2018,6 +1992,7 @@ void GL_Init()
         "void main()                                         \n"
         "{                                                   \n"
         "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
+        //"    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );     \n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -2058,18 +2033,21 @@ void GL_InitTexture()
     assert( num == GL_TEXTURE0 );
     checkError();
 
+    //Eventually we'll probably want something like GL_NEAREST_MIPMAP_LINEAR
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     checkError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     checkError();
 
-    //glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    //checkError();
-    //glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    //checkError();
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    checkError();
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    checkError();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
             GL_UNSIGNED_BYTE, NULL );
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB,
+    //        GL_UNSIGNED_BYTE, NULL );
     checkError();
 
     return;
@@ -2458,8 +2436,8 @@ int main(int argc, char **argv)
     srcHeight = 240;
   }
   
-  destWidth = 240;
-  destHeight = 160;
+  destWidth = 320;
+  destHeight = 480;
   
   assert( !SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
@@ -2485,18 +2463,61 @@ int main(int argc, char **argv)
   GL_Init();
   GL_InitTexture();
   
-  //RGBA format
-  int shift_offset = 3;
-  systemRedShift = 24 + shift_offset;
-  systemGreenShift = 16 + shift_offset;
-  systemBlueShift = 8 + shift_offset;
+  // Here we are forcing the bitdepth and format to use.
+  // I chose 16 instead of 32 because it will be faster to work with cpu-wise (and sending to gpu)
+  // and let the gpu up-convert it. Also GBA doesn't have 32-bit color anyway.
+ 
+  // Furthermore I chose 5-6-5 RGB encoding because
+  // a)we have no use for alpha in the main texture.
+  // b)I like blue. :P
+  //
+  // But really, of the GL_SHORT pixel formats I don't know that it matters.
+  // Small note: since the alpha bit is 'inverted' ('1' means opaque),
+  // the colormaps would have to be changed accordingly.  This is entirely untested.
 
-  //systemRedShift = 3;
-  //systemGreenShift = 11;
-  //systemBlueShift = 19;
-  systemColorDepth = 32;
-  
-  
+  //See above for the format, these are the shifts for each component
+  //RGB format
+  systemRedShift = 11;
+  systemGreenShift = 5;
+  systemBlueShift = 0;
+
+  systemColorDepth = 16;
+
+  //XXX: diff what's here and what used to be here, and see if any of it is worth keeping
+#if 1
+  //if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
+  if ( 1 ) {//we're choosing/forcing 5-6-5 format.
+      //We're not using 2xSaI in the foreseeable future...
+      //Init_2xSaI(565);
+      RGB_LOW_BITS_MASK = 0x821;
+  } else {
+      //Init_2xSaI(555);
+      RGB_LOW_BITS_MASK = 0x421;      
+  }
+  if(cartridgeType == 2) {
+      for(int i = 0; i < 0x10000; i++) {
+          systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
+              (((i & 0x7c0) >> 6) << systemGreenShift) |
+              (((i & 0xf800) >> 11) << systemRedShift);  
+      }      
+  } else {
+      for(int i = 0; i < 0x10000; i++) {
+          systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
+              (((i & 0x3e0) >> 5) << systemGreenShift) |
+              (((i & 0x7c00) >> 10) << systemBlueShift);  
+      }
+  }
+  //XXX Okay so apparently
+  //VBA stores the pixel buffers in not a (width)(height) buffer, but a
+  //(width+offset)(height+offset2) buffer, for.. as far as I can tell, for
+  //filtering reasons--so they can be processed in-place.  However,
+  //we don't make use of their filters, and this makes uploading a texture
+  //more expensive. (they have to be done row by row since GL|ES 2.0 doesn't
+  //support the ROW_LENGTH tex attribute).
+  //TODO: "Fix" the code to note set up and use this 'extra' values.
+  srcPitch = srcWidth * 2+4;
+
+#else
   if(systemColorDepth != 32)
       filterFunction = NULL;
   RGB_LOW_BITS_MASK = 0x010101;
@@ -2512,67 +2533,10 @@ int main(int argc, char **argv)
       srcPitch = srcWidth*4 + 4;
   else
       srcPitch = srcWidth*3;
-
-  switch(filter) {
-      case 0:
-          filterFunction = NULL;
-          break;
-      case 1:
-          filterFunction = ScanlinesTV32;
-          break;
-      case 2:
-          filterFunction = _2xSaI32;
-          break;
-      case 3:
-          filterFunction = Super2xSaI32;
-          break;
-      case 4:
-          filterFunction = SuperEagle32;
-          break;
-      case 5:
-          filterFunction = Pixelate32;
-          break;
-      case 6:
-          filterFunction = MotionBlur32;
-          break;
-      case 7:
-          filterFunction = AdMame2x32;
-          break;
-      case 8:
-          filterFunction = Simple2x32;
-          break;
-      case 9:
-          filterFunction = Bilinear32;
-          break;
-      case 10:
-          filterFunction = BilinearPlus32;
-          break;
-      case 11:
-          filterFunction = Scanlines32;
-          break;
-      case 12:
-          filterFunction = hq2x32;
-          break;
-      case 13:
-          filterFunction = lq2x32;
-          break;
-      default:
-          filterFunction = NULL;
-          break;
-  }
-
-  switch(ifbType) {
-      case 0:
-      default:
-          ifbFunction = NULL;
-          break;
-      case 1:
-          ifbFunction = MotionBlurIB32;
-          break;
-      case 2:
-          ifbFunction = SmartIB32;
-          break;
-  }
+#endif
+  //No filter support (should be implemented as part of the GL shader)
+  ifbFunction = NULL;
+  filterFunction = NULL;
 
   if(delta == NULL) {
       delta = (u8*)malloc(322*242*4);
@@ -2652,6 +2616,53 @@ void systemMessage(int num, const char *msg, ...)
   va_end(valist);
 }
 
+/*
+ * Renders some known values to the screen
+ * Used for debugging rendering issues
+ * independent of getting the emu
+ * to encode colors the way I want
+ *
+ * This function creates a checkered pattern
+ * of size 'tileSize' into pix.
+ */
+void testPattern()
+{
+    //This code creates a checkered pattern
+    //of size 'tileSize'
+    u8 * ptr = pix;
+
+    int tileSize = 40;
+    int Bpp = 2;
+    int tileLen = tileSize * Bpp;
+
+    int j, i;
+    //for each row vertically
+    for ( j = 0; j < srcHeight; j++ )
+    {
+        u8 * rowPtr = ptr;
+        //color a streak the same color
+        for ( i = 0; i < srcWidth; i+=tileSize )
+        {
+            int tileX = i / tileSize;
+            int tileY = j / tileSize;
+            bool tileDark = ( tileX + tileY ) % 2 == 1;
+
+            //I actually have no idea if 00 or FF is white/black :).
+            //Luckily that doesn't matter
+            u8 tileColor = tileDark ? 0x00 : 0xFF;
+
+            memset( rowPtr, tileColor, tileLen );
+
+            rowPtr += tileLen;
+
+        }
+
+        assert( ptr + srcWidth*Bpp == rowPtr );
+        //There's an extra row... for no good reason.
+        ptr = rowPtr + 4;
+    }
+}
+
 void systemDrawScreen()
 {
     renderedFrames++;
@@ -2665,9 +2676,9 @@ void systemDrawScreen()
 
     float vertexCoords[] =
     {
-        -destWidth, -destHeight,
-        destWidth, -destHeight,
-        -destWidth, destHeight,
+        0.0, 0.0,
+        0.0, destHeight,
+        destWidth, 0.0,
         destWidth, destHeight
     };
 
@@ -2691,51 +2702,37 @@ void systemDrawScreen()
     glEnableVertexAttribArray( texCoordLoc );
     checkError();
 
-    //Probably only have to do this once....not like they'll be overriding alpha!
-    u8 * ptr = pix;
-    for ( int i = 0; i < (destWidth + 1)*(destHeight+1)*4; i+= 4 )
-    {
-        //go 4 bytes at a time (32bpp)
-        if ( ptr[0] > 100 )
-        {
-            printf( "R: %d, G: %d, B: %d\n", ptr[0], ptr[1], ptr[2] );
-        }
-        ptr[3] = 255;
-        ptr += 4;
-    }
+    //Uncomment this to enable the testPattern instead of the rendered game.
+    //Useful to decouple pixel format issues from openGL rendering ones.
+    //testPattern();
 
     glBindTexture( GL_TEXTURE_2D, texture );
+
+    
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
+    //This would be faster.  However since the buffer is
+    //(w+offset)x(h+offset) instead of the (w)x(h) gl expects (and makes sense)
+    //we have to upload the texture row-by-row.
+    //The reasons for it being the way it is are gone now, so a TODO is to 
+    //change the code to no longer render with that extra space.
     //glTexSubImage2D( GL_TEXTURE_2D,0,
-    //        0,0, destWidth,destHeight,
-    //        GL_RGBA,GL_UNSIGNED_BYTE,pix);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, destWidth, destHeight, 0, GL_RGBA,
-    //        GL_UNSIGNED_BYTE, pix );
+    //        0,0, srcWidth,srcHeight,
+    //        GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
 
     checkError();
-    u8*data = pix + destWidth*4+4;
-    for( int y = 0; y < destHeight; y++ )
+    //Skip the first row, due to buffer offset
+    u8*data = pix + destWidth*2+4;
+    for( int y = 0; y < srcHeight; y++ )
     {
-        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, destWidth, 1, GL_RGBA, GL_UNSIGNED_BYTE, data );
+        glTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, srcWidth, 1, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data );
         checkError();
-        //printf( "%d\n", y );
-        data += destWidth*4 + 4;
+        data += srcWidth*2 + 4;//+4;//destWidth*4 + 4;
     }
 
     //sampler texture unit to 0
     glUniform1i( samplerLoc, 0 );
     checkError();
-
-    static float c = 0.0f;
-    //cycle colors
-    //glUniform1f( u_color, c );
-    //checkError();
-    //c += 0.2f;
-    //if ( c > 1.0f ) c = 0.0f;
-
-    //// Load the MVP matrix
-    //glUniformMatrix4fv( mvpLoc, 1, GL_FALSE, (GLfloat*) &mvpMatrix.m[0][0] );
-    //checkError();
 
     GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
@@ -3267,235 +3264,235 @@ bool systemPauseOnFrame()
 #define GBA_WIDTH   240
 #define GBA_HEIGHT  160
 
-void Init_Overlay(SDL_Surface *gbascreen, int overlaytype)
-{
-  
-  overlay = SDL_CreateYUVOverlay( GBA_WIDTH,
-                                  GBA_HEIGHT,
-                                  overlaytype, gbascreen);
-  fprintf(stderr, "Created %dx%dx%d %s %s overlay\n",
-          overlay->w,overlay->h,overlay->planes,
-          overlay->hw_overlay?"hardware":"software",
-          overlay->format==SDL_YV12_OVERLAY?"YV12":
-          overlay->format==SDL_IYUV_OVERLAY?"IYUV":
-          overlay->format==SDL_YUY2_OVERLAY?"YUY2":
-          overlay->format==SDL_UYVY_OVERLAY?"UYVY":
-          overlay->format==SDL_YVYU_OVERLAY?"YVYU":
-          "Unknown");
-}
-
-void Quit_Overlay(void)
-{
-  
-  SDL_FreeYUVOverlay(overlay);
-}
-
-/* NOTE: These RGB conversion functions are not intended for speed,
-   only as examples.
-*/
-inline void RGBtoYUV(Uint8 *rgb, int *yuv)
-{
-  yuv[0] = (int)((0.257 * rgb[0]) + (0.504 * rgb[1]) + (0.098 * rgb[2]) + 16);
-  yuv[1] = (int)(128 - (0.148 * rgb[0]) - (0.291 * rgb[1]) + (0.439 * rgb[2]));
-  yuv[2] = (int)(128 + (0.439 * rgb[0]) - (0.368 * rgb[1]) - (0.071 * rgb[2]));
-}
-
-inline void ConvertRGBtoYV12(SDL_Overlay *o)
-{
-  int x,y;
-  int yuv[3];
-  Uint8 *p,*op[3];
-  
-  SDL_LockYUVOverlay(o);
-  
-  /* Black initialization */
-  /*
-    memset(o->pixels[0],0,o->pitches[0]*o->h);
-    memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-    memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-  */
-  
-  /* Convert */
-  for(y=0; y<160 && y<o->h; y++) {
-    p=(Uint8 *)pix+srcPitch*y;
-    op[0]=o->pixels[0]+o->pitches[0]*y;
-    op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-    op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-    for(x=0; x<240 && x<o->w; x++) {
-      RGBtoYUV(p,yuv);
-      *(op[0]++)=yuv[0];
-      if(x%2==0 && y%2==0) {
-        *(op[1]++)=yuv[2];
-        *(op[2]++)=yuv[1];
-      }
-      p+=4;//s->format->BytesPerPixel;
-    }
-  }
-  
-  SDL_UnlockYUVOverlay(o);
-}
-
-inline void ConvertRGBtoIYUV(SDL_Overlay *o)
-{
-  int x,y;
-  int yuv[3];
-  Uint8 *p,*op[3];
-  
-  SDL_LockYUVOverlay(o);
-  
-  /* Black initialization */
-  /*
-    memset(o->pixels[0],0,o->pitches[0]*o->h);
-    memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-    memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-  */
-  
-  /* Convert */
-  for(y=0; y<160 && y<o->h; y++) {
-    p=(Uint8 *)pix+srcPitch*y;
-    op[0]=o->pixels[0]+o->pitches[0]*y;
-    op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-    op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-    for(x=0; x<240 && x<o->w; x++) {
-      RGBtoYUV(p,yuv);
-      *(op[0]++)=yuv[0];
-      if(x%2==0 && y%2==0) {
-        *(op[1]++)=yuv[1];
-        *(op[2]++)=yuv[2];
-      }
-      p+=4; //s->format->BytesPerPixel;
-    }
-  }
-  
-  SDL_UnlockYUVOverlay(o);
-}
-
-inline void ConvertRGBtoUYVY(SDL_Overlay *o)
-{
-  int x,y;
-  int yuv[3];
-  Uint8 *p,*op;
-  
-  SDL_LockYUVOverlay(o);
-  
-  for(y=0; y<160 && y<o->h; y++) {
-    p=(Uint8 *)pix+srcPitch*y;
-    op=o->pixels[0]+o->pitches[0]*y;
-    for(x=0; x<240 && x<o->w; x++) {
-      RGBtoYUV(p,yuv);
-      if(x%2==0) {
-        *(op++)=yuv[1];
-        *(op++)=yuv[0];
-        *(op++)=yuv[2];
-      } else
-        *(op++)=yuv[0];
-      
-      p+=4; //s->format->BytesPerPixel;
-    }
-  }
-  
-  SDL_UnlockYUVOverlay(o);
-}
-
-inline void ConvertRGBtoYVYU(SDL_Overlay *o)
-{
-  int x,y;
-  int yuv[3];
-  Uint8 *p,*op;
-  
-  SDL_LockYUVOverlay(o);
-  
-  for(y=0; y<160 && y<o->h; y++) {
-    p=(Uint8 *)pix+srcPitch*y;
-    op=o->pixels[0]+o->pitches[0]*y;
-    for(x=0; x<240 && x<o->w; x++) {
-      RGBtoYUV(p,yuv);
-      if(x%2==0) {
-        *(op++)=yuv[0];
-        *(op++)=yuv[2];
-        op[1]=yuv[1];
-      } else {
-        *op=yuv[0];
-        op+=2;
-      }
-      
-      p+=4; //s->format->BytesPerPixel;
-    }
-  }
-  
-  SDL_UnlockYUVOverlay(o);
-}
-
-inline void ConvertRGBtoYUY2(SDL_Overlay *o)
-{
-  int x,y;
-  int yuv[3];
-  Uint8 *p,*op;
-  
-  SDL_LockYUVOverlay(o);
-  
-  for(y=0; y<160 && y<o->h; y++) {
-    p=(Uint8 *)pix+srcPitch*y;
-    op=o->pixels[0]+o->pitches[0]*y;
-    for(x=0; x<240 && x<o->w; x++) {
-      RGBtoYUV(p,yuv);
-      if(x%2==0) {
-        *(op++)=yuv[0];
-        *(op++)=yuv[1];
-        op[1]=yuv[2];
-      } else {
-        *op=yuv[0];
-        op+=2;
-      }
-      
-      p+=4; //s->format->BytesPerPixel;
-    }
-  }
-  
-  SDL_UnlockYUVOverlay(o);
-}
-
-inline void Convert32bit(SDL_Surface *display)
-{
-  switch(overlay->format) {
-  case SDL_YV12_OVERLAY:
-    ConvertRGBtoYV12(overlay);
-    break;
-  case SDL_UYVY_OVERLAY:
-    ConvertRGBtoUYVY(overlay);
-    break;
-  case SDL_YVYU_OVERLAY:
-    ConvertRGBtoYVYU(overlay);
-    break;
-  case SDL_YUY2_OVERLAY:
-    ConvertRGBtoYUY2(overlay);
-    break;
-  case SDL_IYUV_OVERLAY:
-    ConvertRGBtoIYUV(overlay);
-    break;
-  default:
-    fprintf(stderr, "cannot convert RGB picture to obtained YUV format!\n");
-    exit(1);
-    break;
-  }
-  
-}
-
-
-inline void Draw_Overlay(SDL_Surface *display, int size)
-{
-  SDL_LockYUVOverlay(overlay);
-  
-  Convert32bit(display);
-  
-  overlay_rect.x = 0;
-  overlay_rect.y = 0;
-  overlay_rect.w = GBA_WIDTH  * size;
-  overlay_rect.h = GBA_HEIGHT * size;
-
-  SDL_DisplayYUVOverlay(overlay, &overlay_rect);
-  SDL_UnlockYUVOverlay(overlay);
-}
+// void Init_Overlay(SDL_Surface *gbascreen, int overlaytype)
+// {
+//   
+//   overlay = SDL_CreateYUVOverlay( GBA_WIDTH,
+//                                   GBA_HEIGHT,
+//                                   overlaytype, gbascreen);
+//   fprintf(stderr, "Created %dx%dx%d %s %s overlay\n",
+//           overlay->w,overlay->h,overlay->planes,
+//           overlay->hw_overlay?"hardware":"software",
+//           overlay->format==SDL_YV12_OVERLAY?"YV12":
+//           overlay->format==SDL_IYUV_OVERLAY?"IYUV":
+//           overlay->format==SDL_YUY2_OVERLAY?"YUY2":
+//           overlay->format==SDL_UYVY_OVERLAY?"UYVY":
+//           overlay->format==SDL_YVYU_OVERLAY?"YVYU":
+//           "Unknown");
+// }
+// 
+// void Quit_Overlay(void)
+// {
+//   
+//   SDL_FreeYUVOverlay(overlay);
+// }
+// 
+// /* NOTE: These RGB conversion functions are not intended for speed,
+//    only as examples.
+// */
+// inline void RGBtoYUV(Uint8 *rgb, int *yuv)
+// {
+//   yuv[0] = (int)((0.257 * rgb[0]) + (0.504 * rgb[1]) + (0.098 * rgb[2]) + 16);
+//   yuv[1] = (int)(128 - (0.148 * rgb[0]) - (0.291 * rgb[1]) + (0.439 * rgb[2]));
+//   yuv[2] = (int)(128 + (0.439 * rgb[0]) - (0.368 * rgb[1]) - (0.071 * rgb[2]));
+// }
+// 
+// inline void ConvertRGBtoYV12(SDL_Overlay *o)
+// {
+//   int x,y;
+//   int yuv[3];
+//   Uint8 *p,*op[3];
+//   
+//   SDL_LockYUVOverlay(o);
+//   
+//   /* Black initialization */
+//   /*
+//     memset(o->pixels[0],0,o->pitches[0]*o->h);
+//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
+//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
+//   */
+//   
+//   /* Convert */
+//   for(y=0; y<160 && y<o->h; y++) {
+//     p=(Uint8 *)pix+srcPitch*y;
+//     op[0]=o->pixels[0]+o->pitches[0]*y;
+//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
+//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
+//     for(x=0; x<240 && x<o->w; x++) {
+//       RGBtoYUV(p,yuv);
+//       *(op[0]++)=yuv[0];
+//       if(x%2==0 && y%2==0) {
+//         *(op[1]++)=yuv[2];
+//         *(op[2]++)=yuv[1];
+//       }
+//       p+=4;//s->format->BytesPerPixel;
+//     }
+//   }
+//   
+//   SDL_UnlockYUVOverlay(o);
+// }
+// 
+// inline void ConvertRGBtoIYUV(SDL_Overlay *o)
+// {
+//   int x,y;
+//   int yuv[3];
+//   Uint8 *p,*op[3];
+//   
+//   SDL_LockYUVOverlay(o);
+//   
+//   /* Black initialization */
+//   /*
+//     memset(o->pixels[0],0,o->pitches[0]*o->h);
+//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
+//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
+//   */
+//   
+//   /* Convert */
+//   for(y=0; y<160 && y<o->h; y++) {
+//     p=(Uint8 *)pix+srcPitch*y;
+//     op[0]=o->pixels[0]+o->pitches[0]*y;
+//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
+//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
+//     for(x=0; x<240 && x<o->w; x++) {
+//       RGBtoYUV(p,yuv);
+//       *(op[0]++)=yuv[0];
+//       if(x%2==0 && y%2==0) {
+//         *(op[1]++)=yuv[1];
+//         *(op[2]++)=yuv[2];
+//       }
+//       p+=4; //s->format->BytesPerPixel;
+//     }
+//   }
+//   
+//   SDL_UnlockYUVOverlay(o);
+// }
+// 
+// inline void ConvertRGBtoUYVY(SDL_Overlay *o)
+// {
+//   int x,y;
+//   int yuv[3];
+//   Uint8 *p,*op;
+//   
+//   SDL_LockYUVOverlay(o);
+//   
+//   for(y=0; y<160 && y<o->h; y++) {
+//     p=(Uint8 *)pix+srcPitch*y;
+//     op=o->pixels[0]+o->pitches[0]*y;
+//     for(x=0; x<240 && x<o->w; x++) {
+//       RGBtoYUV(p,yuv);
+//       if(x%2==0) {
+//         *(op++)=yuv[1];
+//         *(op++)=yuv[0];
+//         *(op++)=yuv[2];
+//       } else
+//         *(op++)=yuv[0];
+//       
+//       p+=4; //s->format->BytesPerPixel;
+//     }
+//   }
+//   
+//   SDL_UnlockYUVOverlay(o);
+// }
+// 
+// inline void ConvertRGBtoYVYU(SDL_Overlay *o)
+// {
+//   int x,y;
+//   int yuv[3];
+//   Uint8 *p,*op;
+//   
+//   SDL_LockYUVOverlay(o);
+//   
+//   for(y=0; y<160 && y<o->h; y++) {
+//     p=(Uint8 *)pix+srcPitch*y;
+//     op=o->pixels[0]+o->pitches[0]*y;
+//     for(x=0; x<240 && x<o->w; x++) {
+//       RGBtoYUV(p,yuv);
+//       if(x%2==0) {
+//         *(op++)=yuv[0];
+//         *(op++)=yuv[2];
+//         op[1]=yuv[1];
+//       } else {
+//         *op=yuv[0];
+//         op+=2;
+//       }
+//       
+//       p+=4; //s->format->BytesPerPixel;
+//     }
+//   }
+//   
+//   SDL_UnlockYUVOverlay(o);
+// }
+// 
+// inline void ConvertRGBtoYUY2(SDL_Overlay *o)
+// {
+//   int x,y;
+//   int yuv[3];
+//   Uint8 *p,*op;
+//   
+//   SDL_LockYUVOverlay(o);
+//   
+//   for(y=0; y<160 && y<o->h; y++) {
+//     p=(Uint8 *)pix+srcPitch*y;
+//     op=o->pixels[0]+o->pitches[0]*y;
+//     for(x=0; x<240 && x<o->w; x++) {
+//       RGBtoYUV(p,yuv);
+//       if(x%2==0) {
+//         *(op++)=yuv[0];
+//         *(op++)=yuv[1];
+//         op[1]=yuv[2];
+//       } else {
+//         *op=yuv[0];
+//         op+=2;
+//       }
+//       
+//       p+=4; //s->format->BytesPerPixel;
+//     }
+//   }
+//   
+//   SDL_UnlockYUVOverlay(o);
+// }
+// 
+// inline void Convert32bit(SDL_Surface *display)
+// {
+//   switch(overlay->format) {
+//   case SDL_YV12_OVERLAY:
+//     ConvertRGBtoYV12(overlay);
+//     break;
+//   case SDL_UYVY_OVERLAY:
+//     ConvertRGBtoUYVY(overlay);
+//     break;
+//   case SDL_YVYU_OVERLAY:
+//     ConvertRGBtoYVYU(overlay);
+//     break;
+//   case SDL_YUY2_OVERLAY:
+//     ConvertRGBtoYUY2(overlay);
+//     break;
+//   case SDL_IYUV_OVERLAY:
+//     ConvertRGBtoIYUV(overlay);
+//     break;
+//   default:
+//     fprintf(stderr, "cannot convert RGB picture to obtained YUV format!\n");
+//     exit(1);
+//     break;
+//   }
+//   
+// }
+// 
+// 
+// inline void Draw_Overlay(SDL_Surface *display, int size)
+// {
+//   SDL_LockYUVOverlay(overlay);
+//   
+//   Convert32bit(display);
+//   
+//   overlay_rect.x = 0;
+//   overlay_rect.y = 0;
+//   overlay_rect.w = GBA_WIDTH  * size;
+//   overlay_rect.h = GBA_HEIGHT * size;
+// 
+//   SDL_DisplayYUVOverlay(overlay, &overlay_rect);
+//   SDL_UnlockYUVOverlay(overlay);
+// }
 
 void systemGbBorderOn()
 {
