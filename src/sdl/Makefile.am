@@ -6,6 +6,7 @@ VisualBoyAdvance_SOURCES = \
 	SDL.cpp			\
 	debugger.cpp		\
 	debugger.h		\
+	esFunc.h		\
 	../2xSaI.cpp		\
 	../AutoBuild.h		\
 	../Cheats.cpp		\
