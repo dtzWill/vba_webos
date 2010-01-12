@@ -147,6 +147,49 @@ GLint  texCoordLoc;
 GLint samplerLoc;
 
 
+/*-----------------------------------------------------------------------------
+ *  State variables (outside the GB emulation core)
+ *-----------------------------------------------------------------------------*/
+enum orientation
+{
+    ORIENTATION_PORTRAIT,    // default mode, portrait
+    ORIENTATION_LANDSCAPE_R, // landscape, keyboard on right
+    ORIENTATION_LANDSCAPE_L  // landscape, keyboard on left
+};
+
+int orientation = ORIENTATION_PORTRAIT;
+
+
+/*-----------------------------------------------------------------------------
+ *  Vertex coordinates for various orientations.
+ *-----------------------------------------------------------------------------*/
+
+//Landscape, keyboard on left.
+float land_l_vertexCoords[] =
+{
+    -1, -1,
+    1, -1,
+    -1, 1,
+    1, 1
+};
+
+//Landscape, keyboard on right.
+float land_r_vertexCoords[] =
+{
+    1, 1,
+    -1, 1,
+    1, -1,
+    -1, -1
+};
+//Portrait
+float portrait_vertexCoords[] =
+{
+    -1, 1,
+    -1, -1,
+    1, 1,
+    1, -1
+};
+
 int systemSpeed = 0;
 int systemRedShift = 0;
 int systemBlueShift = 0;
@@ -1811,6 +1854,10 @@ void sdlPollEvents()
 //          pauseNextFrame = true;
 //        }
 //        break;
+      case SDLK_0:
+        //Toggle orientation
+        orientation = ( orientation + 1 ) % 3;
+        break;
       default:
         break;
       }
@@ -2439,17 +2486,10 @@ int main(int argc, char **argv)
 
   systemColorDepth = 16;
 
-  //XXX: diff what's here and what used to be here, and see if any of it is worth keeping
-#if 1
-  //if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
-  if ( 1 ) {//we're choosing/forcing 5-6-5 format.
-      //We're not using 2xSaI in the foreseeable future...
-      //Init_2xSaI(565);
-      RGB_LOW_BITS_MASK = 0x821;
-  } else {
-      //Init_2xSaI(555);
-      RGB_LOW_BITS_MASK = 0x421;      
-  }
+  //I'm not sure that this matters anymore. XXX Find out and remove.
+  RGB_LOW_BITS_MASK = 0x821;
+
+  //Set the colormap using the shifts.
   if(cartridgeType == 2) {
       for(int i = 0; i < 0x10000; i++) {
           systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
@@ -2463,35 +2503,9 @@ int main(int argc, char **argv)
               (((i & 0x7c00) >> 10) << systemBlueShift);  
       }
   }
-  //XXX Okay so apparently
-  //VBA stores the pixel buffers in not a (width)(height) buffer, but a
-  //(width+offset)(height+offset2) buffer, for.. as far as I can tell, for
-  //filtering reasons--so they can be processed in-place.  However,
-  //we don't make use of their filters, and this makes uploading a texture
-  //more expensive. (they have to be done row by row since GL|ES 2.0 doesn't
-  //support the ROW_LENGTH tex attribute).
-  //XXX UPDATE this has been fixed in the emulation code now.  Leaving the comment
-  //above because it helps explain what the devil is going on here, and I
-  //don't have time to clean this all up right now :).
-  srcPitch = srcWidth * 2+4;
 
-#else
-  if(systemColorDepth != 32)
-      filterFunction = NULL;
-  RGB_LOW_BITS_MASK = 0x010101;
-  //if(systemColorDepth == 32) {
-  //    Init_2xSaI(32);
-  //}
-  for(int i = 0; i < 0x10000; i++) {
-      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
-          (((i & 0x3e0) >> 5) << systemGreenShift) |
-          (((i & 0x7c00) >> 10) << systemBlueShift);  
-  }
-  if(systemColorDepth == 32)
-      srcPitch = srcWidth*4 + 4;
-  else
-      srcPitch = srcWidth*3;
-#endif
+  srcPitch = srcWidth * 2;
+
   //No filter support (should be implemented as part of the GL shader)
   ifbFunction = NULL;
   filterFunction = NULL;
@@ -2621,6 +2635,42 @@ void testPattern()
     }
 }
 
+void drawScreenText()
+{
+  if(screenMessage) {
+    if(((systemGetClock() - screenMessageTime) < 3000) &&
+       !disableStatusMessages) {
+      drawText(pix, srcPitch, 10, srcHeight - 20,
+               screenMessageBuffer); 
+    } else {
+      screenMessage = false;
+    }
+  }
+
+  if(showSpeed && fullscreen) {
+    char buffer[50];
+    if(showSpeed == 1)
+      sprintf(buffer, "%d%%", systemSpeed);
+    else
+      sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
+              systemFrameSkip,
+              showRenderedFrames);
+    if(showSpeedTransparent)
+      drawTextTransp((u8*)surface->pixels,
+                     surface->pitch,
+                     10,
+                     surface->h-20,
+                     buffer);
+    else
+      drawText((u8*)surface->pixels,
+               surface->pitch,
+               10,
+               surface->h-20,
+               buffer);        
+  }  
+
+}
+
 void systemDrawScreen()
 {
     renderedFrames++;
@@ -2647,24 +2697,27 @@ void systemDrawScreen()
         yscale = 1.0;
     }
 
-    //Landscape, keyboard on right.
-    //float vertexCoords[] =
-    //{
-    //    1, 1,
-    //    -1, 1,
-    //    1, -1,
-    //    -1, -1
-    //};
-    //Portrait
-    float vertexCoords[] =
-    {
-        -1, 1,
-        -1, -1,
-        1, 1,
-        1, -1
-    };
+    float * vertexCoords;
 
-    //Why are the texCoords not in range [0-1]?
+    switch( orientation )
+    {
+        case ORIENTATION_LANDSCAPE_R:
+            vertexCoords = land_r_vertexCoords;
+            break;
+        case ORIENTATION_LANDSCAPE_L:
+            vertexCoords = land_l_vertexCoords;
+            break;
+        default:
+            printf( "Unsupported orientation: %d!\n", orientation );
+            printf( "Defaulting to portrait orientation\n" );
+            //fall through
+            orientation = ORIENTATION_PORTRAIT;
+        case ORIENTATION_PORTRAIT:
+            vertexCoords = portrait_vertexCoords;
+            break;
+
+    }
+
     float texCoords[] =
     {
         0.0, 0.0,
@@ -2687,6 +2740,8 @@ void systemDrawScreen()
     //Uncomment this to enable the testPattern instead of the rendered game.
     //Useful to decouple pixel format issues from openGL rendering ones.
     //testPattern();
+
+    drawScreenText();
 
     //glBindTexture( GL_TEXTURE_2D, texture );
 
@@ -2717,130 +2772,6 @@ void systemDrawScreen()
     checkError();
 
     return;
-
-#if 0
-  if(yuv) {
-    Draw_Overlay(surface, sizeOption+1);
-    return;
-  }
-  
-  SDL_LockSurface(surface);
-
-  if(screenMessage) {
-    if(cartridgeType == 1 && gbBorderOn) {
-      gbSgbRenderBorder();
-    }
-    if(((systemGetClock() - screenMessageTime) < 3000) &&
-       !disableStatusMessages) {
-      drawText(pix, srcPitch, 10, srcHeight - 20,
-               screenMessageBuffer); 
-    } else {
-      screenMessage = false;
-    }
-  }
-
-  if(ifbFunction) {
-    if(systemColorDepth == 16)
-      ifbFunction(pix+destWidth+4, destWidth+4, srcWidth, srcHeight);
-    else
-      ifbFunction(pix+destWidth*2+4, destWidth*2+4, srcWidth, srcHeight);
-  }
-  
-  if(filterFunction) {
-    if(systemColorDepth == 16)
-      filterFunction(pix+destWidth+4,destWidth+4, delta,
-                     (u8*)surface->pixels,surface->pitch,
-                     srcWidth,
-                     srcHeight);
-    else
-      filterFunction(pix+destWidth*2+4,
-                     destWidth*2+4,
-                     delta,
-                     (u8*)surface->pixels,
-                     surface->pitch,
-                     srcWidth,
-                     srcHeight);
-  } else {
-    int destPitch = surface->pitch;
-    u8 *src = pix;
-    u8 *dest = (u8*)surface->pixels;
-    int i;
-    u32 *stretcher = (u32 *)sdlStretcher;
-    if(systemColorDepth == 16)
-      src += srcPitch;
-    int option = sizeOption;
-    if(yuv)
-      option = 0;
-    switch(sizeOption) {
-    case 0:
-      for(i = 0; i < srcHeight; i++) {
-        SDL_CALL_STRETCHER;
-        src += srcPitch;
-        dest += destPitch;
-      }
-      break;
-    case 1:
-      for(i = 0; i < srcHeight; i++) {
-        SDL_CALL_STRETCHER;     
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        src += srcPitch;
-        dest += destPitch;
-      }
-      break;
-    case 2:
-      for(i = 0; i < srcHeight; i++) {
-        SDL_CALL_STRETCHER;
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        src += srcPitch;
-        dest += destPitch;
-      }
-      break;
-    case 3:
-      for(i = 0; i < srcHeight; i++) {
-        SDL_CALL_STRETCHER;
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        dest += destPitch;
-        SDL_CALL_STRETCHER;
-        src += srcPitch;
-        dest += destPitch;
-      }
-      break;
-    }
-  }
-
-  if(showSpeed && fullscreen) {
-    char buffer[50];
-    if(showSpeed == 1)
-      sprintf(buffer, "%d%%", systemSpeed);
-    else
-      sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
-              systemFrameSkip,
-              showRenderedFrames);
-    if(showSpeedTransparent)
-      drawTextTransp((u8*)surface->pixels,
-                     surface->pitch,
-                     10,
-                     surface->h-20,
-                     buffer);
-    else
-      drawText((u8*)surface->pixels,
-               surface->pitch,
-               10,
-               surface->h-20,
-               buffer);        
-  }  
-
-  SDL_UnlockSurface(surface);
-  //  SDL_UpdateRect(surface, 0, 0, destWidth, destHeight);
-  SDL_Flip(surface);
-#endif //if 0
 }
 
 bool systemReadJoypads()
