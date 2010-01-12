@@ -1935,7 +1935,7 @@ void GL_Init()
         "varying vec2 v_texCoord;     \n"
         "void main()                  \n"
         "{                            \n"
-        "   gl_Position = 2.0 * a_position - 1.0; \n"
+        "   gl_Position = a_position; \n"
         "   v_texCoord = a_texCoord;  \n"
         "}                            \n";
 
@@ -1945,9 +1945,7 @@ void GL_Init()
         "uniform sampler2D s_texture;                        \n"
         "void main()                                         \n"
         "{                                                   \n"
-        "  float flipy = 1.0 - v_texCoord.y;                 \n"
-        "  vec2 newvec = vec2( v_texCoord.x, flipy );        \n"
-        "  gl_FragColor = texture2D( s_texture, newvec );    \n"
+        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -2472,7 +2470,9 @@ int main(int argc, char **argv)
   //we don't make use of their filters, and this makes uploading a texture
   //more expensive. (they have to be done row by row since GL|ES 2.0 doesn't
   //support the ROW_LENGTH tex attribute).
-  //TODO: "Fix" the code to note set up and use this 'extra' values.
+  //XXX UPDATE this has been fixed in the emulation code now.  Leaving the comment
+  //above because it helps explain what the devil is going on here, and I
+  //don't have time to clean this all up right now :).
   srcPitch = srcWidth * 2+4;
 
 #else
@@ -2632,21 +2632,45 @@ void systemDrawScreen()
     glUseProgram ( programObject );
     checkError();
 
+    // Here we calculate the dimensions of the vertex coords.
+    // First we need to figure out what to scale things by...
+
+    float xscale = srcWidth / destWidth;
+    float yscale = srcHeight / destHeight;
+
+    if ( srcWidth / srcHeight < destWidth / destHeight )
+    {
+        xscale = 1.0;
+    }
+    else
+    {
+        yscale = 1.0;
+    }
+
+    //Landscape, keyboard on right.
+    //float vertexCoords[] =
+    //{
+    //    1, 1,
+    //    -1, 1,
+    //    1, -1,
+    //    -1, -1
+    //};
+    //Portrait
     float vertexCoords[] =
     {
-        0.0, 0.0,
-        0.0, destHeight,
-        destWidth, 0.0,
-        destWidth, destHeight
+        -1, 1,
+        -1, -1,
+        1, 1,
+        1, -1
     };
 
     //Why are the texCoords not in range [0-1]?
     float texCoords[] =
     {
         0.0, 0.0,
-        0.0, destHeight,
-        destWidth, 0.0,
-        destWidth, destHeight
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0
     };
 
     glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
@@ -2669,6 +2693,8 @@ void systemDrawScreen()
     
     //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
+    //XXX: Conveivably reloading the whole image is faster here.
+    //(reference: random forum post)
     glTexSubImage2D( GL_TEXTURE_2D,0,
             0,0, srcWidth,srcHeight,
             GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);

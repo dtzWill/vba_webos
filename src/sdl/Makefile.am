@@ -7,7 +7,6 @@ VisualBoyAdvance_SOURCES = \
 	debugger.cpp		\
 	debugger.h		\
 	esFunc.h		\
-	../2xSaI.cpp		\
 	../AutoBuild.h		\
 	../Cheats.cpp		\
 	../Cheats.h		\
@@ -47,7 +46,6 @@ VisualBoyAdvance_SOURCES = \
 	../arm-new.h		\
 	../armdis.cpp		\
 	../armdis.h		\
-	../bilinear.cpp		\
 	../bios.cpp		\
 	../bios.h		\
 	../elf.cpp		\
@@ -60,23 +58,17 @@ VisualBoyAdvance_SOURCES = \
 	../getopt.c		\
 	../getopt.h		\
 	../getopt1.c		\
-	../hq2x.cpp		\
-	../hq2x.h		\
 	../interframe.cpp	\
 	../interp.h		\
-	../lq2x.h		\
 	../memgzio.c		\
 	../memgzio.h		\
-	../motionblur.cpp	\
 	../pixel.cpp		\
 	../remote.cpp		\
-	../scanline.cpp		\
-	../simple2x.cpp		\
 	../thumb.h		\
 	../unzip.cpp		\
 	../unzip.h
 
-VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@
+VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2 -lsrv_um -lIMGegl
 
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 
