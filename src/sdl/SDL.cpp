@@ -1438,6 +1438,11 @@ void sdlPollEvents()
         orientation = ( orientation + 1 ) % 3;
         updateOrientation();
         break;
+      case SDLK_ASTERISK:
+        //Toggle sound
+        systemSoundOn = !systemSoundOn;
+        
+        break;
       default:
         break;
       }
@@ -2258,7 +2263,7 @@ void drawScreenText()
     }
   }
 
-  if(showSpeed && fullscreen) {
+  if(showSpeed) {
     char buffer[50];
     if(showSpeed == 1)
       sprintf(buffer, "%d%%", systemSpeed);
@@ -2266,18 +2271,15 @@ void drawScreenText()
       sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
               systemFrameSkip,
               showRenderedFrames);
-    if(showSpeedTransparent)
-      drawTextTransp((u8*)surface->pixels,
-                     surface->pitch,
-                     10,
-                     surface->h-20,
-                     buffer);
-    else
-      drawText((u8*)surface->pixels,
-               surface->pitch,
-               10,
-               surface->h-20,
-               buffer);        
+      //Don't draw on the screen
+      //drawText(pix, srcPitch, 10, srcHeight - 20,
+      //         buffer); 
+      static int counter;
+      if ( counter++ > 10 )
+      {
+          printf( "SPEED: %s\n", buffer );
+          counter = 0;
+      }
   }  
 
 }
@@ -2319,11 +2321,6 @@ void systemDrawScreen()
 
     drawScreenText();
 
-    //glBindTexture( GL_TEXTURE_2D, texture );
-
-    
-    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    
     //XXX: Conveivably reloading the whole image is faster here.
     //(reference: random forum post)
     glTexSubImage2D( GL_TEXTURE_2D,0,
@@ -2343,8 +2340,6 @@ void systemDrawScreen()
 
     //Push to screen
     SDL_GL_SwapBuffers();
-    //glFlush();
-    //glFinish();
     checkError();
 
     return;
