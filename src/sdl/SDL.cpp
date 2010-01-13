@@ -163,6 +163,7 @@ enum orientation
 
 int orientation = ORIENTATION_PORTRAIT;
 
+int gl_filter = GL_NEAREST;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -1443,6 +1444,19 @@ void sdlPollEvents()
         systemSoundOn = !systemSoundOn;
         
         break;
+      case SDLK_f:
+        //toggle filters...
+        if ( gl_filter == GL_LINEAR )
+        {
+            gl_filter = GL_NEAREST;
+        }
+        else if ( gl_filter == GL_NEAREST )
+        {
+            gl_filter = GL_LINEAR;
+        }
+
+        GL_InitTexture();
+        break;
       default:
         break;
       }
@@ -1614,10 +1628,9 @@ void GL_InitTexture()
 
     //Eventually we'll probably want something like GL_NEAREST_MIPMAP_LINEAR
 
-    int filter = GL_LINEAR;//GL_NEAREST
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
     checkError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
     checkError();
 
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
