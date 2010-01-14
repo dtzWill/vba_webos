@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include "AutoBuild.h"
 
@@ -41,8 +42,23 @@
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
+#include <SDL_ttf.h>
 #include <assert.h>
+#include <dirent.h>
 #include "esFunc.h"
+
+#define VERSION "1.0.0"
+
+#define ROM_PATH "/media/internal/roms/"
+#define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
+#define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
+#define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
+#define NO_ROMS1 "Welcome to VBA!  Looks like you don't have any ROMs yet."
+#define NO_ROMS2 "To play games, put the roms in "
+#define NO_ROMS3 ROM_PATH
+#define NO_ROMS4 "using USB mode, and then launch VBA again"
+
+#define SCROLL_FACTOR 20
 
 //#define DEBUG_GL
 
@@ -73,6 +89,8 @@ void checkError()
 void GL_Init();
 void GL_InitTexture();
 void updateOrientation();
+
+char * romSelector();
 
 #ifndef WIN32
 # include <unistd.h>
@@ -1557,6 +1575,203 @@ Long options only:\n\
 ");
 }
 
+int romFilter( const struct dirent * file )
+{
+    const char * curPtr = file->d_name;
+    const char * extPtr = NULL;
+    //Find the last period
+    while ( *curPtr )
+    {
+        if( *curPtr == '.' )
+        {
+            extPtr = curPtr;
+        }
+        curPtr++;
+    }
+    if ( !extPtr )
+    {
+        //No extension, not allowed.
+        return 0;
+    }
+    //We don't want the period...
+    extPtr++;
+
+    return !(
+            strcasecmp( extPtr, "gb" ) &&
+            strcasecmp( extPtr, "gbc" ) &&
+            strcasecmp( extPtr, "gba" ) );
+}
+
+void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
+{
+    //Holds offsets
+    SDL_Rect offset;
+
+    //Get offsets
+    offset.x = x;
+    offset.y = y;
+
+    //Blit
+    SDL_BlitSurface( source, NULL, destination, &offset );
+}
+
+char * romSelector()
+{
+    //Init SDL for non-gl interaction...
+    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN );
+    if (!surface )
+    {
+        fprintf( stderr, "Error setting video mode!\n" );
+        exit( 1 );
+    }
+
+    //Init SDL_TTF to print text to the screen...
+    if ( TTF_Init() )
+    {
+        fprintf( stderr, "Error initializing SDL_ttf!\n" );
+        exit ( 1 );
+    }
+
+    TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
+    TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
+    if ( !font_small || !font_normal )
+    {
+        fprintf( stderr, "Failed to open font: %s\n", FONT );
+        exit( 1 );
+    }
+
+    //Make sure rom dir exists
+    //XXX: This assumes /media/internal (parent directory) already exists
+    int mode = S_IRWXU | S_IRWXG | S_IRWXO;
+    int result = mkdir( ROM_PATH, mode );
+    if ( result && ( errno != EEXIST ) )
+    {
+        fprintf( stderr, "Error creating directory %s for roms!\n", ROM_PATH );
+        exit( 1 );
+    }
+
+
+    struct dirent ** roms;
+    int filecount = scandir( ROM_PATH, &roms, romFilter, alphasort );
+    printf( "Rom count: %d\n", filecount );
+
+    //Display general information
+    int top, bottom;
+    SDL_Color textColor = { 255, 255, 255 };
+    int borderColor = SDL_MapRGB( surface->format, 0, 0, 50 );
+    SDL_FillRect( surface, NULL, borderColor );
+    SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
+    apply_surface( 10, 10, title, surface );
+    top = 10+title->h+10;
+    SDL_FreeSurface( title );
+
+    SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
+    apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
+    bottom = surface->h - author->h - 20;
+    SDL_FreeSurface( author );
+
+    SDL_UpdateRect( surface, 0, 0, 0, 0 );
+    SDL_Rect drawRect;
+    drawRect.x = 10;
+    drawRect.y = top;
+    drawRect.h = bottom-top;
+    drawRect.w = surface->w-20;
+    int black = SDL_MapRGB(surface->format, 0, 0, 0);
+    SDL_FillRect(surface, &drawRect, black);
+
+    if ( filecount < 1 )
+    {
+        //No roms found! Tell the user with a nice screen.
+        //(Note this is where first-time users most likely end up);
+        SDL_Color hiColor = { 255, 200, 200 };
+        SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
+        SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
+        SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
+        SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
+        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 15, nr1, surface );
+        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 5, nr2, surface );
+        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 + 5, nr3, surface );
+        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + 15, nr4, surface );
+        SDL_UpdateRect( surface, 0, 0, 0, 0 );
+        while( 1 );
+    }
+
+    //Generate text for each rom...
+    SDL_Surface * roms_surface[filecount];
+    for ( int i = 0; i < filecount; i++ )
+    {
+        roms_surface[i] = TTF_RenderText_Blended( font_normal, roms[i]->d_name, textColor );
+    }
+
+    int scroll_offset = 0;
+    SDL_Event event;
+    bool tap = false;
+    bool down = false;
+    char * romSelected = NULL;
+    while( !romSelected )
+    {
+        //Calculate scroll, etc
+        int num_roms_display = ( bottom - top ) / ( roms_surface[0]->h + 10 );
+        //Get key input, process.
+        while ( SDL_PollEvent( &event ) )
+        {
+            switch( event.type )
+            {
+                case SDL_MOUSEBUTTONDOWN:
+                    down = tap = true;
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    down = false;
+                    if ( tap )
+                    {
+                        int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
+                        if ( rom_index >= 0 && rom_index < num_roms_display )
+                        {
+                            romSelected = roms[ rom_index+scroll_offset ]->d_name;
+                            printf( "ROM SELECTED: %s\n", romSelected );
+                        }
+                    }
+                    break;
+                case SDL_MOUSEMOTION:
+                    //If the mouse moves before going up, it's not a tap
+                    tap = false;
+
+                    //scroll accordingly..
+                    if ( down )
+                    {
+                        scroll_offset -= event.motion.yrel / SCROLL_FACTOR;
+                        if ( scroll_offset > filecount - num_roms_display ) scroll_offset = filecount - num_roms_display;
+                        if ( scroll_offset < 0 ) scroll_offset = 0;
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
+        if ( scroll_offset + num_roms_display > filecount )
+        {
+            num_roms_display = filecount - scroll_offset;
+        }
+
+        //Clear middle
+        SDL_FillRect(surface, &drawRect, black);
+        
+        //Draw roms...
+
+        for ( int i = 0; i < num_roms_display; i++ )
+        {
+           int index = scroll_offset + i;
+           apply_surface( 20, top + (10+roms_surface[0]->h)*i, roms_surface[index], surface );
+        }
+
+        //Update screen.
+        SDL_UpdateRect( surface, 0, 0, 0, 0 );
+    }
+
+    return romSelected;
+}
+
 void GL_Init()
 {
     // setup 2D gl environment
@@ -1905,14 +2120,6 @@ int main(int argc, char **argv)
 
   rtcEnable(sdlRtcEnable ? true : false);
   agbPrintEnable(sdlAgbPrint ? true : false);
-  
-  if(!debuggerStub) {
-    if(optind >= argc) {
-      systemMessage(0,"Missing image name");
-      usage(argv[0]);
-      exit(-1);
-    }
-  }
 
   if(filter) {
     sizeOption = 1;
@@ -1927,97 +2134,97 @@ int main(int argc, char **argv)
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
-  if(optind < argc) {
-    char *szFile = argv[optind];
+  printf( "Selecting rom...\n" );
+  char * szFile = romSelector();
 
-    utilGetBaseName(szFile, filename);
-    char *p = strrchr(filename, '.');
+  utilGetBaseName(szFile, filename);
+  char *p = strrchr(filename, '.');
 
-    if(p)
+  if(p)
       *p = 0;
 
-    if(ipsname[0] == 0)
+  if(ipsname[0] == 0)
       sprintf(ipsname, "%s.ips", filename);
-    
-    bool failed = false;
 
-    IMAGE_TYPE type = utilFindType(szFile);
+  bool failed = false;
 
-    if(type == IMAGE_UNKNOWN) {
+  IMAGE_TYPE type = utilFindType(szFile);
+
+  if(type == IMAGE_UNKNOWN) {
       systemMessage(0, "Unknown file type %s", szFile);
       exit(-1);
-    }
-    cartridgeType = (int)type;
-    
-    if(type == IMAGE_GB) {
+  }
+  cartridgeType = (int)type;
+
+  if(type == IMAGE_GB) {
       failed = !gbLoadRom(szFile);
       if(!failed) {
-        cartridgeType = 1;
-        emulator = GBSystem;
-        if(sdlAutoIPS) {
-          int size = gbRomSize;
-          utilApplyIPS(ipsname, &gbRom, &size);
-          if(size != gbRomSize) {
-            extern bool gbUpdateSizes();
-            gbUpdateSizes();
-            gbReset();
+          cartridgeType = 1;
+          emulator = GBSystem;
+          if(sdlAutoIPS) {
+              int size = gbRomSize;
+              utilApplyIPS(ipsname, &gbRom, &size);
+              if(size != gbRomSize) {
+                  extern bool gbUpdateSizes();
+                  gbUpdateSizes();
+                  gbReset();
+              }
           }
-        }
       }
-    } else if(type == IMAGE_GBA) {
+  } else if(type == IMAGE_GBA) {
       int size = CPULoadRom(szFile);
       failed = (size == 0);
       if(!failed) {
-        //        if(cpuEnhancedDetection && cpuSaveType == 0) {
-        //          utilGBAFindSave(rom, size);
-        //        }
+          //        if(cpuEnhancedDetection && cpuSaveType == 0) {
+          //          utilGBAFindSave(rom, size);
+          //        }
 
-        sdlApplyPerImagePreferences();
-        
-        cartridgeType = 0;
-        emulator = GBASystem;
+          sdlApplyPerImagePreferences();
 
-        /* disabled due to problems
-        if(removeIntros && rom != NULL) {
-          WRITE32LE(&rom[0], 0xea00002e);
-        }
-        */
-        
-        CPUInit(biosFileName, useBios);
-        CPUReset();
-        if(sdlAutoIPS) {
-          int size = 0x2000000;
-          utilApplyIPS(ipsname, &rom, &size);
-          if(size != 0x2000000) {
-            CPUReset();
+          cartridgeType = 0;
+          emulator = GBASystem;
+
+          /* disabled due to problems
+             if(removeIntros && rom != NULL) {
+             WRITE32LE(&rom[0], 0xea00002e);
+             }
+             */
+
+          CPUInit(biosFileName, useBios);
+          CPUReset();
+          if(sdlAutoIPS) {
+              int size = 0x2000000;
+              utilApplyIPS(ipsname, &rom, &size);
+              if(size != 0x2000000) {
+                  CPUReset();
+              }
           }
-        }
       }
-    }
-    
-    if(failed) {
+  }
+
+  if(failed) {
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
-    }
-  } else {
-    cartridgeType = 0;
-    strcpy(filename, "gnu_stub");
-    rom = (u8 *)malloc(0x2000000);
-    workRAM = (u8 *)calloc(1, 0x40000);
-    bios = (u8 *)calloc(1,0x4000);
-    internalRAM = (u8 *)calloc(1,0x8000);
-    paletteRAM = (u8 *)calloc(1,0x400);
-    vram = (u8 *)calloc(1, 0x20000);
-    oam = (u8 *)calloc(1, 0x400);
-    pix = (u8 *)calloc(1, 4 * 240 * 160);
-    ioMem = (u8 *)calloc(1, 0x400);
-
-    emulator = GBASystem;
-    
-    CPUInit(biosFileName, useBios);
-    CPUReset();    
   }
-  
+//} else {
+//    cartridgeType = 0;
+//    strcpy(filename, "gnu_stub");
+//    rom = (u8 *)malloc(0x2000000);
+//    workRAM = (u8 *)calloc(1, 0x40000);
+//    bios = (u8 *)calloc(1,0x4000);
+//    internalRAM = (u8 *)calloc(1,0x8000);
+//    paletteRAM = (u8 *)calloc(1,0x400);
+//    vram = (u8 *)calloc(1, 0x20000);
+//    oam = (u8 *)calloc(1, 0x400);
+//    pix = (u8 *)calloc(1, 4 * 240 * 160);
+//    ioMem = (u8 *)calloc(1, 0x400);
+//
+//    emulator = GBASystem;
+//
+//    CPUInit(biosFileName, useBios);
+//    CPUReset();    
+//}
+
   sdlReadBattery();
   
   if(debuggerStub) 
