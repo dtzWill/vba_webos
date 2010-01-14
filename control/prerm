@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PID="org.webosinternals.visualboyadvance"
+
+# Stop the service
+/sbin/stop ${PID}
+
+# Remove the upstart script
+rm -f /etc/event.d/${PID}
+
+exit 0
