@@ -163,7 +163,7 @@ enum orientation
 
 int orientation = ORIENTATION_PORTRAIT;
 
-int gl_filter = GL_NEAREST;
+int gl_filter = GL_LINEAR;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -1168,6 +1168,7 @@ void sdlUpdateJoyAxis(int which,
                       int axis,
                       int value)
 {
+  printf( "Joy: %d %d %d\n", which, axis, value );
   int i;
   for(int j = 0; j < 4; j++) {
     for(i = 0; i < 12; i++) {
@@ -1444,7 +1445,7 @@ void sdlPollEvents()
         systemSoundOn = !systemSoundOn;
         
         break;
-      case SDLK_f:
+      case SDLK_QUOTE:
         //toggle filters...
         if ( gl_filter == GL_LINEAR )
         {
