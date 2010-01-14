@@ -49,7 +49,7 @@
 
 #define VERSION "1.0.0"
 
-#define ROM_PATH "/media/internal/roms/"
+#define ROM_PATH "/media/internal/vbaroms/"
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
@@ -1769,7 +1769,11 @@ char * romSelector()
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
     }
 
-    return romSelected;
+    char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( romSelected ) + 2 );
+    strcpy( rom_full_path, ROM_PATH );
+    rom_full_path[strlen(ROM_PATH)] = '/';
+    strcpy( rom_full_path + strlen( ROM_PATH ) + 1, romSelected );
+    return rom_full_path;
 }
 
 void GL_Init()
@@ -2113,12 +2117,12 @@ int main(int argc, char **argv)
   if(rewindTimer)
     rewindMemory = (char *)malloc(8*REWIND_SIZE);
 
-  if(sdlFlashSize == 0)
-    flashSetSize(0x10000);
-  else
-    flashSetSize(0x20000);
+  //force higher flash size.
+  flashSetSize(0x20000);
 
-  rtcEnable(sdlRtcEnable ? true : false);
+  //force RTC --doesn't hurt, and some games need it.
+  rtcEnable( true );
+
   agbPrintEnable(sdlAgbPrint ? true : false);
 
   if(filter) {
