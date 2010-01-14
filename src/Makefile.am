@@ -1,19 +1,13 @@
-CORE_SUBDIRS = gb
+AUTOMAKE_OPTIONS = gnu dist-zip
 
-EXTRA_SUBDIRS = i386 prof sdl gtk
+CORE_SUBDIRS = m4 src win32
 
-SUBDIRS = $(CORE_SUBDIRS) @VBA_SRC_EXTRA@
+EXTRA_SUBDIRS = po
+
+SUBDIRS = $(CORE_SUBDIRS) @VBA_EXTRA@
 
 DIST_SUBDIRS = $(CORE_SUBDIRS) $(EXTRA_SUBDIRS)
 
-dist_sysconf_DATA = VisualBoyAdvance.cfg
+EXTRA_DIST = config.rpath README-win.txt README.CVS VERSION
 
-EXTRA_DIST = \
-	win32			\
-	expr.l			\
-	expr.y			\
-	CheatSearch.cpp		\
-	CheatSearch.h
-
-dist-hook:
-	rm -rf `find $(distdir)/win32 -name CVS`
+ACLOCAL_AMFLAGS = -I m4
