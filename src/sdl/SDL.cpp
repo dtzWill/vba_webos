@@ -184,6 +184,8 @@ int orientation = ORIENTATION_PORTRAIT;
 
 int gl_filter = GL_LINEAR;
 
+int combo_down = false;
+
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
  *-----------------------------------------------------------------------------*/
@@ -1091,6 +1093,14 @@ void sdlUpdateKey(int key, bool down)
       if(key == motion[i])
         sdlMotionButtons[i] = down;
     }
+  }
+
+  if ( key == SDLK_t )
+  {
+      sdlButtons[0][KEY_BUTTON_A] = down;
+      sdlButtons[0][KEY_BUTTON_B] = down;
+      sdlButtons[0][KEY_BUTTON_START] = down;
+      sdlButtons[0][KEY_BUTTON_SELECT] = down;
   }
 }
 
