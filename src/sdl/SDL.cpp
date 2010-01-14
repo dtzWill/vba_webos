@@ -49,7 +49,8 @@
 
 #define VERSION "1.0.0"
 
-#define ROM_PATH "/media/internal/vbaroms/"
+#define VBA_HOME "/media/internal/vba"
+#define ROM_PATH VBA_HOME "/roms/"
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
@@ -566,6 +567,11 @@ FILE *sdlFindFile(const char *name)
     if(f != NULL)
       return f;
 #endif // ! WIN32
+    fprintf( stderr, "Searching %s", VBA_HOME );
+    sprintf(path, "%s%c%s", VBA_HOME, FILE_SEP, name);
+    f = fopen(path, "r");
+    if( f != NULL)
+        return f;
 
   if(!strchr(arg0, '/') &&
      !strchr(arg0, '\\')) {
@@ -1397,9 +1403,9 @@ void sdlPollEvents()
 //            wasPaused = true;
 //        }
 //        break;
-      case SDLK_ESCAPE:
-        emulating = 0;
-        break;
+//      case SDLK_ESCAPE:
+//        emulating = 0;
+//        break;
       case SDLK_1:
       case SDLK_2:
       case SDLK_3:
@@ -1643,7 +1649,13 @@ char * romSelector()
     //Make sure rom dir exists
     //XXX: This assumes /media/internal (parent directory) already exists
     int mode = S_IRWXU | S_IRWXG | S_IRWXO;
-    int result = mkdir( ROM_PATH, mode );
+    int result = mkdir( VBA_HOME, mode );
+    if ( result && ( errno != EEXIST ) )
+    {
+        fprintf( stderr, "Error creating directory %s!\n", VBA_HOME );
+        exit( 1 );
+    }
+    result = mkdir( ROM_PATH, mode );
     if ( result && ( errno != EEXIST ) )
     {
         fprintf( stderr, "Error creating directory %s for roms!\n", ROM_PATH );
@@ -1707,8 +1719,8 @@ char * romSelector()
     SDL_Event event;
     bool tap = false;
     bool down = false;
-    char * romSelected = NULL;
-    while( !romSelected )
+    int romSelected = -1;
+    while( romSelected == -1 )
     {
         //Calculate scroll, etc
         int num_roms_display = ( bottom - top ) / ( roms_surface[0]->h + 10 );
@@ -1727,8 +1739,7 @@ char * romSelector()
                         int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
                         if ( rom_index >= 0 && rom_index < num_roms_display )
                         {
-                            romSelected = roms[ rom_index+scroll_offset ]->d_name;
-                            printf( "ROM SELECTED: %s\n", romSelected );
+                            romSelected = rom_index+scroll_offset;
                         }
                     }
                     break;
@@ -1762,17 +1773,32 @@ char * romSelector()
         for ( int i = 0; i < num_roms_display; i++ )
         {
            int index = scroll_offset + i;
+           if ( index == romSelected )
+           {
+               int hiColor = SDL_MapRGB( surface->format, 128, 128, 0 );
+               SDL_Rect hiRect;
+               hiRect.x = 10;
+               hiRect.y = top+(10+roms_surface[0]->h)*i - 5;
+               hiRect.h = roms_surface[index]->h+5;
+               hiRect.w = surface->w - 20;
+               SDL_FillRect( surface, &hiRect, hiColor );
+           }
            apply_surface( 20, top + (10+roms_surface[0]->h)*i, roms_surface[index], surface );
         }
 
         //Update screen.
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
+        if ( romSelected != -1 )
+        {
+            SDL_Delay( 20 );
+        }
     }
 
-    char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( romSelected ) + 2 );
+    char * rom_base = roms[romSelected]->d_name;
+    char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );
     strcpy( rom_full_path, ROM_PATH );
     rom_full_path[strlen(ROM_PATH)] = '/';
-    strcpy( rom_full_path + strlen( ROM_PATH ) + 1, romSelected );
+    strcpy( rom_full_path + strlen( ROM_PATH ) + 1, rom_base );
     return rom_full_path;
 }
 
