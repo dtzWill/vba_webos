@@ -1,10 +1,11 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
-// Used by VBA.rc
+// Microsoft Visual C++ generated include file.
+// Used by vba.rc
 //
 #define IDS_UNSUPPORTED_VBA_SGM         1
 #define IDS_CANNOT_LOAD_SGM             2
 #define IDS_SAVE_GAME_NOT_USING_BIOS    3
+#define IDC_DEFAULTS                    3
 #define IDS_SAVE_GAME_USING_BIOS        4
 #define IDS_UNSUPPORTED_SAVE_TYPE       5
 #define IDS_CANNOT_OPEN_FILE            6
@@ -43,7 +44,8 @@
 #define IDS_INVALID_CBA_CODE            39
 #define IDS_CBA_CODE_WARNING            40
 #define IDS_OUT_OF_MEMORY               41
-#define IDI_ICON                        101
+#define IDS_WRONG_GAMESHARK_CODE        42
+#define IDS_UNSUPPORTED_GAMESHARK_CODE  43
 #define IDD_REGISTERS                   102
 #define IDD_DEBUG                       103
 #define IDR_MENU                        104
@@ -93,6 +95,7 @@
 #define IDD_IO_VIEWER                   151
 #define IDD_MAX_SCALE                   154
 #define IDD_BUG_REPORT                  155
+#define IDD_GAME_OVERRIDES              156
 #define IDC_R0                          1000
 #define IDC_EDIT_UP                     1000
 #define IDC_R1                          1001
@@ -487,10 +490,15 @@
 #define IDC_BIT_3                       1253
 #define IDC_COPY                        1253
 #define IDC_BIT_4                       1254
+#define IDC_NAME                        1254
 #define IDC_BIT_5                       1255
+#define IDC_RTC                         1255
 #define IDC_BIT_6                       1256
+#define IDC_SAVE_TYPE                   1256
 #define IDC_BIT_7                       1257
+#define IDC_FLASH_SIZE                  1257
 #define IDC_BIT_8                       1258
+#define IDC_COMMENT                     1258
 #define IDC_BIT_9                       1259
 #define IDC_BIT_10                      1260
 #define IDC_BIT_11                      1261
@@ -498,6 +506,8 @@
 #define IDC_BIT_13                      1263
 #define IDC_BIT_14                      1264
 #define IDC_BIT_15                      1265
+#define IDC_MIRRORING                   1266
+#define IDC_LY                          1267
 #define ID_HELP_ABOUT                   40001
 #define ID_FILE_EXIT                    40002
 #define ID_OPTIONS_VIDEO_FRAMESKIP_0    40003
@@ -641,7 +651,6 @@
 #define ID_TOOLS_LOGGING                40156
 #define ID_OPTIONS_EMULATOR_SPEEDHACK   40157
 #define ID_OPTIONS_EMULATOR_SPEEDUPTOGGLE 40158
-#define ID_OPTIONS_EMULATOR_REMOVEINTROSGBA 40159
 #define ID_OPTIONS_FILTER16BIT_ADVANCEMAMESCALE2X 40160
 #define ID_OPTIONS_FILTER16BIT_SIMPLE2X 40161
 #define ID_FILE_RECENT_FREEZE           40162
@@ -727,7 +736,6 @@
 #define ID_OPTIONS_EMULATOR_REWINDINTERVAL 40262
 #define ID_FILE_TOGGLEMENU              40263
 #define ID_OPTIONS_EMULATOR_SAVETYPE_NONE 40264
-#define ID_OPTIONS_EMULATOR_SAVETYPE_ENHANCEDDETECTION 40265
 #define ID_TOOLS_IOVIEWER               40266
 #define ID_FILE_LOADGAME_MOSTRECENT     40267
 #define ID_FILE_SAVEGAME_OLDESTSLOT     40268
@@ -738,14 +746,18 @@
 #define ID_OPTIONS_VIDEO_FULLSCREENMAXSCALE 40273
 #define ID_OPTIONS_FILTER_HQ2X          40274
 #define ID_OPTIONS_FILTER_LQ2X          40275
+#define ID_OPTIONS_EMULATOR_GAMEOVERRIDES 40276
+#define ID_HELP_GNUPUBLICLICENSE        40277
+#define ID_OPTIONS_EMULATOR_GENERICFLASHCARD 40279
+#define ID_OPTIONS_SOUND_HARDWAREACCELERATION 40281
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        156
-#define _APS_NEXT_COMMAND_VALUE         40276
-#define _APS_NEXT_CONTROL_VALUE         1254
-#define _APS_NEXT_SYMED_VALUE           103
+#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_COMMAND_VALUE         40282
+#define _APS_NEXT_CONTROL_VALUE         1256
+#define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

@@ -147,10 +147,10 @@ bool CSkin::Hook(CWnd *pWnd)
   // --------------------------------------------------
   // change window style (get rid of the caption bar)
   // --------------------------------------------------
-  DWORD dwStyle = GetWindowLong(m_hWnd, GWL_STYLE);
+  LONG_PTR dwStyle = GetWindowLongPtr(m_hWnd, GWL_STYLE);
   m_dOldStyle = dwStyle;
   dwStyle &= ~(WS_CAPTION|WS_SIZEBOX);
-  SetWindowLong(m_hWnd, GWL_STYLE, dwStyle);
+  SetWindowLongPtr(m_hWnd, GWL_STYLE, dwStyle);
 
   RECT r;
   pWnd->GetWindowRect(&r);
@@ -168,7 +168,7 @@ bool CSkin::Hook(CWnd *pWnd)
     pWnd->SetWindowRgn(m_rgnSkin, true);    
 
   // subclass the window procedure
-  m_OldWndProc = (WNDPROC)SetWindowLong(m_hWnd, GWL_WNDPROC, (LONG)SkinWndProc);
+  m_OldWndProc = (WNDPROC)SetWindowLongPtr( m_hWnd, GWLP_WNDPROC, (LONG_PTR)SkinWndProc );
 
   // store a pointer to our class instance inside the window procedure.
   if (!SetProp(m_hWnd, "skin", (void*)this))
@@ -214,7 +214,7 @@ bool CSkin::UnHook()
     SetWindowRgn(m_hWnd, NULL, true);
 
   // unsubclass the window procedure
-  OurWnd = (WNDPROC)SetWindowLong(m_hWnd, GWL_WNDPROC, (LONG)m_OldWndProc);
+  OurWnd = (WNDPROC)SetWindowLongPtr( m_hWnd, GWLP_WNDPROC, (LONG_PTR)m_OldWndProc );
 
   // remove the pointer to our class instance, but if we fail we don't care.
   RemoveProp(m_hWnd, "skin");
@@ -223,7 +223,7 @@ bool CSkin::UnHook()
   // we failed to unhook the window.
   m_bHooked = ( OurWnd ? false : true );
 
-  SetWindowLong(m_hWnd, GWL_STYLE, m_dOldStyle);
+  SetWindowLongPtr(m_hWnd, GWL_STYLE, m_dOldStyle);
 
   RECT r;
 
@@ -533,7 +533,7 @@ LRESULT CALLBACK SkinWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 {
   // we will need a pointer to the associated class instance
   // (it was stored in the window before, remember?)
-  CSkin *pSkin = (CSkin*)GetProp(hWnd, "skin");
+  CSkin *pSkin = (CSkin*)GetProp(hWnd, _T("skin"));
 
   // to handle WM_PAINT
   PAINTSTRUCT ps;

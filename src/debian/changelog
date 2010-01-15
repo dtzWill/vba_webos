@@ -1,0 +1,139 @@
+visualboyadvance (1.8.0-4ubuntu1) intrepid; urgency=low
+
+  * Add debian/visualboyadvance.desktop, thanks Dennis Craven! (LP: #255373)
+    
+ -- Salvatore Palma <palma-salvatore@ubuntu.com>  Wed, 09 Aug 2008 17:50:09 +0200
+
+visualboyadvance (1.8.0-4) unstable; urgency=low
+
+  * debian/control:
+    - Bump Standards-Version: 3.7.3.
+    - Added Homepage header.
+    - Solved spelling error GTK to GTK+ in gtk binary description.
+    - Build-Depends standard gcc/g++. (Closes: #463303)
+  * Added 08_gvba_load_gb_rom.dpatch to solve segmentation fault. Thanks to
+    Javier Serrano Polo <jasp00@terra.es>. (Closes: #452796)
+  * debian/copyright:
+    - Updated with 2xSaImmx.asm license. (Closes: #441978)
+  * Updated debian/visualboyadvance-gtk.menu with Applications section.
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Tue, 25 Mar 2008 01:10:31 -0300
+
+visualboyadvance (1.8.0-3) unstable; urgency=low
+
+  * visualboyadvance-gtk Depends on visualboyadvance (>= 1.8.0-2). 
+    (Closes: #434724)
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Thu, 09 Aug 2007 11:04:30 -0300
+
+visualboyadvance (1.8.0-2) unstable; urgency=low
+
+  * Updated and re-added 02_amd64_build_fix dpatch. (Closes: #425196)
+  * Solved FTBFS on kfreebsd-i386, added build-dep on nasm. (Closes: #403029)
+  * With 1.8.0 version, a buffer overflow bug was solved. (Closes: #384804)
+  * Separated GTK version in another package. (Closes: #371239)
+    - Created a gvba.1 man file.
+    - Changed .menu file to this new package.
+  * Added help2man, to always generate a updated vba man file. (Closes: #404837)
+    
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Tue, 29 May 2007 15:45:31 -0300
+
+visualboyadvance (1.8.0-1) unstable; urgency=low
+
+  * New upstream release
+  * Bump Standards-Version: 3.7.2.
+  * Added libcairomm-1.0-dev build-dependence.
+  * Updated debian/watch file.
+  * Created 06_old_2xSaImmx_asm.dpatch with old 2xSaImmx.asm file, because new
+    file doesnt works.
+  * Build depends on  g++-4.1 instead of g++, Policy Manual, sec 4.2.
+  * Solved bug that remove previous screenshots. (Closes: #267645)
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Wed,  6 Dec 2006 20:53:24 -0200
+
+visualboyadvance (1.7.2-6) unstable; urgency=low
+
+  * Changed C/C++ Optmization to 0 (-O0)., now VBA compiles with >= g++4.0. (closes: #334235)
+  * Changed build-depends and rules to make VBA build with  >= g++4.0.
+  * Added autotools-dev as build-dependence.
+  * Removed unused debian/post{inst|rm} files.
+  * Enable Console Output (-DBKPT_SUPPORT), added
+    04_fix_gtk_with_DBKPT_SUPPORT patch. (closes: #260031)
+  * Removed debian/compat and set DH_COMPAT var in debian/rules.
+  * Updated to DH_COMPAT=5
+  * Added Brazilian Portuguese po translation. Thanks to Jose Carlos Medeiros
+    <jose@psabs.com.br>
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Mon, 13 Mar 2006 18:17:00 -0300
+
+visualboyadvance (1.7.2-5) unstable; urgency=low
+
+  * Added Swedish po translation, thanks to Daniel Nylander
+    <yeager@lidkoping.net>. (closes: #343223)
+  * Added g++-3.3 as build-depends, and updated rules to compile with
+    g++-3.3.(closes: #334235)
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Fri,  3 Feb 2006 16:55:52 -0200
+
+visualboyadvance (1.7.2-4.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Replace build-dependency on xlibs-dev with an explicit build-dependency
+    on each required package. (Closes: #346989)
+
+ -- Steinar H. Gunderson <sesse@debian.org>  Sat, 21 Jan 2006 13:18:31 +0100
+
+visualboyadvance (1.7.2-4) unstable; urgency=low
+
+  * New maintainer. (closes: #313135)
+  * Added suport to GTK+ GUI front-end. (closes: #257316)
+  * Correct download address in the copyright file and added debian/watch
+    file.
+  * Added debian/docs file.
+  * Deleted README.Debian, this file has not important information.
+  * Added menu, postinst, postrm and VisualBoyAdvance-32x32.xpm files in
+    debian directory.
+  * Updated all debian/rules file.
+
+ -- Jose Carlos Medeiros <debian@psabs.com.br>  Tue, 11 Oct 2005 11:45:38 -0300
+
+visualboyadvance (1.7.2-3) unstable; urgency=low
+
+  * QA upload.
+  * Added kfreebsd-i386 to the list of architectures that build-depend
+    on nasm.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun,  9 Oct 2005 12:34:28 +0200
+
+visualboyadvance (1.7.2-2) unstable; urgency=medium
+
+  * Orphaning this package, but I'll clean up as much as I can now.
+  * Define BKPT_SUPPORT to allow console output for debugging.
+  * Do create ~/.vba if it doesn't exist. closes: #316109
+  * Apply patch from Andreas Jochens to fix build on AMD64. closes: #300786
+  * Correct the address of the FSF in the copyright file.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Sun,  9 Oct 2005 01:41:35 -0700
+
+visualboyadvance (1.7.2-1) unstable; urgency=low
+
+  * New comaintainer (from upstream) Sébastien Guignot.
+  * Joshua Kwan
+    - Move into main. VBA is not just any old emulator, but also a powerful
+      debugger.
+    - Change description to suit.
+    - Patch work:
+      + 01_use_dot_dir: be like ZSNES and use a .vba dir to store all screen
+        captures, save states and batteries
+  * Sébastien Guignot
+    - New upstream release 1.7.2.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Thu,  1 Apr 2004 19:45:08 -0500
+
+visualboyadvance (1.7.1-1) unstable; urgency=low
+
+  * Initial release (closes: #172929)
+  * Wrote a SGML manpage for VisualBoyAdvance binary.
+
+ -- Joshua Kwan <joshk@triplehelix.org>  Tue, 17 Feb 2004 16:48:54 -0800
+

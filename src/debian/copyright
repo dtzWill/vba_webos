@@ -1,0 +1,45 @@
+This package was debianized by Joshua Kwan <joshk@triplehelix.org> on
+Tue, 17 Feb 2004 00:53:49 -0800.
+
+It was downloaded from:
+	http://sourceforge.net/projects/vba
+
+Upstream Author: Forgotten <forgotten@users.sourceforge.net>,
+                 Sébastien Guignot <kxu@users.sourceforge.net> 
+
+Copyright:
+
+(C) 1999-2003 Forgotten
+(C) 2004 Forgotten and the VBA development team
+
+   This package is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 dated June, 1991.
+
+   This package is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this package; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+On Debian systems, the complete text of the GNU General Public License
+can be found in `/usr/share/common-licenses/GPL'.
+
+   ==== 2xSaImmx.asm license =====
+   /*---------------------------------------------------------------------*
+   * The following (piece of) code, (part of) the 2xSaI engine,          *
+   * copyright (c) 2001 by Derek Liauw Kie Fa.                           *
+   * Non-Commercial use of the engine is allowed and is encouraged,      *
+   * provided that appropriate credit be given and that this copyright   *
+   * notice will not be removed under any circumstance.                  *
+   * You may freely modify this code, but I request                      *
+   * that any improvements to the engine be submitted to me, so          *
+   * that I can implement these improvements in newer versions of        *
+   * the engine.                                                         *
+   * If you need more information, have any comments or suggestions,     *
+   * you can e-mail me. My e-mail: DerekL666@yahoo.com                   *
+   *---------------------------------------------------------------------*/

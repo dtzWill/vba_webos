@@ -1,6 +1,6 @@
 // VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
 // Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2004 Forgotten and the VBA development team
+// Copyright (C) 2005-2006 Forgotten and the VBA development team
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,21 +24,21 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#include "AutoBuild.h"
+#include "../AutoBuild.h"
 
 #include "SDL.h"
-#include "GBA.h"
-#include "agbprint.h"
-#include "Flash.h"
-#include "Port.h"
+#include "../GBA.h"
+#include "../agbprint.h"
+#include "../Flash.h"
+#include "../Port.h"
 #include "debugger.h"
-#include "RTC.h"
-#include "Sound.h"
-#include "Text.h"
-#include "unzip.h"
-#include "Util.h"
-#include "gb/GB.h"
-#include "gb/gbGlobals.h"
+#include "../RTC.h"
+#include "../Sound.h"
+#include "../Text.h"
+#include "../unzip.h"
+#include "../Util.h"
+#include "../gb/GB.h"
+#include "../gb/gbGlobals.h"
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
@@ -93,18 +93,18 @@ void updateOrientation();
 
 char * romSelector();
 
-#ifndef WIN32
+#ifndef _WIN32
 # include <unistd.h>
 # define GETCWD getcwd
-#else // WIN32
+#else // _WIN32
 # include <direct.h>
 # define GETCWD _getcwd
-#endif // WIN32
+#endif // _WIN32
 
 #ifndef __GNUC__
 # define HAVE_DECL_GETOPT 0
 # define __STDC__ 1
-# include "getopt.h"
+# include "../getopt.h"
 #else // ! __GNUC__
 # define HAVE_DECL_GETOPT 1
 # include "getopt.h"
@@ -117,10 +117,6 @@ extern bool soundEcho;
 extern bool soundLowPass;
 extern bool soundReverse;
 
-//void Init_Overlay(SDL_Surface *surface, int overlaytype);
-//void Quit_Overlay(void);
-//void Draw_Overlay(SDL_Surface *surface, int size);
-
 extern void remoteInit();
 extern void remoteCleanUp();
 extern void remoteStubMain();
@@ -131,6 +127,7 @@ extern void remoteSetPort(int);
 extern void debuggerOutput(char *, u32);
 
 extern void CPUUpdateRenderBuffers(bool);
+extern int gbHardware;
 
 struct EmulatedSystem emulator = {
   NULL,
@@ -274,6 +271,7 @@ static bool rewindSaveNeeded = false;
 static int rewindTimer = 0;
 
 #define REWIND_SIZE 400000
+#define SYSMSG_BUFFER_SIZE 1024
 
 #define _stricmp strcasecmp
 
@@ -319,6 +317,7 @@ int sdlFlashSize = 0;
 int sdlAutoIPS = 1;
 int sdlRtcEnable = 0;
 int sdlAgbPrint = 0;
+int sdlMirroringEnable = 0;
 
 int sdlDefaultJoypad = 0;
 
@@ -336,8 +335,10 @@ bool screenMessage = false;
 char screenMessageBuffer[21];
 u32  screenMessageTime = 0;
 
-SDL_cond *cond = NULL;
-SDL_mutex *mutex = NULL;
+// Patch #1382692 by deathpudding.
+SDL_sem *sdlBufferLock  = NULL;
+SDL_sem *sdlBufferFull  = NULL;
+SDL_sem *sdlBufferEmpty = NULL;
 u8 sdlBuffer[4096];
 int sdlSoundLen = 0;
 
@@ -522,15 +523,15 @@ FILE *sdlFindFile(const char *name)
   char buffer[4096];
   char path[2048];
 
-#ifdef WIN32
+#ifdef _WIN32
 #define PATH_SEP ";"
 #define FILE_SEP '\\'
 #define EXE_NAME "VisualBoyAdvance-SDL.exe"
-#else // ! WIN32
+#else // ! _WIN32
 #define PATH_SEP ":"
 #define FILE_SEP '/'
 #define EXE_NAME "VisualBoyAdvance"
-#endif // ! WIN32
+#endif // ! _WIN32
 
   fprintf(stderr, "Searching for file %s\n", name);
   
@@ -553,7 +554,7 @@ FILE *sdlFindFile(const char *name)
       return f;
   }
 
-#ifdef WIN32
+#ifdef _WIN32
   home = getenv("USERPROFILE");
   if(home != NULL) {
     fprintf(stderr, "Searching user profile directory: %s\n", home);
@@ -562,13 +563,13 @@ FILE *sdlFindFile(const char *name)
     if(f != NULL)
       return f;
   }
-#else // ! WIN32
+#else // ! _WIN32
     fprintf(stderr, "Searching system config directory: %s\n", SYSCONFDIR);
     sprintf(path, "%s%c%s", SYSCONFDIR, FILE_SEP, name);
     f = fopen(path, "r");
     if(f != NULL)
       return f;
-#endif // ! WIN32
+#endif // ! _WIN32
     fprintf( stderr, "Searching %s", VBA_HOME );
     sprintf(path, "%s%c%s", VBA_HOME, FILE_SEP, name);
     f = fopen(path, "r");
@@ -869,8 +870,6 @@ void sdlReadPreferences(FILE *f)
       if(rewindTimer < 0 || rewindTimer > 600)
         rewindTimer = 0;
       rewindTimer *= 6;  // convert value to 10 frames multiple
-    } else if(!strcmp(key, "enhancedDetection")) {
-      cpuEnhancedDetection = sdlFromHex(value) ? true : false;
     } else {
       fprintf(stderr, "Unknown configuration key %s\n", key);
     }
@@ -971,6 +970,8 @@ static void sdlApplyPerImagePreferences()
         int save = atoi(value);
         if(save >= 0 && save <= 5)
           cpuSaveType = save;
+      } else if(!strcmp(token, "mirroringEnabled")) {
+        mirroringEnable = (atoi(value) == 0 ? false : true);
       }
     }
   }
@@ -1018,10 +1019,14 @@ void sdlWriteState(int num)
             num+1);
   else
     sprintf(stateName,"%s%d.sgm", filename, num+1);
+  
   if(emulator.emuWriteState)
     emulator.emuWriteState(stateName);
+
   sprintf(stateName, "Wrote state %d", num+1);
   systemScreenMessage(stateName);
+
+  systemDrawScreen();
 }
 
 void sdlReadState(int num)
@@ -1039,6 +1044,8 @@ void sdlReadState(int num)
 
   sprintf(stateName, "Loaded state %d", num+1);
   systemScreenMessage(stateName);
+
+  systemDrawScreen();
 }
 
 void sdlWriteBattery()
@@ -1202,7 +1209,6 @@ void sdlUpdateJoyAxis(int which,
                       int axis,
                       int value)
 {
-  printf( "Joy: %d %d %d\n", which, axis, value );
   int i;
   for(int j = 0; j < 4; j++) {
     for(i = 0; i < 12; i++) {
@@ -1395,7 +1401,7 @@ void sdlPollEvents()
 //           (event.key.keysym.mod & KMOD_CTRL)) {
 //          if(emulating && emulator.emuReadMemState && rewindMemory 
 //             && rewindCount) {
-//            rewindPos = --rewindPos & 7;
+//            rewindPos = (rewindPos - 1) & 7;
 //            emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos], 
 //                                     REWIND_SIZE);
 //            rewindCount--;
@@ -2176,95 +2182,96 @@ int main(int argc, char **argv)
 
   printf( "Selecting rom...\n" );
   char * szFile = romSelector();
+    u32 len = strlen(szFile);
+    if (len > SYSMSG_BUFFER_SIZE) 
+    {
+      fprintf(stderr,"%s :%s: File name too long\n",argv[0],szFile);
+      exit(-1);
+    }
 
-  utilGetBaseName(szFile, filename);
-  char *p = strrchr(filename, '.');
+    utilGetBaseName(szFile, filename);
+    char *p = strrchr(filename, '.');
 
-  if(p)
+    if(p)
       *p = 0;
 
-  if(ipsname[0] == 0)
+    if(ipsname[0] == 0)
       sprintf(ipsname, "%s.ips", filename);
+    
+    bool failed = false;
 
-  bool failed = false;
+    IMAGE_TYPE type = utilFindType(szFile);
 
-  IMAGE_TYPE type = utilFindType(szFile);
-
-  if(type == IMAGE_UNKNOWN) {
+    if(type == IMAGE_UNKNOWN) {
       systemMessage(0, "Unknown file type %s", szFile);
       exit(-1);
-  }
-  cartridgeType = (int)type;
-
-  if(type == IMAGE_GB) {
+    }
+    cartridgeType = (int)type;
+    
+    if(type == IMAGE_GB) {
       failed = !gbLoadRom(szFile);
       if(!failed) {
-          cartridgeType = 1;
-          emulator = GBSystem;
-          if(sdlAutoIPS) {
-              int size = gbRomSize;
-              utilApplyIPS(ipsname, &gbRom, &size);
-              if(size != gbRomSize) {
-                  extern bool gbUpdateSizes();
-                  gbUpdateSizes();
-                  gbReset();
-              }
+        gbGetHardwareType();
+        
+        // used for the handling of the gb Boot Rom
+        if (gbHardware & 5)
+        {
+			    char tempName[0x800];
+			    strcpy(tempName, arg0);
+			    char *p = strrchr(tempName, '\\');
+			    if(p) { *p = 0x00; }
+			    strcat(tempName, "\\DMG_ROM.bin");
+          fprintf(stderr, "%s\n", tempName);
+			    gbCPUInit(tempName, useBios);
+        }
+        else useBios = false;
+        
+        gbReset();
+        cartridgeType = IMAGE_GB;
+        emulator = GBSystem;
+        if(sdlAutoIPS) {
+          int size = gbRomSize;
+          utilApplyIPS(ipsname, &gbRom, &size);
+          if(size != gbRomSize) {
+            extern bool gbUpdateSizes();
+            gbUpdateSizes();
+            gbReset();
           }
+        }
       }
-  } else if(type == IMAGE_GBA) {
+    } else if(type == IMAGE_GBA) {
       int size = CPULoadRom(szFile);
       failed = (size == 0);
       if(!failed) {
-          //        if(cpuEnhancedDetection && cpuSaveType == 0) {
-          //          utilGBAFindSave(rom, size);
-          //        }
+        sdlApplyPerImagePreferences();
 
-          sdlApplyPerImagePreferences();
+        doMirroring(mirroringEnable);
+        
+        cartridgeType = 0;
+        emulator = GBASystem;
 
-          cartridgeType = 0;
-          emulator = GBASystem;
-
-          /* disabled due to problems
-             if(removeIntros && rom != NULL) {
-             WRITE32LE(&rom[0], 0xea00002e);
-             }
-             */
-
-          CPUInit(biosFileName, useBios);
-          CPUReset();
-          if(sdlAutoIPS) {
-              int size = 0x2000000;
-              utilApplyIPS(ipsname, &rom, &size);
-              if(size != 0x2000000) {
-                  CPUReset();
-              }
+        /* disabled due to problems
+        if(removeIntros && rom != NULL) {
+          WRITE32LE(&rom[0], 0xea00002e);
+        }
+        */
+        
+        CPUInit(biosFileName, useBios);
+        CPUReset();
+        if(sdlAutoIPS) {
+          int size = 0x2000000;
+          utilApplyIPS(ipsname, &rom, &size);
+          if(size != 0x2000000) {
+            CPUReset();
           }
+        }
       }
-  }
-
-  if(failed) {
+    }
+    
+    if(failed) {
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
-  }
-//} else {
-//    cartridgeType = 0;
-//    strcpy(filename, "gnu_stub");
-//    rom = (u8 *)malloc(0x2000000);
-//    workRAM = (u8 *)calloc(1, 0x40000);
-//    bios = (u8 *)calloc(1,0x4000);
-//    internalRAM = (u8 *)calloc(1,0x8000);
-//    paletteRAM = (u8 *)calloc(1,0x400);
-//    vram = (u8 *)calloc(1, 0x20000);
-//    oam = (u8 *)calloc(1, 0x400);
-//    pix = (u8 *)calloc(1, 4 * 240 * 160);
-//    ioMem = (u8 *)calloc(1, 0x400);
-//
-//    emulator = GBASystem;
-//
-//    CPUInit(biosFileName, useBios);
-//    CPUReset();    
-//}
-
+    }
   sdlReadBattery();
   
   if(debuggerStub) 
@@ -2367,21 +2374,9 @@ int main(int argc, char **argv)
   RGB_LOW_BITS_MASK = 0x821;
 
   //Set the colormap using the shifts.
-  if(cartridgeType == 2) {
-      for(int i = 0; i < 0x10000; i++) {
-          systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-              (((i & 0x7c0) >> 6) << systemGreenShift) |
-              (((i & 0xf800) >> 11) << systemRedShift);  
-      }      
-  } else {
-      for(int i = 0; i < 0x10000; i++) {
-          systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-              (((i & 0x3e0) >> 5) << systemGreenShift) |
-              (((i & 0x7c00) >> 10) << systemBlueShift);  
-      }
-  }
 
   srcPitch = srcWidth * 2;
+  utilUpdateSystemColorMaps();
 
   //No filter support (should be implemented as part of the GL shader)
   ifbFunction = NULL;
@@ -2396,10 +2391,10 @@ int main(int argc, char **argv)
   renderedFrames = 0;
 
   if(!soundOffFlag)
-      soundInit();
+    soundInit();
 
   autoFrameSkipLastTime = throttleLastTime = systemGetClock();
-
+  
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
   while(emulating) {
@@ -2415,9 +2410,9 @@ int main(int argc, char **argv)
           if(emulator.emuWriteMemState &&
              emulator.emuWriteMemState(&rewindMemory[rewindPos*REWIND_SIZE], 
                                        REWIND_SIZE)) {
-            rewindPos = ++rewindPos & 7;
+            rewindPos = (rewindPos + 1) & 7;
             if(rewindCount == 8)
-              rewindTopPos = ++rewindTopPos & 7;
+              rewindTopPos = (rewindTopPos + 1) & 7;
           }
         }
 
@@ -2455,7 +2450,7 @@ int main(int argc, char **argv)
 
 void systemMessage(int num, const char *msg, ...)
 {
-  char buffer[2048];
+  char buffer[SYSMSG_BUFFER_SIZE*2];
   va_list valist;
   
   va_start(valist, msg);
@@ -2524,6 +2519,7 @@ void drawScreenText()
     }
   }
 
+<<<<<<< HEAD
   if(showSpeed) {
     char buffer[50];
     if(showSpeed == 1)
@@ -2775,67 +2771,69 @@ void systemScreenCapture(int a)
 
 void soundCallback(void *,u8 *stream,int len)
 {
-  if(!emulating)
+  if (!emulating)
     return;
-  SDL_mutexP(mutex);
-  //  printf("Locked mutex\n");
-  if(!speedup && !throttle) {
-    while(sdlSoundLen < 2048*2) {
-      if(emulating)
-        SDL_CondWait(cond, mutex);
-      else 
-        break;
-    }
-  }
-  if(emulating) {
-    //  printf("Copying data\n");
-    memcpy(stream, sdlBuffer, len);
-  }
+
+  // Patch #1382692 by deathpudding.
+  /* since this is running in a different thread, speedup and
+   * throttle can change at any time; save the value so locks
+   * stay in sync */
+  bool lock = (!speedup && !throttle) ? true : false;
+
+  if (lock)
+    SDL_SemWait (sdlBufferFull);
+
+  SDL_SemWait (sdlBufferLock);
+  memcpy (stream, sdlBuffer, len);
   sdlSoundLen = 0;
-  if(mutex)
-    SDL_mutexV(mutex);
+  SDL_SemPost (sdlBufferLock);
+
+  if (lock)
+    SDL_SemPost (sdlBufferEmpty);
 }
 
 void systemWriteDataToSoundBuffer()
 {
-  if(SDL_GetAudioStatus() != SDL_AUDIO_PLAYING)
-    SDL_PauseAudio(0);
-  bool cont = true;
-  while(cont && !speedup && !throttle) {
-    SDL_mutexP(mutex);
-    //    printf("Waiting for len < 2048 (speed up %d)\n", speedup);
-    if(sdlSoundLen < 2048*2)
-      cont = false;
-    SDL_mutexV(mutex);
-  }
+  // Patch #1382692 by deathpudding.
+  if (SDL_GetAudioStatus () != SDL_AUDIO_PLAYING)
+    SDL_PauseAudio (0);
 
-  int len = soundBufferLen;
-  int copied = 0;
-  if((sdlSoundLen+len) >= 2048*2) {
-    //    printf("Case 1\n");
-    memcpy(&sdlBuffer[sdlSoundLen],soundFinalWave, 2048*2-sdlSoundLen);
-    copied = 2048*2 - sdlSoundLen;
+  if ((sdlSoundLen + soundBufferLen) >= 2048*2) {
+    bool lock = (!speedup && !throttle) ? true : false;
+
+    if (lock)
+      SDL_SemWait (sdlBufferEmpty);
+
+    SDL_SemWait (sdlBufferLock);
+    int copied = 2048*2 - sdlSoundLen;
+    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, copied);
     sdlSoundLen = 2048*2;
-    SDL_CondSignal(cond);
-    cont = true;
-    if(!speedup && !throttle) {
-      while(cont) {
-        SDL_mutexP(mutex);
-        if(sdlSoundLen < 2048*2)
-          cont = false;
-        SDL_mutexV(mutex);
-      }
-      memcpy(&sdlBuffer[0],&(((u8 *)soundFinalWave)[copied]),
-             soundBufferLen-copied);
-      sdlSoundLen = soundBufferLen-copied;
-    } else {
-      memcpy(&sdlBuffer[0], &(((u8 *)soundFinalWave)[copied]), 
-soundBufferLen);
+    SDL_SemPost (sdlBufferLock);
+
+    if (lock) {
+      SDL_SemPost (sdlBufferFull);
+
+      /* wait for buffer to be dumped by soundCallback() */
+      SDL_SemWait (sdlBufferEmpty);
+      SDL_SemPost (sdlBufferEmpty);
+
+      SDL_SemWait (sdlBufferLock);
+      memcpy (sdlBuffer, ((u8 *)soundFinalWave) + copied,
+          soundBufferLen - copied);
+      sdlSoundLen = soundBufferLen - copied;
+      SDL_SemPost (sdlBufferLock);
     }
-  } else {
-    //    printf("case 2\n");
-    memcpy(&sdlBuffer[sdlSoundLen], soundFinalWave, soundBufferLen);
-    sdlSoundLen += soundBufferLen;
+    else {
+      SDL_SemWait (sdlBufferLock);
+      memcpy (sdlBuffer, ((u8 *) soundFinalWave) + copied, soundBufferLen);
+      SDL_SemPost (sdlBufferLock);
+    }
+  }
+  else {
+    SDL_SemWait (sdlBufferLock);
+    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, soundBufferLen);
+     sdlSoundLen += soundBufferLen;
+    SDL_SemPost (sdlBufferLock);
   }
 }
 
@@ -2867,8 +2865,10 @@ bool systemSoundInit()
     return false;
   }
   soundBufferTotalLen = soundBufferLen*10;
-  cond = SDL_CreateCond();
-  mutex = SDL_CreateMutex();
+  // Patch #1382692 by deathpudding.
+  sdlBufferLock  = SDL_CreateSemaphore (1);
+  sdlBufferFull  = SDL_CreateSemaphore (0);
+  sdlBufferEmpty = SDL_CreateSemaphore (1);
   sdlSoundLen = 0;
   systemSoundOn = true;
   return true;
@@ -2876,14 +2876,14 @@ bool systemSoundInit()
 
 void systemSoundShutdown()
 {
-  SDL_mutexP(mutex);
-  SDL_CondSignal(cond);
-  SDL_mutexV(mutex);
-  SDL_DestroyCond(cond);
-  cond = NULL;
-  SDL_DestroyMutex(mutex);
-  mutex = NULL;
-  SDL_CloseAudio();
+  // Patch #1382692 by deathpudding.
+  SDL_CloseAudio (); //TODO: fix freeze
+  SDL_DestroySemaphore (sdlBufferLock);
+  SDL_DestroySemaphore (sdlBufferFull);
+  SDL_DestroySemaphore (sdlBufferEmpty);
+  sdlBufferLock  = NULL;
+  sdlBufferFull  = NULL;
+  sdlBufferEmpty = NULL;
 }
 
 void systemSoundPause()
@@ -3232,75 +3232,4 @@ void systemGbBorderOn()
 {
   printf( "Not supported!\n" );
   exit( -1 );
-//
-//  srcWidth = 256;
-//  srcHeight = 224;
-//  gbBorderLineSkip = 256;
-//  gbBorderColumnSkip = 48;
-//  gbBorderRowSkip = 40;
-//
-//  destWidth = (sizeOption+1)*srcWidth;
-//  destHeight = (sizeOption+1)*srcHeight;
-//  
-//  surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-//                             SDL_SWSURFACE|
-//                             (fullscreen ? SDL_FULLSCREEN : 0));  
-//#ifndef C_CORE
-//  sdlMakeStretcher(srcWidth);
-//#else
-//  switch(systemColorDepth) {
-//  case 16:
-//    sdlStretcher = sdlStretcher16[sizeOption];
-//    break;
-//  case 24:
-//    sdlStretcher = sdlStretcher24[sizeOption];
-//    break;
-//  case 32:
-//    sdlStretcher = sdlStretcher32[sizeOption];
-//    break;
-//  default:
-//    fprintf(stderr, "Unsupported resolution: %d\n", systemColorDepth);
-//    exit(-1);
-//  }
-//#endif
-//
-//  if(systemColorDepth == 16) {
-//    if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
-//      Init_2xSaI(565);
-//      RGB_LOW_BITS_MASK = 0x821;
-//    } else {
-//      Init_2xSaI(555);
-//      RGB_LOW_BITS_MASK = 0x421;      
-//    }
-//    if(cartridgeType == 2) {
-//      for(int i = 0; i < 0x10000; i++) {
-//        systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-//          (((i & 0x7c0) >> 6) << systemGreenShift) |
-//          (((i & 0xf800) >> 11) << systemRedShift);  
-//      }      
-//    } else {
-//      for(int i = 0; i < 0x10000; i++) {
-//        systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-//          (((i & 0x3e0) >> 5) << systemGreenShift) |
-//          (((i & 0x7c00) >> 10) << systemBlueShift);  
-//      }
-//    }
-//    srcPitch = srcWidth * 2+4;
-//  } else {
-//    if(systemColorDepth != 32)
-//      filterFunction = NULL;
-//    RGB_LOW_BITS_MASK = 0x010101;
-//    if(systemColorDepth == 32) {
-//      Init_2xSaI(32);
-//    }
-//    for(int i = 0; i < 0x10000; i++) {
-//      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
-//        (((i & 0x3e0) >> 5) << systemGreenShift) |
-//        (((i & 0x7c00) >> 10) << systemBlueShift);  
-//    }
-//    if(systemColorDepth == 32)
-//      srcPitch = srcWidth*4 + 4;
-//    else
-//      srcPitch = srcWidth*3;
-//  }
 }

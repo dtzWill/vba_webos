@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name= VisualBoy Advance
+Comment=Game Boy Advance emulator
+Exec=gvba
+Icon=VisualBoyAdvance-32x32
+Terminal=false
+Type=Application
+Categories=GTK;Game;ArcadeGame;
+StartupNotify=true

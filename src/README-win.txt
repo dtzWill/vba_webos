@@ -1,4 +1,4 @@
-Welcome to VisualBoyAdvance version 1.7.2.
+Welcome to VisualBoyAdvance version 1.8.0.
 
 Compiling the sources
 ---------------------
@@ -40,11 +40,13 @@ Options->Joypad->Configure... menu.
 The 1 thorugh 4 joypads allow you to have different settings which can be
 easily switched.
 
-System requirements
--------------------
+Recommended System Requirements
+-------------------------------
 
-Fast computer (Pentium III 500 Mhz recommended) and Microsoft DirectX 7 or
-greater.
+CPU: 800MHz with MMX & SSE
+RAM: 64MB free
+GPU: Graphics card with drivers supporting DirectX9
+OS:  Windows 2000 with DirectX9 runtime
 
 Translations
 ------------
@@ -147,6 +149,7 @@ Version 1.5 introduced the support for per game settings for GBA games. You
 can defined the following settings on a per game basis by using an INI file
 called vba-over.ini in the same directory as the emulator:
 
+comment=You can add any text you like here, for example the full name of the game, but not exceeding 255 characters
 rtcEnabled=<0 for false, anything else for true>
 flashSize=<65536 or 131072>
 saveType=<0 for automatic, 1 for EEPROM, 2 for SRAM, 3 for Flash or 4 for
@@ -163,6 +166,9 @@ saveType=0
 rtcEnabled=1
 flashSize=131072
 saveType=0
+
+An easier way to change the per game settings is to use the Game overrides dialog in the MFC version of VBA.
+Select Menu>Options>Emulator>Game Overrides... to open the dialog. Just make your changes and click OK.
 
 FAQ
 ---

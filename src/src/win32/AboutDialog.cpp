@@ -19,9 +19,9 @@
 // AboutDialog.cpp : implementation file
 //
 
+#include "stdafx.h"
 #include "AboutDialog.h"
 #include "../AutoBuild.h"
-#include "resource.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -73,11 +73,4 @@ BOOL AboutDialog::OnInitDialog()
 
   return TRUE;  // return TRUE unless you set the focus to a control
   // EXCEPTION: OCX Property Pages should return FALSE
-}
-
-void AboutDialog::OnOK() 
-{
-  // TODO: Add extra validation here
-  
-  CDialog::OnOK();
 }

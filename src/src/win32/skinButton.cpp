@@ -97,7 +97,7 @@ void SkinButton::OnPaint()
   PAINTSTRUCT ps;
   HDC hDC = ::BeginPaint(m_hWnd, &ps);
   HDC memDC = ::CreateCompatibleDC(hDC);
-  UINT state = ::SendMessage(m_hWnd, BM_GETSTATE, 0, 0);
+  LRESULT state = ::SendMessage(m_hWnd, BM_GETSTATE, 0, 0);
   HBITMAP oldBitmap;
   if(state & BST_PUSHED)
     oldBitmap = (HBITMAP)SelectObject(memDC, downBmp);
@@ -126,6 +126,8 @@ LRESULT SkinButton::OnLButtonUpMsg(WPARAM wParam, LPARAM lParam)
   if(region != NULL)
     inside &= PtInRegion(region, pt.x, pt.y);
   if(inside) {
+    ReleaseCapture();
+    Invalidate();
     HWND hWnd = m_hWnd;
     if(idCommand != 0)
       GetParent()->SendMessage(WM_COMMAND, idCommand, 0);

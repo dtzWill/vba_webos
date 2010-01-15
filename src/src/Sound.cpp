@@ -1,6 +1,7 @@
 // VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
 // Copyright (C) 1999-2003 Forgotten
 // Copyright (C) 2004 Forgotten and the VBA development team
+// Copyright (C) 2004-2006 VBA development team
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,15 +19,16 @@
 
 #include <memory.h>
 
+#include "Sound.h"
+
 #include "GBA.h"
 #include "Globals.h"
-#include "Sound.h"
 #include "Util.h"
 
 #define USE_TICKS_AS  380
 #define SOUND_MAGIC   0x60000000
 #define SOUND_MAGIC_2 0x30000000
-#define NOISE_MAGIC 5
+#define NOISE_MAGIC   5
 
 extern bool stopState;
 
@@ -387,8 +389,8 @@ void soundEvent(u32 address, u8 data)
       sound2Index = 0;
       sound2On = 1;
     }
-    break;
-    ioMem[address] = data;    
+    ioMem[address] = data;  
+    break;  
   case NR30:
     data &= 0xe0;
     if(!(data & 0x80)) {
@@ -541,7 +543,7 @@ void soundEvent(u32 address, u16 data)
   switch(address) {
   case SGCNT0_H:
     data &= 0xFF0F;
-    soundControl = data & 0x770F;;
+    soundControl = data & 0x770F;
     if(data & 0x0800) {
       soundDSFifoAWriteIndex = 0;
       soundDSFifoAIndex = 0;
@@ -560,7 +562,7 @@ void soundEvent(u32 address, u16 data)
     }
     soundDSBEnabled = (data & 0x3000) ? true : false;
     soundDSBTimer = (data & 0x4000) ? 1 : 0;
-    *((u16 *)&ioMem[address]) = data;    
+    *((u16 *)&ioMem[address]) = soundControl;    
     break;
   case FIFOA_L:
   case FIFOA_H:
@@ -865,7 +867,7 @@ void soundDirectSoundATimer()
     }
     
     soundDSAValue = (soundDSFifoA[soundDSFifoAIndex]);
-    soundDSFifoAIndex = (++soundDSFifoAIndex) & 31;
+    soundDSFifoAIndex = (soundDSFifoAIndex + 1) & 31;
     soundDSFifoACount--;
   } else
     soundDSAValue = 0;
@@ -894,7 +896,7 @@ void soundDirectSoundBTimer()
     }
     
     soundDSBValue = (soundDSFifoB[soundDSFifoBIndex]);
-    soundDSFifoBIndex = (++soundDSFifoBIndex) & 31;
+    soundDSFifoBIndex = (soundDSFifoBIndex + 1) & 31;
     soundDSFifoBCount--;
   } else {
     soundDSBValue = 0;

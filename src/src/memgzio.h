@@ -8,10 +8,11 @@
 /* memgzio.c - IO on .gz files in memory
  * Adapted from original gzio.c from zlib library by Forgotten
  */
-#ifndef HAVE_ZUTIL_H
-#include "../win32/include/zlib/zutil.h"
+
+#if defined(HAVE_ZUTIL_H) || defined(_WIN32) 	 
+# include <zutil.h>
 #else
-#include <zutil.h>
+# include "../win32/dependencies/zlib/zutil.h"
 #endif
 
 gzFile ZEXPORT memgzopen(char *memory, int, const char *);

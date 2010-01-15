@@ -494,36 +494,36 @@ SOURCE=..\src\i386\2xSaImmx.asm
 !IF  "$(CFG)" == "GBA - Win32 Release"
 
 # Begin Custom Build
-OutDir=.\Release
+IntDir=.\Release
 InputPath=..\src\i386\2xSaImmx.asm
 InputName=2xSaImmx
 
-"$(OutDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o $(OutDir)\$(InputName).obj $(InputPath)
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o "$(IntDir)\$(InputName).obj" "$(InputPath)"
 
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "GBA - Win32 Debug"
 
 # Begin Custom Build
-OutDir=.\Debug
+IntDir=.\Debug
 InputPath=..\src\i386\2xSaImmx.asm
 InputName=2xSaImmx
 
-"$(OutDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o $(OutDir)\$(InputName).obj $(InputPath)
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o "$(IntDir)\$(InputName).obj" "$(InputPath)"
 
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "GBA - Win32 ReleaseNoDev"
 
 # Begin Custom Build
-OutDir=.\ReleaseNoDev
+IntDir=.\ReleaseNoDev
 InputPath=..\src\i386\2xSaImmx.asm
 InputName=2xSaImmx
 
-"$(OutDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o $(OutDir)\$(InputName).obj $(InputPath)
+"$(IntDir)\$(InputName).obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	"c:\Program Files\Nasm\nasmw.exe" -D__DJGPP__ -f win32 -o "$(IntDir)\$(InputName).obj" "$(InputPath)"
 
 # End Custom Build
 
@@ -557,6 +557,10 @@ SOURCE=..\src\win32\DirectInput.cpp
 # Begin Source File
 
 SOURCE=..\src\win32\DirectSound.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\win32\GameOverrides.cpp
 # End Source File
 # Begin Source File
 
@@ -733,6 +737,10 @@ SOURCE=..\src\win32\FileDlg.h
 # Begin Source File
 
 SOURCE=..\src\Flash.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\win32\GameOverrides.h
 # End Source File
 # Begin Source File
 

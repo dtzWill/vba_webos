@@ -30,8 +30,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-extern USHORT joypad[4][13];
-extern USHORT motion[4];
+extern LONG_PTR joypad[4][13];
+extern LONG_PTR motion[4];
 
 /////////////////////////////////////////////////////////////////////////////
 // JoypadEditControl
@@ -46,26 +46,20 @@ JoypadEditControl::~JoypadEditControl()
 
 
 BEGIN_MESSAGE_MAP(JoypadEditControl, CEdit)
-  //{{AFX_MSG_MAP(JoypadEditControl)
-  ON_WM_CHAR()
-  //}}AFX_MSG_MAP
   ON_MESSAGE(JOYCONFIG_MESSAGE, OnJoyConfig)
   END_MESSAGE_MAP()
 
   /////////////////////////////////////////////////////////////////////////////
 // JoypadEditControl message handlers
 
-void JoypadEditControl::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) 
-{
-}
-
 LRESULT JoypadEditControl::OnJoyConfig(WPARAM wParam, LPARAM lParam)
 {
-  SetWindowLong(GetSafeHwnd(), GWL_USERDATA,((wParam<<8)|lParam));
-  SetWindowText(theApp.input->getKeyName((wParam<<8)|lParam));
-  GetParent()->GetNextDlgTabItem(this, FALSE)->SetFocus();
-  return TRUE;
+	SetWindowLongPtr( this->GetSafeHwnd(), GWLP_USERDATA, (wParam<<8) | lParam );
+	this->SetWindowText( theApp.input->getKeyName( (int)((wParam<<8)|lParam) ) );
+	GetParent()->GetNextDlgTabItem(this, FALSE)->SetFocus();
+	return TRUE;
 }
+
 
 BOOL JoypadEditControl::PreTranslateMessage(MSG *pMsg)
 {
@@ -112,14 +106,11 @@ void JoypadConfig::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(JoypadConfig, CDialog)
-  //{{AFX_MSG_MAP(JoypadConfig)
   ON_BN_CLICKED(ID_CANCEL, OnCancel)
   ON_BN_CLICKED(ID_OK, OnOk)
-  ON_WM_CHAR()
   ON_WM_DESTROY()
   ON_WM_TIMER()
   ON_WM_KEYDOWN()
-  //}}AFX_MSG_MAP
   END_MESSAGE_MAP()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -137,10 +128,6 @@ void JoypadConfig::OnOk()
   EndDialog(TRUE);
 }
 
-void JoypadConfig::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) 
-{
-}
-
 void JoypadConfig::OnDestroy() 
 {
   CDialog::OnDestroy();
@@ -148,7 +135,7 @@ void JoypadConfig::OnDestroy()
   KillTimer(timerId);
 }
 
-void JoypadConfig::OnTimer(UINT nIDEvent) 
+void JoypadConfig::OnTimer(UINT_PTR nIDEvent) 
 {
   theApp.input->checkDevices();
   
@@ -163,45 +150,45 @@ BOOL JoypadConfig::OnInitDialog()
 {
   CDialog::OnInitDialog();
   
-  timerId = SetTimer(0,200,NULL);
+  timerId = SetTimer(0,50,NULL);
   
-  SetWindowLong(up, GWL_USERDATA,joypad[which][KEY_UP]);
+  SetWindowLongPtr(up, GWLP_USERDATA,joypad[which][KEY_UP]);
   up.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_UP]));
   
-  SetWindowLong(down, GWL_USERDATA,joypad[which][KEY_DOWN]);
+  SetWindowLongPtr(down, GWLP_USERDATA,joypad[which][KEY_DOWN]);
   down.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_DOWN]));
 
-  SetWindowLong(left, GWL_USERDATA,joypad[which][KEY_LEFT]);
+  SetWindowLongPtr(left, GWLP_USERDATA,joypad[which][KEY_LEFT]);
   left.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_LEFT]));
 
-  SetWindowLong(right, GWL_USERDATA,joypad[which][KEY_RIGHT]);
+  SetWindowLongPtr(right, GWLP_USERDATA,joypad[which][KEY_RIGHT]);
   right.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_RIGHT]));
 
-  SetWindowLong(buttonA, GWL_USERDATA,joypad[which][KEY_BUTTON_A]);
+  SetWindowLongPtr(buttonA, GWLP_USERDATA,joypad[which][KEY_BUTTON_A]);
   buttonA.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_A]));
 
-  SetWindowLong(buttonB, GWL_USERDATA,joypad[which][KEY_BUTTON_B]);
+  SetWindowLongPtr(buttonB, GWLP_USERDATA,joypad[which][KEY_BUTTON_B]);
   buttonB.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_B]));
   
-  SetWindowLong(buttonL, GWL_USERDATA,joypad[which][KEY_BUTTON_L]);
+  SetWindowLongPtr(buttonL, GWLP_USERDATA,joypad[which][KEY_BUTTON_L]);
   buttonL.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_L]));
 
-  SetWindowLong(buttonR, GWL_USERDATA,joypad[which][KEY_BUTTON_R]);
+  SetWindowLongPtr(buttonR, GWLP_USERDATA,joypad[which][KEY_BUTTON_R]);
   buttonR.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_R]));
   
-  SetWindowLong(buttonSelect, GWL_USERDATA,joypad[which][KEY_BUTTON_SELECT]);
+  SetWindowLongPtr(buttonSelect, GWLP_USERDATA,joypad[which][KEY_BUTTON_SELECT]);
   buttonSelect.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_SELECT]));
 
-  SetWindowLong(buttonStart, GWL_USERDATA,joypad[which][KEY_BUTTON_START]);
+  SetWindowLongPtr(buttonStart, GWLP_USERDATA,joypad[which][KEY_BUTTON_START]);
   buttonStart.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_START]));
 
-  SetWindowLong(speed, GWL_USERDATA,joypad[which][KEY_BUTTON_SPEED]);
+  SetWindowLongPtr(speed, GWLP_USERDATA,joypad[which][KEY_BUTTON_SPEED]);
   speed.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_SPEED]));
   
-  SetWindowLong(capture, GWL_USERDATA,joypad[which][KEY_BUTTON_CAPTURE]);
+  SetWindowLongPtr(capture, GWLP_USERDATA,joypad[which][KEY_BUTTON_CAPTURE]);
   capture.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_CAPTURE]));
 
-  SetWindowLong(buttonGS, GWL_USERDATA,joypad[which][KEY_BUTTON_GS]);
+  SetWindowLongPtr(buttonGS, GWLP_USERDATA,joypad[which][KEY_BUTTON_GS]);
   buttonGS.SetWindowText(theApp.input->getKeyName(joypad[which][KEY_BUTTON_GS]));
   
   CenterWindow();
@@ -210,7 +197,7 @@ BOOL JoypadConfig::OnInitDialog()
                 // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-void JoypadConfig::assignKey(int id, int key)
+void JoypadConfig::assignKey(int id, LONG_PTR key)
 {
   switch(id) {
   case IDC_EDIT_LEFT:
@@ -260,43 +247,43 @@ void JoypadConfig::assignKeys()
   int id;
 
   id = IDC_EDIT_UP;
-  assignKey(id, GetWindowLong(up, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(up, GWLP_USERDATA));
 
   id = IDC_EDIT_DOWN;
-  assignKey(id, GetWindowLong(down, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(down, GWLP_USERDATA));
 
   id = IDC_EDIT_LEFT;
-  assignKey(id, GetWindowLong(left, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(left, GWLP_USERDATA));
 
   id = IDC_EDIT_RIGHT;
-  assignKey(id, GetWindowLong(right, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(right, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_A;
-  assignKey(id, GetWindowLong(buttonA, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonA, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_B;
-  assignKey(id, GetWindowLong(buttonB, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonB, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_L;
-  assignKey(id, GetWindowLong(buttonL, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonL, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_R;
-  assignKey(id, GetWindowLong(buttonR, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonR, GWLP_USERDATA));
   
   id = IDC_EDIT_BUTTON_SELECT;
-  assignKey(id, GetWindowLong(buttonSelect, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonSelect, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_START;
-  assignKey(id, GetWindowLong(buttonStart, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonStart, GWLP_USERDATA));
 
   id = IDC_EDIT_SPEED;
-  assignKey(id, GetWindowLong(speed, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(speed, GWLP_USERDATA));
 
   id = IDC_EDIT_CAPTURE;
-  assignKey(id, GetWindowLong(capture, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(capture, GWLP_USERDATA));
 
   id = IDC_EDIT_BUTTON_GS;
-  assignKey(id, GetWindowLong(buttonGS, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(buttonGS, GWLP_USERDATA));
 
   //  winSaveKeys();
 }
@@ -328,14 +315,11 @@ void MotionConfig::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(MotionConfig, CDialog)
-  //{{AFX_MSG_MAP(MotionConfig)
   ON_BN_CLICKED(ID_CANCEL, OnCancel)
   ON_BN_CLICKED(ID_OK, OnOk)
-  ON_WM_CHAR()
   ON_WM_DESTROY()
   ON_WM_KEYDOWN()
   ON_WM_TIMER()
-  //}}AFX_MSG_MAP
   END_MESSAGE_MAP()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -353,10 +337,6 @@ void MotionConfig::OnOk()
   EndDialog( TRUE);
 }
 
-void MotionConfig::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) 
-{
-}
-
 void MotionConfig::OnDestroy() 
 {
   CDialog::OnDestroy();
@@ -370,16 +350,16 @@ BOOL MotionConfig::OnInitDialog()
   
   timerId = SetTimer(0,200,NULL);
   
-  SetWindowLong(up, GWL_USERDATA,motion[KEY_UP]);
+  SetWindowLongPtr(up, GWLP_USERDATA,motion[KEY_UP]);
   up.SetWindowText(theApp.input->getKeyName(motion[KEY_UP]));
   
-  SetWindowLong(down, GWL_USERDATA,motion[KEY_DOWN]);
+  SetWindowLongPtr(down, GWLP_USERDATA,motion[KEY_DOWN]);
   down.SetWindowText(theApp.input->getKeyName(motion[KEY_DOWN]));
 
-  SetWindowLong(left, GWL_USERDATA,motion[KEY_LEFT]);
+  SetWindowLongPtr(left, GWLP_USERDATA,motion[KEY_LEFT]);
   left.SetWindowText(theApp.input->getKeyName(motion[KEY_LEFT]));
 
-  SetWindowLong(right, GWL_USERDATA,motion[KEY_RIGHT]);
+  SetWindowLongPtr(right, GWLP_USERDATA,motion[KEY_RIGHT]);
   right.SetWindowText(theApp.input->getKeyName(motion[KEY_RIGHT]));
 
   CenterWindow();
@@ -392,14 +372,14 @@ void MotionConfig::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 }
 
-void MotionConfig::OnTimer(UINT nIDEvent) 
+void MotionConfig::OnTimer(UINT_PTR nIDEvent) 
 {
   theApp.input->checkDevices();
   
   CDialog::OnTimer(nIDEvent);
 }
 
-void MotionConfig::assignKey(int id, int key)
+void MotionConfig::assignKey(int id, LONG_PTR key)
 {
   switch(id) {
   case IDC_EDIT_LEFT:
@@ -422,14 +402,14 @@ void MotionConfig::assignKeys()
   int id;
 
   id = IDC_EDIT_UP;
-  assignKey(id, GetWindowLong(up, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(up, GWLP_USERDATA));
 
   id = IDC_EDIT_DOWN;
-  assignKey(id, GetWindowLong(down, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(down, GWLP_USERDATA));
 
   id = IDC_EDIT_LEFT;
-  assignKey(id, GetWindowLong(left, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(left, GWLP_USERDATA));
 
   id = IDC_EDIT_RIGHT;
-  assignKey(id, GetWindowLong(right, GWL_USERDATA));
+  assignKey(id, GetWindowLongPtr(right, GWLP_USERDATA));
 }

@@ -1,0 +1,3 @@
+?package(visualboyadvance-gtk):needs="X11" section="Applications/Emulators"\
+  title="VisualBoyAdvance" command="/usr/bin/gvba"\
+  icon="/usr/share/pixmaps/VisualBoyAdvance-gtk-32x32.xpm"

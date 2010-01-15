@@ -9,29 +9,30 @@ msgid ""
 msgstr ""
 "Project-Id-Version: VisualBoyAdvance 1.7.2\n"
 "Report-Msgid-Bugs-To: undefined\n"
-"POT-Creation-Date: 2004-05-21 18:02+0200\n"
-"PO-Revision-Date: 2004-05-21 18:03+0200\n"
+"POT-Creation-Date: 2007-05-29 22:23-0300\n"
+"PO-Revision-Date: 2006-09-03 23:45+0200\n"
 "Last-Translator: Sébastien Guignot <kxu@tsys.org>\n"
 "Language-Team: French <@>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/Cheats.cpp:653 src/Cheats.cpp:658 src/Cheats.cpp:667 src/Cheats.cpp:675
+#: src/Cheats.cpp:1473 src/Cheats.cpp:1478 src/Cheats.cpp:1487
+#: src/Cheats.cpp:1495
 #, c-format
 msgid "Invalid cheat code '%s'"
 msgstr "Cheat code incorrect '%s'"
 
-#: src/Cheats.cpp:694
+#: src/Cheats.cpp:1524
 #, c-format
 msgid "Invalid cheat code address: %08x"
 msgstr "Adresse de cheat code incorrecte : %08x"
 
-#: src/Cheats.cpp:738 src/Cheats.cpp:747
+#: src/Cheats.cpp:1603 src/Cheats.cpp:1612
 msgid "Invalid GSA code. Format is XXXXXXXXYYYYYYYY"
 msgstr "Code GSA incorrect. Le format est XXXXXXXXYYYYYYYY"
 
-#: src/Cheats.cpp:773
+#: src/Cheats.cpp:1638
 #, c-format
 msgid ""
 "Warning: cheats are for game %s. Current game is %s.\n"
@@ -40,12 +41,12 @@ msgstr ""
 "Avertissement : les cheats sont pour le jeu %s. Le jeu courant est %s.\n"
 "Les codes peuvent ne pas fonctionner correctement."
 
-#: src/Cheats.cpp:1307 src/Cheats.cpp:1316 src/Cheats.cpp:1323
-#: src/Cheats.cpp:1331
+#: src/Cheats.cpp:2458 src/Cheats.cpp:2467 src/Cheats.cpp:2474
+#: src/Cheats.cpp:2482
 msgid "Invalid CBA code. Format is XXXXXXXX YYYY."
 msgstr "Code CBA incorrect. Le format est XXXXXXXX YYYY."
 
-#: src/Cheats.cpp:1385
+#: src/Cheats.cpp:2538
 msgid ""
 "Warning: Codes seem to be for a different game.\n"
 "Codes may not work correctly."
@@ -53,86 +54,86 @@ msgstr ""
 "Avertissement : les codes semblent être faits pour un autre jeu.\n"
 "Ils peuvent ne pas fonctionner correctement."
 
-#: src/Cheats.cpp:1545 src/gb/gbCheats.cpp:130
+#: src/Cheats.cpp:2723 src/gb/gbCheats.cpp:132
 #, c-format
 msgid "Unsupported cheat list version %d"
 msgstr "Version de liste de cheats %d non supportée"
 
-#: src/Cheats.cpp:1558 src/gb/gbCheats.cpp:143
+#: src/Cheats.cpp:2737 src/gb/gbCheats.cpp:145
 #, c-format
 msgid "Unsupported cheat list type %d"
 msgstr "Type de liste de cheats %d non supporté"
 
-#: src/elf.cpp:2814
+#: src/elf.cpp:2811
 #, c-format
 msgid "Not a valid ELF file %s"
 msgstr "%s n'est pas un fichier ELF correct"
 
-#: src/GBA.cpp:664 src/GBA.cpp:849 src/GBA.cpp:887 src/Util.cpp:61
-#: src/Util.cpp:270 src/gb/GB.cpp:1662 src/gb/GB.cpp:1679 src/gb/GB.cpp:1696
-#: src/gb/GB.cpp:1719 src/gb/GB.cpp:1736
+#: src/GBA.cpp:863 src/GBA.cpp:1084 src/GBA.cpp:1122 src/Util.cpp:69
+#: src/Util.cpp:278 src/gb/GB.cpp:2708 src/gb/GB.cpp:2728 src/gb/GB.cpp:2750
+#: src/gb/GB.cpp:2777 src/gb/GB.cpp:2797 src/gb/GB.cpp:2815 src/gb/GB.cpp:2845
 #, c-format
 msgid "Error creating file %s"
 msgstr "Erreur lors de la création du fichier %s"
 
-#: src/GBA.cpp:701
+#: src/GBA.cpp:900
 #, c-format
 msgid "Unsupported VisualBoyAdvance save game version %d"
 msgstr "Version de sauvegarde VisualBoyAdvance %d non supportée"
 
-#: src/GBA.cpp:715
+#: src/GBA.cpp:914
 #, c-format
 msgid "Cannot load save game for %s"
 msgstr "Impossible de charger la sauvegarde pour %s"
 
-#: src/GBA.cpp:724
+#: src/GBA.cpp:923 src/gb/GB.cpp:3628
 msgid "Save game is not using the BIOS files"
 msgstr "La sauvegarde n'utilise pas de fichier BIOS"
 
-#: src/GBA.cpp:727
+#: src/GBA.cpp:926 src/gb/GB.cpp:3631
 msgid "Save game is using the BIOS file"
 msgstr "La sauvegarde utilise le fichier BIOS"
 
-#: src/GBA.cpp:807
+#: src/GBA.cpp:1035
 #, c-format
 msgid "Unsupported save type %d"
 msgstr "Type de sauvegarde %d non supporté"
 
-#: src/GBA.cpp:922 src/GBA.cpp:989 src/Util.cpp:588 src/Util.cpp:700
-#: src/gb/gbCheats.cpp:400 src/gb/GB.cpp:1977
+#: src/GBA.cpp:1157 src/GBA.cpp:1224 src/Util.cpp:596 src/Util.cpp:708
+#: src/gb/gbCheats.cpp:409 src/gb/GB.cpp:3368
 #, c-format
 msgid "Cannot open file %s"
 msgstr "Impossible d'ouvrir le fichier %s"
 
-#: src/GBA.cpp:957 src/gb/GB.cpp:1991
+#: src/GBA.cpp:1192 src/gb/GB.cpp:3381
 #, c-format
 msgid "Cannot import snapshot for %s. Current game is %s"
 msgstr "Impossible d'importer le snapshot pour %s. Le jeu courant est %s"
 
-#: src/GBA.cpp:971 src/gb/GB.cpp:2018
+#: src/GBA.cpp:1206 src/gb/GB.cpp:3408
 #, c-format
 msgid "Unsupported snapshot file %s"
 msgstr "Fichier snapshot %s non supporté"
 
-#: src/GBA.cpp:1274 src/GBA.cpp:1280 src/GBA.cpp:1329 src/GBA.cpp:1336
-#: src/GBA.cpp:1343 src/GBA.cpp:1350 src/GBA.cpp:1357 src/GBA.cpp:1364
-#: src/GBA.cpp:1371 src/Util.cpp:767 src/Util.cpp:825 src/Util.cpp:933
+#: src/GBA.cpp:1508 src/GBA.cpp:1514 src/GBA.cpp:1563 src/GBA.cpp:1570
+#: src/GBA.cpp:1577 src/GBA.cpp:1584 src/GBA.cpp:1591 src/GBA.cpp:1598
+#: src/GBA.cpp:1605 src/Util.cpp:775 src/Util.cpp:833 src/Util.cpp:941
 #, c-format
 msgid "Failed to allocate memory for %s"
 msgstr "Échec de l'allocation de mémoire pour : %s"
 
-#: src/GBA.cpp:1292 src/Util.cpp:756 src/Util.cpp:802 src/Util.cpp:816
-#: src/Util.cpp:920
+#: src/GBA.cpp:1526 src/Util.cpp:764 src/Util.cpp:810 src/Util.cpp:824
+#: src/Util.cpp:928
 #, c-format
 msgid "Error opening image %s"
 msgstr "Erreur lors de l'ouverture de l'image %s"
 
-#: src/GBA.cpp:1606
+#: src/GBA.cpp:1859
 #, c-format
 msgid "Unsupported ARM mode %02x"
 msgstr "Mode ARM %02x non supporté"
 
-#: src/GBA.cpp:1839
+#: src/GBA.cpp:2198
 #, c-format
 msgid ""
 "Unsupported BIOS function %02x called from %08x. A BIOS file is needed in "
@@ -141,93 +142,111 @@ msgstr ""
 "Fonction du BIOS %02x non supportée appelée depuis %08x. Un fichier BIOS est "
 "nécessaire pour obtenir un comportement correct."
 
-#: src/GBA.cpp:2947
+#: src/GBA.cpp:3400
 msgid "Invalid BIOS file size"
 msgstr "Taille de fichier BIOS incorrecte"
 
-#: src/RTC.cpp:157
+#: src/RTC.cpp:159
 #, c-format
 msgid "Unknown RTC command %02x"
 msgstr "Commande RTC %02x inconnue"
 
-#: src/Util.cpp:596 src/Util.cpp:616 src/Util.cpp:707 src/Util.cpp:727
+#: src/Util.cpp:604 src/Util.cpp:624 src/Util.cpp:715 src/Util.cpp:735
 #, c-format
 msgid "Bad ZIP file %s"
 msgstr "Fichier ZIP incorrect : %s"
 
-#: src/Util.cpp:639 src/Util.cpp:745
+#: src/Util.cpp:647 src/Util.cpp:753
 #, c-format
 msgid "No image found on ZIP file %s"
 msgstr "Pas d'image trouvée dans le fichier ZIP %s"
 
-#: src/Util.cpp:783 src/Util.cpp:838 src/Util.cpp:877 src/Util.cpp:946
+#: src/Util.cpp:791 src/Util.cpp:846 src/Util.cpp:885 src/Util.cpp:954
 #, c-format
 msgid "Error reading image %s"
 msgstr "Erreur lors de la lecture de l'image %s"
 
-#: src/Util.cpp:889
+#: src/Util.cpp:897
 #, c-format
 msgid "No image found on RAR file %s"
 msgstr "Pas d'image trouvée dans le fichier RAR %s"
 
-#: src/gb/gbCheats.cpp:194 src/gb/gbCheats.cpp:304
+#: src/gb/gbCheats.cpp:192 src/gb/gbCheats.cpp:310
 msgid "Maximum number of cheats reached."
 msgstr "Le nombre maximum de cheats a été atteint."
 
-#: src/gb/gbCheats.cpp:200
+#: src/gb/gbCheats.cpp:198
 #, c-format
 msgid "Invalid GameShark code: %s"
 msgstr "Code GameShark incorrect : %s"
 
-#: src/gb/gbCheats.cpp:310
+#: src/gb/gbCheats.cpp:227
+#, c-format
+msgid "Wrong GameShark code type : %s"
+msgstr "Code GameShark incorrect : %s"
+
+#: src/gb/gbCheats.cpp:230
+#, c-format
+msgid "Unsupported GameShark code type : %s"
+msgstr "Code GameShark %s non supporté"
+
+#: src/gb/gbCheats.cpp:316
 #, c-format
 msgid "Invalid GameGenie code: %s"
 msgstr "Code GameGenie incorrect : %s"
 
-#: src/gb/gbCheats.cpp:355
+#: src/gb/gbCheats.cpp:364
 #, c-format
 msgid "Invalid cheat to remove %d"
 msgstr "Cheat à supprimer %d incorrect"
 
-#: src/gb/gbCodesCB.h:1285 src/gb/gbCodes.h:1404
+#: src/gb/gbCodesCB.h:1287 src/gb/gbCodes.h:1456
 #, c-format
 msgid "Unknown opcode %02x at %04x"
 msgstr "Opcode %02x inconnu à %04x"
 
-#: src/gb/GB.cpp:1761 src/gb/GB.cpp:1785 src/gb/GB.cpp:1810 src/gb/GB.cpp:1842
-#: src/gb/GB.cpp:1866
-#, c-format
-msgid "Failed to read complete save game %s (%d)"
-msgstr "La lecture de la sauvegarde %s complète a échouée (%d)"
+#: src/gb/GB.cpp:2123
+msgid "Invalid BOOTROM file size"
+msgstr "Taille de fichier BIOS incorrecte"
 
-#: src/gb/GB.cpp:1818
+#: src/gb/GB.cpp:2875 src/gb/GB.cpp:2890 src/gb/GB.cpp:2921 src/gb/GB.cpp:2937
+#: src/gb/GB.cpp:2972 src/gb/GB.cpp:3002 src/gb/GB.cpp:3029 src/gb/GB.cpp:3045
+#: src/gb/GB.cpp:3075 src/gb/GB.cpp:3091 src/gb/GB.cpp:3129 src/gb/GB.cpp:3159
+#: src/gb/GB.cpp:3187 src/gb/GB.cpp:3202
+#, c-format
+msgid ""
+"Battery file's size incompatible with the rom settings %s (%d).\n"
+"Warning : save of the battery file is now disabled !"
+msgstr ""
+
+#: src/gb/GB.cpp:2981 src/gb/GB.cpp:2987 src/gb/GB.cpp:3138 src/gb/GB.cpp:3144
 #, c-format
 msgid "Failed to read RTC from save game %s (continuing)"
 msgstr ""
 "La lecture de la RTC de la sauvegarde %s a échoué (le chargement se poursuit)"
 
-#: src/gb/GB.cpp:2195
+#: src/gb/GB.cpp:3601
 #, c-format
 msgid "Unsupported VisualBoy save game version %d"
 msgstr "Version de sauvegarde VisualBoy %d non supportée"
 
-#: src/gb/GB.cpp:2205
+#: src/gb/GB.cpp:3611
 #, c-format
 msgid "Cannot load save game for %s. Playing %s"
 msgstr ""
 "Impossible de charger la sauvegarde pour le jeu %s. Le jeu %s est en cours."
 
-#: src/gb/GB.cpp:2464
+#: src/gb/GB.cpp:4061
 #, c-format
 msgid "Unsupported rom size %02x"
 msgstr "Taille de rom %02x non supportée"
 
-#: src/gb/GB.cpp:2476
+#: src/gb/GB.cpp:4116
 #, c-format
 msgid "Unsupported ram size %02x"
 msgstr "Taille de ram %02x non supportée"
 
-#: src/gb/GB.cpp:2552
+#: src/gb/GB.cpp:4258
 #, c-format
 msgid "Unknown cartridge type %02x"
 msgstr "Type de cartouche %02x inconnu"
@@ -1072,43 +1091,46 @@ msgstr "BIOS Gameboy Advance"
 msgid "Only GBA images are supported."
 msgstr "Seules les images GBA sont supportées."
 
-#: src/gtk/window.cpp:1427
+#: src/gtk/window.cpp:1421
 #, c-format
 msgid "Unknown file type %s"
 msgstr "Type de fichier inconnu %s"
 
-#: src/gtk/window.cpp:1708 src/gtk/window.cpp:1722
+#: src/gtk/window.cpp:1702 src/gtk/window.cpp:1716
 msgid "Open"
 msgstr "Ouvrir"
 
-#: src/gtk/window.cpp:1749
+#: src/gtk/window.cpp:1743
 msgid "All Gameboy Advance files"
 msgstr "Tous les fichiers Gameboy Advance"
 
-#: src/gtk/window.cpp:1756
+#: src/gtk/window.cpp:1750
 msgid "Gameboy Advance files"
 msgstr "Fichiers Gameboy Advance"
 
-#: src/gtk/window.cpp:1763
+#: src/gtk/window.cpp:1757
 msgid "Gameboy files"
 msgstr "Fichiers Gameboy"
 
-#: src/gtk/window.cpp:1793
+#: src/gtk/window.cpp:1787
 msgid "Loaded battery"
 msgstr "Batterie chargée"
 
-#: src/gtk/window.cpp:1812
+#: src/gtk/window.cpp:1806
 msgid "Saved battery"
 msgstr "Batterie enregistrée"
 
-#: src/gtk/window.cpp:1870 src/gtk/window.cpp:1917
+#: src/gtk/window.cpp:1864 src/gtk/window.cpp:1911
 msgid "----/--/-- --:--:--"
 msgstr "--/--/---- --:--:--"
 
-#: src/gtk/window.cpp:1902
+#: src/gtk/window.cpp:1896
 msgid "%Y/%m/%d %H:%M:%S"
 msgstr "%d/%m/%Y %H:%M:%S"
 
-#: src/prof/prof.cpp:143
+#: src/prof/prof.cpp:159
 msgid "No space for profiling buffer(s)\n"
 msgstr "Pas de place pour le(s) tampon(s) de profil\n"
+
+#~ msgid "Failed to read complete save game %s (%d)"
+#~ msgstr "La lecture de la sauvegarde %s complète a échouée (%d)"

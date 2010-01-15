@@ -1,0 +1,1217 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 03_translation_swedish.dpatch by Jose Carlos Medeiros <debian@psabs.com.br>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad visualboyadvance-1.8.0~/configure.in visualboyadvance-1.8.0/configure.in
+--- visualboyadvance-1.8.0~/configure.in	2006-09-03 18:52:24.000000000 -0300
++++ visualboyadvance-1.8.0/configure.in	2006-12-06 21:27:28.000000000 -0200
+@@ -139,7 +139,7 @@
+ 
+ if test "x$enable_gtk" = xyes; then
+   dnl Internationalisation support.
+-  ALL_LINGUAS="fr"
++  ALL_LINGUAS="fr sv"
+   AM_GNU_GETTEXT(external)
+   AC_CHECK_HEADERS(libintl.h)
+   GETTEXT_PACKAGE=vba-1.8.0
+diff -urNad visualboyadvance-1.8.0~/po/sv.po visualboyadvance-1.8.0/po/sv.po
+--- visualboyadvance-1.8.0~/po/sv.po	1969-12-31 21:00:00.000000000 -0300
++++ visualboyadvance-1.8.0/po/sv.po	2006-12-06 21:27:28.000000000 -0200
+@@ -0,0 +1,1194 @@
++# Swedish translation for VBA.
++# Copyright (C) 2006 VBA development team
++# This file is distributed under the same license as the VisualBoyAdvance package.
++# Daniel Nylander <yeager@lidkoping.net>
++#
++msgid ""
++msgstr ""
++"Project-Id-Version: visualboyadvance 1.7.2\n"
++"Report-Msgid-Bugs-To: undefined\n"
++"POT-Creation-Date: 2004-05-21 18:02+0200\n"
++"PO-Revision-Date: 2005-12-13 20:09+0100\n"
++"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
++"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
++"MIME-Version: 1.0\n"
++"Content-Type: text/plain; charset=utf-8\n"
++"Content-Transfer-Encoding: 8bit\n"
++
++#: src/Cheats.cpp:653
++#: src/Cheats.cpp:658
++#: src/Cheats.cpp:667
++#: src/Cheats.cpp:675
++#, c-format
++msgid "Invalid cheat code '%s'"
++msgstr "Ogiltig fuskkod \"%s\""
++
++#: src/Cheats.cpp:694
++#, c-format
++msgid "Invalid cheat code address: %08x"
++msgstr "Ogiltig fuskkodsadress: %08x"
++
++#: src/Cheats.cpp:738
++#: src/Cheats.cpp:747
++msgid "Invalid GSA code. Format is XXXXXXXXYYYYYYYY"
++msgstr "Ogiltig GSA-kod. Formatet är XXXXXXXXYYYYYYYY"
++
++#: src/Cheats.cpp:773
++#, c-format
++msgid ""
++"Warning: cheats are for game %s. Current game is %s.\n"
++"Codes may not work correctly."
++msgstr ""
++"Varning: fusk är för spelet %s. Nuvarande spel är %s.\n"
++"Koderna kanske inte fungerar korrekt."
++
++#: src/Cheats.cpp:1307
++#: src/Cheats.cpp:1316
++#: src/Cheats.cpp:1323
++#: src/Cheats.cpp:1331
++msgid "Invalid CBA code. Format is XXXXXXXX YYYY."
++msgstr "Ogiltig CBA-kod. Formatet är XXXXXXXX YYYY."
++
++#: src/Cheats.cpp:1385
++msgid ""
++"Warning: Codes seem to be for a different game.\n"
++"Codes may not work correctly."
++msgstr ""
++"Varning: Koderna verkar vara för ett annat spel.\n"
++"Koderna kanske inte fungerar korrekt."
++
++#: src/Cheats.cpp:1545
++#: src/gb/gbCheats.cpp:130
++#, c-format
++msgid "Unsupported cheat list version %d"
++msgstr "Ej stöd för fusklista version %d"
++
++#: src/Cheats.cpp:1558
++#: src/gb/gbCheats.cpp:143
++#, c-format
++msgid "Unsupported cheat list type %d"
++msgstr "Ej stöd för fusklista typ %d"
++
++#: src/elf.cpp:2814
++#, c-format
++msgid "Not a valid ELF file %s"
++msgstr "Inte en giltig ELF-fil %s"
++
++#: src/GBA.cpp:664
++#: src/GBA.cpp:849
++#: src/GBA.cpp:887
++#: src/Util.cpp:61
++#: src/Util.cpp:270
++#: src/gb/GB.cpp:1662
++#: src/gb/GB.cpp:1679
++#: src/gb/GB.cpp:1696
++#: src/gb/GB.cpp:1719
++#: src/gb/GB.cpp:1736
++#, c-format
++msgid "Error creating file %s"
++msgstr "Fel vid skapandet av fil %s"
++
++#: src/GBA.cpp:701
++#, c-format
++msgid "Unsupported VisualBoyAdvance save game version %d"
++msgstr "Ej stöd för sparat spel för VisualBoyAdvance version %d"
++
++#: src/GBA.cpp:715
++#, c-format
++msgid "Cannot load save game for %s"
++msgstr "Kan inte läsa in sparat spel för %s"
++
++#: src/GBA.cpp:724
++msgid "Save game is not using the BIOS files"
++msgstr "Sparat spel använder inte BIOS-filer"
++
++#: src/GBA.cpp:727
++msgid "Save game is using the BIOS file"
++msgstr "Sparat spel använder BIOS-filen"
++
++#: src/GBA.cpp:807
++#, c-format
++msgid "Unsupported save type %d"
++msgstr "Ej stöd för denna typ av sparade spel, %d"
++
++#: src/GBA.cpp:922
++#: src/GBA.cpp:989
++#: src/Util.cpp:588
++#: src/Util.cpp:700
++#: src/gb/gbCheats.cpp:400
++#: src/gb/GB.cpp:1977
++#, c-format
++msgid "Cannot open file %s"
++msgstr "Kan inte öppna fil %s"
++
++#: src/GBA.cpp:957
++#: src/gb/GB.cpp:1991
++#, c-format
++msgid "Cannot import snapshot for %s. Current game is %s"
++msgstr "Kan inte importera skärmbild för %s. Nuvarande spel är %s"
++
++#: src/GBA.cpp:971
++#: src/gb/GB.cpp:2018
++#, c-format
++msgid "Unsupported snapshot file %s"
++msgstr "Ej stöd för skärmbildsfil %s"
++
++#: src/GBA.cpp:1274
++#: src/GBA.cpp:1280
++#: src/GBA.cpp:1329
++#: src/GBA.cpp:1336
++#: src/GBA.cpp:1343
++#: src/GBA.cpp:1350
++#: src/GBA.cpp:1357
++#: src/GBA.cpp:1364
++#: src/GBA.cpp:1371
++#: src/Util.cpp:767
++#: src/Util.cpp:825
++#: src/Util.cpp:933
++#, c-format
++msgid "Failed to allocate memory for %s"
++msgstr "Misslyckades att allokera minne för %s"
++
++#: src/GBA.cpp:1292
++#: src/Util.cpp:756
++#: src/Util.cpp:802
++#: src/Util.cpp:816
++#: src/Util.cpp:920
++#, c-format
++msgid "Error opening image %s"
++msgstr "Fel vid öppning av bild %s"
++
++#: src/GBA.cpp:1606
++#, c-format
++msgid "Unsupported ARM mode %02x"
++msgstr "Ej stöd för ARM-läge %02x"
++
++#: src/GBA.cpp:1839
++#, c-format
++msgid "Unsupported BIOS function %02x called from %08x. A BIOS file is needed in order to get correct behaviour."
++msgstr "Ej stöd för BIOS-funktion %02x startad från %08x. En BIOS-fil behövs för att få korrekt beteende."
++
++#: src/GBA.cpp:2947
++msgid "Invalid BIOS file size"
++msgstr "Ogiltig storlek på BIOS-fil"
++
++#: src/RTC.cpp:157
++#, c-format
++msgid "Unknown RTC command %02x"
++msgstr "Okänt RTC-kommando %02x"
++
++#: src/Util.cpp:596
++#: src/Util.cpp:616
++#: src/Util.cpp:707
++#: src/Util.cpp:727
++#, c-format
++msgid "Bad ZIP file %s"
++msgstr "Felaktig ZIP-fil %s"
++
++#: src/Util.cpp:639
++#: src/Util.cpp:745
++#, c-format
++msgid "No image found on ZIP file %s"
++msgstr "Ingen bild hittades i ZIP-fil %s"
++
++#: src/Util.cpp:783
++#: src/Util.cpp:838
++#: src/Util.cpp:877
++#: src/Util.cpp:946
++#, c-format
++msgid "Error reading image %s"
++msgstr "Fel vid läsning av bild %s"
++
++#: src/Util.cpp:889
++#, c-format
++msgid "No image found on RAR file %s"
++msgstr "Ingen bild hittades i RAR-fil %s"
++
++#: src/gb/gbCheats.cpp:194
++#: src/gb/gbCheats.cpp:304
++msgid "Maximum number of cheats reached."
++msgstr "Maximalt antal fusk nåddes."
++
++#: src/gb/gbCheats.cpp:200
++#, c-format
++msgid "Invalid GameShark code: %s"
++msgstr "Ogiltig GameShark-kod: %s"
++
++#: src/gb/gbCheats.cpp:310
++#, c-format
++msgid "Invalid GameGenie code: %s"
++msgstr "Ogiltig GameGenie-kod: %s"
++
++#: src/gb/gbCheats.cpp:355
++#, c-format
++msgid "Invalid cheat to remove %d"
++msgstr "Ogiltigt fusk att ta bort %d"
++
++#: src/gb/gbCodesCB.h:1285
++#: src/gb/gbCodes.h:1404
++#, c-format
++msgid "Unknown opcode %02x at %04x"
++msgstr "Okänd opcode %02x vid %04x"
++
++#: src/gb/GB.cpp:1761
++#: src/gb/GB.cpp:1785
++#: src/gb/GB.cpp:1810
++#: src/gb/GB.cpp:1842
++#: src/gb/GB.cpp:1866
++#, c-format
++msgid "Failed to read complete save game %s (%d)"
++msgstr "Misslyckades att läsa komplett sparat spel %s (%d)"
++
++#: src/gb/GB.cpp:1818
++#, c-format
++msgid "Failed to read RTC from save game %s (continuing)"
++msgstr "Misslyckades att läsa RTC från sparat spel %s (fortsätter)"
++
++#: src/gb/GB.cpp:2195
++#, c-format
++msgid "Unsupported VisualBoy save game version %d"
++msgstr "Ej stöd för sparat spel för VisualBoy version %d"
++
++#: src/gb/GB.cpp:2205
++#, c-format
++msgid "Cannot load save game for %s. Playing %s"
++msgstr "Kan inte läsa in sparat spel för %s. Spelar %s"
++
++#: src/gb/GB.cpp:2464
++#, c-format
++msgid "Unsupported rom size %02x"
++msgstr "Ej stöd för rom-storlek %02x"
++
++#: src/gb/GB.cpp:2476
++#, c-format
++msgid "Unsupported ram size %02x"
++msgstr "Ej stöd för ram-storlek %02x"
++
++#: src/gb/GB.cpp:2552
++#, c-format
++msgid "Unknown cartridge type %02x"
++msgstr "Okänd cartridge-typ %02x"
++
++#: src/gtk/joypadconfig.cpp:202
++#: src/gtk/joypadconfig.cpp:239
++#: src/gtk/joypadconfig.cpp:257
++msgid "<Undefined>"
++msgstr "<Odefinerad>"
++
++#: src/gtk/main.cpp:61
++#, c-format
++msgid "Try `%s --help' for more information.\n"
++msgstr "Försök med \"%s --help\" för mer information.\n"
++
++#: src/gtk/main.cpp:65
++#, c-format
++msgid "Usage: %s [option ...] [file]\n"
++msgstr "Användning: %s [flagga ...] [fil]\n"
++
++#: src/gtk/main.cpp:66
++msgid ""
++"\n"
++"Options:\n"
++"      --help            Output this help.\n"
++"  -V, --version         Output version information.\n"
++msgstr ""
++"\n"
++"Flaggor:\n"
++"      --help            Skriv ut denna hjälp.\n"
++"  -V, --version         Skriv ut versionsinformation.\n"
++
++#: src/gtk/main.cpp:130
++#, c-format
++msgid "VisualBoyAdvance version %s [GTK+]\n"
++msgstr "VisualBoyAdvance version %s [GTK+]\n"
++
++#: src/gtk/vba.glade:7
++msgid "VBA"
++msgstr "VBA"
++
++#: src/gtk/vba.glade:37
++msgid "_File"
++msgstr "_Fil"
++
++#: src/gtk/vba.glade:46
++msgid "_Open..."
++msgstr "_Öppna..."
++
++#: src/gtk/vba.glade:73
++msgid "_Load..."
++msgstr "_Läs in..."
++
++#: src/gtk/vba.glade:82
++msgid "_Save..."
++msgstr "_Spara..."
++
++#: src/gtk/vba.glade:91
++msgid "Loa_d game"
++msgstr "Läs in &spel"
++
++#: src/gtk/vba.glade:100
++msgid "Most recent"
++msgstr "Senaste"
++
++#: src/gtk/vba.glade:108
++msgid "Auto load most recent"
++msgstr "Läs automatiskt in senaste"
++
++#: src/gtk/vba.glade:123
++#: src/gtk/vba.glade:240
++msgid "Slot1"
++msgstr "Plats1"
++
++#: src/gtk/vba.glade:132
++#: src/gtk/vba.glade:249
++msgid "Slot2"
++msgstr "Plats2"
++
++#: src/gtk/vba.glade:141
++#: src/gtk/vba.glade:258
++msgid "Slot3"
++msgstr "Plats3"
++
++#: src/gtk/vba.glade:150
++#: src/gtk/vba.glade:267
++msgid "Slot4"
++msgstr "Plats4"
++
++#: src/gtk/vba.glade:159
++#: src/gtk/vba.glade:276
++msgid "Slot5"
++msgstr "Plats5"
++
++#: src/gtk/vba.glade:168
++#: src/gtk/vba.glade:285
++msgid "Slot6"
++msgstr "Plats6"
++
++#: src/gtk/vba.glade:177
++#: src/gtk/vba.glade:294
++msgid "Slot7"
++msgstr "Plats7"
++
++#: src/gtk/vba.glade:186
++#: src/gtk/vba.glade:303
++msgid "Slot8"
++msgstr "Plats8"
++
++#: src/gtk/vba.glade:195
++#: src/gtk/vba.glade:312
++msgid "Slot9"
++msgstr "Plats9"
++
++#: src/gtk/vba.glade:204
++#: src/gtk/vba.glade:321
++msgid "Slot10"
++msgstr "Plats10"
++
++#: src/gtk/vba.glade:217
++msgid "S_ave game"
++msgstr "Sp_ara spel"
++
++#: src/gtk/vba.glade:226
++msgid "Oldest slot"
++msgstr "Äldsta platsen"
++
++#: src/gtk/vba.glade:340
++msgid "_Pause"
++msgstr "_Paus"
++
++#: src/gtk/vba.glade:350
++#: src/gtk/vba.glade:374
++msgid "_Reset"
++msgstr "Åte_rställ"
++
++#: src/gtk/vba.glade:365
++msgid "Rece_nt"
++msgstr "Se_naste"
++
++#: src/gtk/vba.glade:382
++msgid "_Freeze"
++msgstr "_Frys"
++
++#: src/gtk/vba.glade:407
++msgid "_Import"
++msgstr "_Importera"
++
++#: src/gtk/vba.glade:416
++#: src/gtk/vba.glade:437
++msgid "_Battery file..."
++msgstr "_Batterifil..."
++
++#: src/gtk/vba.glade:428
++msgid "E_xport"
++msgstr "E_xportera"
++
++#: src/gtk/vba.glade:455
++msgid "Screen capt_ure..."
++msgstr "Ta skärm_bild..."
++
++#: src/gtk/vba.glade:469
++msgid "_Close"
++msgstr "_Stäng"
++
++#: src/gtk/vba.glade:489
++msgid "_Exit"
++msgstr "_Avsluta"
++
++#: src/gtk/vba.glade:514
++msgid "_Options"
++msgstr "_Inställningar"
++
++#: src/gtk/vba.glade:523
++msgid "_Frameskip"
++msgstr "Hoppa över _bildrutor"
++
++#: src/gtk/vba.glade:532
++msgid "_Throttle"
++msgstr "_Throttle"
++
++#: src/gtk/vba.glade:541
++msgid "_No throttle"
++msgstr "_Ingen throttle"
++
++#: src/gtk/vba.glade:550
++#: src/gtk/vba.glade:1315
++msgid "25%"
++msgstr "25%"
++
++#: src/gtk/vba.glade:560
++#: src/gtk/vba.glade:1324
++msgid "50%"
++msgstr "50%"
++
++#: src/gtk/vba.glade:570
++#: src/gtk/vba.glade:1334
++msgid "100%"
++msgstr "100%"
++
++#: src/gtk/vba.glade:580
++msgid "150%"
++msgstr "150%"
++
++#: src/gtk/vba.glade:590
++#: src/gtk/vba.glade:1344
++msgid "200%"
++msgstr "200%"
++
++#: src/gtk/vba.glade:600
++msgid "_Other..."
++msgstr "_Annan..."
++
++#: src/gtk/vba.glade:620
++#: src/gtk/vba.glade:981
++#: src/gtk/vba.glade:1415
++msgid "_Automatic"
++msgstr "_Automatisk"
++
++#: src/gtk/vba.glade:629
++msgid "_0"
++msgstr "_0"
++
++#: src/gtk/vba.glade:639
++#: src/gtk/vba.glade:1753
++msgid "_1"
++msgstr "_1"
++
++#: src/gtk/vba.glade:649
++#: src/gtk/vba.glade:1762
++msgid "_2"
++msgstr "_2"
++
++#: src/gtk/vba.glade:659
++#: src/gtk/vba.glade:1772
++msgid "_3"
++msgstr "_3"
++
++#: src/gtk/vba.glade:669
++#: src/gtk/vba.glade:1782
++msgid "_4"
++msgstr "_4"
++
++#: src/gtk/vba.glade:679
++msgid "_5"
++msgstr "_5"
++
++#: src/gtk/vba.glade:689
++msgid "_6"
++msgstr "_6"
++
++#: src/gtk/vba.glade:699
++msgid "_7"
++msgstr "_7"
++
++#: src/gtk/vba.glade:709
++msgid "_8"
++msgstr "_8"
++
++#: src/gtk/vba.glade:719
++msgid "_9"
++msgstr "_9"
++
++#: src/gtk/vba.glade:733
++msgid "_Video"
++msgstr "_Video"
++
++#: src/gtk/vba.glade:742
++msgid "_1x"
++msgstr "_1x"
++
++#: src/gtk/vba.glade:751
++msgid "_2x"
++msgstr "_2x"
++
++#: src/gtk/vba.glade:761
++msgid "_3x"
++msgstr "_3x"
++
++#: src/gtk/vba.glade:771
++msgid "_4x"
++msgstr "_4x"
++
++#: src/gtk/vba.glade:781
++msgid "_5x"
++msgstr "_5x"
++
++#: src/gtk/vba.glade:791
++msgid "_6x"
++msgstr "_6x"
++
++#: src/gtk/vba.glade:807
++msgid "_Layers"
++msgstr "_Lager"
++
++#: src/gtk/vba.glade:816
++msgid "BG0"
++msgstr "BG0"
++
++#: src/gtk/vba.glade:826
++msgid "BG1"
++msgstr "BG1"
++
++#: src/gtk/vba.glade:836
++msgid "BG2"
++msgstr "BG2"
++
++#: src/gtk/vba.glade:846
++msgid "BG3"
++msgstr "BG3"
++
++#: src/gtk/vba.glade:856
++msgid "OBJ"
++msgstr "OBJ"
++
++#: src/gtk/vba.glade:866
++msgid "WIN0"
++msgstr "WIN0"
++
++#: src/gtk/vba.glade:876
++msgid "WIN1"
++msgstr "WIN1"
++
++#: src/gtk/vba.glade:886
++msgid "OBJWIN"
++msgstr "OBJWIN"
++
++#: src/gtk/vba.glade:904
++msgid "_Emulator"
++msgstr "_Emulator"
++
++#: src/gtk/vba.glade:913
++msgid "Directories..."
++msgstr "Kataloger..."
++
++#: src/gtk/vba.glade:921
++msgid "Pause when inactive window"
++msgstr "Pausa när fönstret är inaktivt"
++
++#: src/gtk/vba.glade:930
++msgid "Show speed"
++msgstr "Visa hastighet"
++
++#: src/gtk/vba.glade:939
++#: src/gtk/vba.glade:1030
++msgid "None"
++msgstr "Ingen"
++
++#: src/gtk/vba.glade:948
++msgid "Percentage"
++msgstr "Procent"
++
++#: src/gtk/vba.glade:958
++msgid "Detailed"
++msgstr "Detaljerad"
++
++#: src/gtk/vba.glade:972
++msgid "Save type"
++msgstr "Typ av sparning"
++
++#: src/gtk/vba.glade:990
++msgid "EEPROM"
++msgstr "EEPROM"
++
++#: src/gtk/vba.glade:1000
++msgid "SRAM"
++msgstr "SRAM"
++
++#: src/gtk/vba.glade:1010
++msgid "Flash"
++msgstr "Flash"
++
++#: src/gtk/vba.glade:1020
++msgid "EEPROM+Sensor"
++msgstr "EEPROM+Sensor"
++
++#: src/gtk/vba.glade:1046
++msgid "Flash 64K"
++msgstr "Flash 64K"
++
++#: src/gtk/vba.glade:1055
++msgid "Flash 128K"
++msgstr "Flash 128K"
++
++#: src/gtk/vba.glade:1075
++msgid "_Select BIOS file..."
++msgstr "_Välj BIOS-fil..."
++
++#: src/gtk/vba.glade:1083
++msgid "_Use BIOS file"
++msgstr "_Använd BIOS-fil"
++
++#: src/gtk/vba.glade:1098
++msgid "Screenshot format"
++msgstr "Format för skärmbild"
++
++#: src/gtk/vba.glade:1107
++msgid "_PNG"
++msgstr "_PNG"
++
++#: src/gtk/vba.glade:1116
++msgid "_BMP"
++msgstr "_BMP"
++
++#: src/gtk/vba.glade:1134
++msgid "_Sound"
++msgstr "_Ljud"
++
++#: src/gtk/vba.glade:1143
++msgid "O_ff"
++msgstr "_Av"
++
++#: src/gtk/vba.glade:1152
++msgid "_Mute"
++msgstr "_Tyst"
++
++#: src/gtk/vba.glade:1162
++msgid "_On"
++msgstr "_På"
++
++#: src/gtk/vba.glade:1178
++msgid "Echo"
++msgstr "Eko"
++
++#: src/gtk/vba.glade:1187
++msgid "Low pass filter"
++msgstr "Lågpassfilter"
++
++#: src/gtk/vba.glade:1196
++msgid "Reverse stereo"
++msgstr "Omvänd stereo"
++
++#: src/gtk/vba.glade:1211
++msgid "Channel _1"
++msgstr "Kanal _1"
++
++#: src/gtk/vba.glade:1220
++msgid "Channel _2"
++msgstr "Kanal _2"
++
++#: src/gtk/vba.glade:1229
++msgid "Channel _3"
++msgstr "Kanal _3"
++
++#: src/gtk/vba.glade:1238
++msgid "Channel _4"
++msgstr "Kanal _4"
++
++#: src/gtk/vba.glade:1247
++msgid "Channel _A"
++msgstr "Kanal _A"
++
++#: src/gtk/vba.glade:1256
++msgid "Channel _B"
++msgstr "Kanal _B"
++
++#: src/gtk/vba.glade:1271
++msgid "11 _Khz"
++msgstr "11 _Khz"
++
++#: src/gtk/vba.glade:1280
++msgid "22 K_hz"
++msgstr "22 K_hz"
++
++#: src/gtk/vba.glade:1290
++msgid "44 Kh_z"
++msgstr "44 Kh_z"
++
++#: src/gtk/vba.glade:1306
++msgid "_Volume"
++msgstr "_Volym"
++
++#: src/gtk/vba.glade:1354
++msgid "300%"
++msgstr "300%"
++
++#: src/gtk/vba.glade:1364
++msgid "400%"
++msgstr "400%"
++
++#: src/gtk/vba.glade:1382
++msgid "_Gameboy"
++msgstr "_Gameboy"
++
++#: src/gtk/vba.glade:1391
++msgid "_Border"
++msgstr "_Ram"
++
++#: src/gtk/vba.glade:1400
++msgid "_Printer"
++msgstr "_Skrivare"
++
++#: src/gtk/vba.glade:1424
++msgid "_GBA"
++msgstr "_GBA"
++
++#: src/gtk/vba.glade:1434
++msgid "_CGB/GBC"
++msgstr "_CGB/GBC"
++
++#: src/gtk/vba.glade:1444
++msgid "_SGB"
++msgstr "_SGB"
++
++#: src/gtk/vba.glade:1454
++msgid "SGB_2"
++msgstr "SGB_2"
++
++#: src/gtk/vba.glade:1464
++msgid "G_B"
++msgstr "G_B"
++
++#: src/gtk/vba.glade:1478
++msgid "F_ilter"
++msgstr "F_ilter"
++
++#: src/gtk/vba.glade:1487
++msgid "Interframe _blending"
++msgstr "Interframe _blending"
++
++#: src/gtk/vba.glade:1496
++#: src/gtk/vba.glade:1535
++msgid "_None"
++msgstr "_Ingen"
++
++#: src/gtk/vba.glade:1505
++msgid "_Smart"
++msgstr "_Smart"
++
++#: src/gtk/vba.glade:1515
++#: src/gtk/vba.glade:1594
++msgid "_Motion Blur"
++msgstr "_Motion Blur"
++
++#: src/gtk/vba.glade:1544
++msgid "_TV Mode"
++msgstr "_TV-format"
++
++#: src/gtk/vba.glade:1554
++msgid "_2xSaI"
++msgstr "_2xSaI"
++
++#: src/gtk/vba.glade:1564
++msgid "_Super 2xSaI"
++msgstr "_Super 2xSaI"
++
++#: src/gtk/vba.glade:1574
++msgid "Super _Eagle"
++msgstr "Super _Eagle"
++
++#: src/gtk/vba.glade:1584
++msgid "_Pixelate"
++msgstr "_Pixelate"
++
++#: src/gtk/vba.glade:1604
++msgid "_AdvanceMAME 2x"
++msgstr "_AdvanceMAME 2x"
++
++#: src/gtk/vba.glade:1614
++msgid "S_imple 2x"
++msgstr "S_imple 2x"
++
++#: src/gtk/vba.glade:1624
++msgid "Bilinea_r"
++msgstr "Bilinjä_r"
++
++#: src/gtk/vba.glade:1634
++msgid "Bilinear Pl_us"
++msgstr "Bilinjär Pl_us"
++
++#: src/gtk/vba.glade:1644
++msgid "S_canlines"
++msgstr "S_canlines"
++
++#: src/gtk/vba.glade:1654
++msgid "h_q2x"
++msgstr "h_q2x"
++
++#: src/gtk/vba.glade:1664
++msgid "_lq2x"
++msgstr "_lq2x"
++
++#: src/gtk/vba.glade:1680
++msgid "_Disable MMX"
++msgstr "_Stäng av MMX"
++
++#: src/gtk/vba.glade:1693
++msgid "_Joypad"
++msgstr "_Kontroller"
++
++#: src/gtk/vba.glade:1702
++msgid "_Configure"
++msgstr "_Konfigurera"
++
++#: src/gtk/vba.glade:1711
++msgid "_1..."
++msgstr "_1..."
++
++#: src/gtk/vba.glade:1719
++msgid "_2..."
++msgstr "_2..."
++
++#: src/gtk/vba.glade:1727
++msgid "_3..."
++msgstr "_3..."
++
++#: src/gtk/vba.glade:1735
++msgid "_4..."
++msgstr "_4..."
++
++#: src/gtk/vba.glade:1798
++msgid "_Autofire"
++msgstr "_Autoskjut"
++
++#: src/gtk/vba.glade:1807
++msgid "_A"
++msgstr "_A"
++
++#: src/gtk/vba.glade:1817
++msgid "_B"
++msgstr "_B"
++
++#: src/gtk/vba.glade:1827
++msgid "_L"
++msgstr "_L"
++
++#: src/gtk/vba.glade:1837
++msgid "_R"
++msgstr "_R"
++
++#: src/gtk/vba.glade:1859
++msgid "_Tools"
++msgstr "Verk_tyg"
++
++#: src/gtk/vba.glade:1868
++msgid "_GDB"
++msgstr "_GDB"
++
++#: src/gtk/vba.glade:1877
++msgid "_Wait connection..."
++msgstr "_Vänta på anslutning..."
++
++#: src/gtk/vba.glade:1885
++msgid "_Load and wait..."
++msgstr "_Läs in och vänta..."
++
++#: src/gtk/vba.glade:1893
++msgid "_Break"
++msgstr "_Bryt"
++
++#: src/gtk/vba.glade:1901
++msgid "_Disconnect"
++msgstr "_Koppla ned"
++
++#: src/gtk/vba.glade:1917
++msgid "_Help"
++msgstr "_Hjälp"
++
++#: src/gtk/vba.glade:1926
++msgid "_About"
++msgstr "_Om"
++
++#: src/gtk/vba.glade:1967
++msgid "About VBA"
++msgstr "Om VBA"
++
++#: src/gtk/vba.glade:2054
++msgid "An emulator for Gameboy(TM) and GameboyAdvance(TM)."
++msgstr "En emulator för Gameboy(TM) och GameboyAdvance(TM)."
++
++#: src/gtk/vba.glade:2076
++msgid "<i>Special thanks to Yann Parmentier aka \"kohai\" for the icons.</i>"
++msgstr "<i>Speciellt tack till Yann Parmentier aka \"kohai\" för ikonerna.</i>"
++
++#: src/gtk/vba.glade:2098
++msgid "<small>Copyright (C) 2004 Forgotten and the VBA development team</small>"
++msgstr "<small>Copyright (C) 2004 Forgotten och utvecklingslaget av VBA</small>"
++
++#: src/gtk/vba.glade:2120
++msgid "Throttle"
++msgstr "Throttle"
++
++#: src/gtk/vba.glade:2191
++msgid "Throttle : "
++msgstr "Throttle : "
++
++#: src/gtk/vba.glade:2231
++msgid " %"
++msgstr " %"
++
++#: src/gtk/vba.glade:2262
++msgid "Directories"
++msgstr "Kataloger"
++
++#: src/gtk/vba.glade:2328
++msgid "GBA roms : "
++msgstr "GBA-rom : "
++
++#: src/gtk/vba.glade:2358
++#: src/gtk/vba.glade:2511
++#: src/gtk/vba.glade:2612
++#: src/gtk/vba.glade:2713
++#: src/gtk/vba.glade:2790
++#: src/gtk/vba.glade:2921
++#: src/gtk/vba.glade:3207
++#: src/gtk/vba.glade:3229
++#: src/gtk/vba.glade:3251
++#: src/gtk/vba.glade:3273
++#: src/gtk/vba.glade:3295
++#: src/gtk/vba.glade:3317
++#: src/gtk/vba.glade:3339
++#: src/gtk/vba.glade:3361
++#: src/gtk/vba.glade:3383
++#: src/gtk/vba.glade:3405
++#: src/gtk/vba.glade:3427
++msgid "*"
++msgstr "*"
++
++#: src/gtk/vba.glade:2429
++msgid "GB roms : "
++msgstr "GB-rom : "
++
++#: src/gtk/vba.glade:2481
++msgid "Batteries : "
++msgstr "Batterier : "
++
++#: src/gtk/vba.glade:2582
++msgid "Saves : "
++msgstr "Sparningar : "
++
++#: src/gtk/vba.glade:2683
++msgid "Captures : "
++msgstr "Skärmbilder : "
++
++#: src/gtk/vba.glade:2841
++msgid "Joypad config"
++msgstr "Konfigurera kontroller"
++
++#: src/gtk/vba.glade:2937
++msgid "Down : "
++msgstr "Ner : "
++
++#: src/gtk/vba.glade:2961
++msgid "Left : "
++msgstr "Vänster : "
++
++#: src/gtk/vba.glade:2985
++msgid "Right : "
++msgstr "Höger : "
++
++#: src/gtk/vba.glade:3009
++msgid "Button A : "
++msgstr "Knapp A : "
++
++#: src/gtk/vba.glade:3033
++msgid "Button B : "
++msgstr "Knapp B : "
++
++#: src/gtk/vba.glade:3057
++msgid "Button L : "
++msgstr "Knapp L : "
++
++#: src/gtk/vba.glade:3081
++msgid "Button R : "
++msgstr "Knapp R : "
++
++#: src/gtk/vba.glade:3105
++msgid "Select : "
++msgstr "Välj : "
++
++#: src/gtk/vba.glade:3129
++msgid "Start : "
++msgstr "Start : "
++
++#: src/gtk/vba.glade:3153
++msgid "Speed : "
++msgstr "Hastighet : "
++
++#: src/gtk/vba.glade:3177
++msgid "Capture : "
++msgstr "Skärmbild : "
++
++#: src/gtk/vba.glade:3443
++msgid "Up : "
++msgstr "Upp : "
++
++#: src/gtk/vba.glade:3477
++msgid "TCP port"
++msgstr "TCP-port"
++
++#: src/gtk/vba.glade:3548
++msgid "Port : "
++msgstr "Port : "
++
++#: src/gtk/windowcallbacks.cpp:80
++#: src/gtk/windowcallbacks.cpp:94
++msgid "Load game"
++msgstr "Läs in spel"
++
++#: src/gtk/windowcallbacks.cpp:109
++#: src/gtk/windowcallbacks.cpp:163
++msgid "VisualBoyAdvance save game"
++msgstr "Sparat VisualBoyAdvance-spel"
++
++#: src/gtk/windowcallbacks.cpp:131
++#: src/gtk/windowcallbacks.cpp:146
++msgid "Save game"
++msgstr "Spara spel"
++
++#: src/gtk/windowcallbacks.cpp:181
++#: src/gtk/windowcallbacks.cpp:466
++#: src/gtk/windowcallbacks.cpp:585
++msgid "File already exists. Overwrite it?"
++msgstr "Filen existerar redan. Skriva över den?"
++
++#: src/gtk/windowcallbacks.cpp:318
++#: src/gtk/windowcallbacks.cpp:332
++msgid "Import battery file"
++msgstr "Importera batterifil"
++
++#: src/gtk/windowcallbacks.cpp:347
++#: src/gtk/windowcallbacks.cpp:424
++msgid "Battery file"
++msgstr "Batterifil"
++
++#: src/gtk/windowcallbacks.cpp:351
++#: src/gtk/windowcallbacks.cpp:428
++msgid "Flash save"
++msgstr "Spara i Flash"
++
++#: src/gtk/windowcallbacks.cpp:362
++msgid "Importing a battery file will erase any saved games and reset the emulator. Do you want to continue?"
++msgstr "Importera en batterifil kommer att radera alla sparade spel och återställa emulatorn. Vill du fortsätta?"
++
++#: src/gtk/windowcallbacks.cpp:380
++#, c-format
++msgid "Failed to import battery file %s."
++msgstr "Misslyckades att importera batterifil %s."
++
++#: src/gtk/windowcallbacks.cpp:392
++#: src/gtk/windowcallbacks.cpp:407
++msgid "Export battery file"
++msgstr "Exportera batterifil"
++
++#: src/gtk/windowcallbacks.cpp:494
++#, c-format
++msgid "Failed to export battery file %s."
++msgstr "Misslyckades att exportera batterifil %s."
++
++#: src/gtk/windowcallbacks.cpp:506
++#: src/gtk/windowcallbacks.cpp:521
++msgid "Save screenshot"
++msgstr "Spara skärmbild"
++
++#: src/gtk/windowcallbacks.cpp:538
++msgid "PNG image"
++msgstr "PNG-bild"
++
++#: src/gtk/windowcallbacks.cpp:542
++msgid "BMP image"
++msgstr "BMP-bild"
++
++#: src/gtk/windowcallbacks.cpp:824
++#: src/gtk/windowcallbacks.cpp:844
++msgid "Select directory"
++msgstr "Välj katalog"
++
++#: src/gtk/windowcallbacks.cpp:872
++#: src/gtk/windowcallbacks.cpp:882
++msgid "Select BIOS file"
++msgstr "Välj BIOS-fil"
++
++#: src/gtk/windowcallbacks.cpp:898
++msgid "All files"
++msgstr "Alla filer"
++
++#: src/gtk/windowcallbacks.cpp:902
++msgid "Gameboy Advance BIOS"
++msgstr "Gameboy Advance BIOS"
++
++#: src/gtk/windowcallbacks.cpp:1336
++msgid "Only GBA images are supported."
++msgstr "Endast GBA-avbildningar stöds."
++
++#: src/gtk/window.cpp:1427
++#, c-format
++msgid "Unknown file type %s"
++msgstr "Okänd filtyp %s"
++
++#: src/gtk/window.cpp:1708
++#: src/gtk/window.cpp:1722
++msgid "Open"
++msgstr "Öppna"
++
++#: src/gtk/window.cpp:1749
++msgid "All Gameboy Advance files"
++msgstr "Alla Gameboy Advance-filer"
++
++#: src/gtk/window.cpp:1756
++msgid "Gameboy Advance files"
++msgstr "Gameboy Advance-filer"
++
++#: src/gtk/window.cpp:1763
++msgid "Gameboy files"
++msgstr "Gameboy-filer"
++
++#: src/gtk/window.cpp:1793
++msgid "Loaded battery"
++msgstr "Läste in batteri"
++
++#: src/gtk/window.cpp:1812
++msgid "Saved battery"
++msgstr "Sparade batteri"
++
++#: src/gtk/window.cpp:1870
++#: src/gtk/window.cpp:1917
++msgid "----/--/-- --:--:--"
++msgstr "----/--/-- --:--:--"
++
++#: src/gtk/window.cpp:1902
++msgid "%Y/%m/%d %H:%M:%S"
++msgstr "%Y/%m/%d %H:%M:%S"
++
++#: src/prof/prof.cpp:143
++msgid "No space for profiling buffer(s)\n"
++msgstr "Inget utrymme för profilbuffert\n"
++

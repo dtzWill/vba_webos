@@ -1,6 +1,6 @@
 // VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
 // Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2004 Forgotten and the VBA development team
+// Copyright (C) 2004-2006 Forgotten and the VBA development team
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -67,6 +67,11 @@ static variable_desc flashSaveData3[] = {
   { NULL, 0 }
 };
 
+void flashInit()
+{
+  memset(flashSaveMemory, 0xff, sizeof(flashSaveMemory));
+}
+
 void flashReset()
 {
   flashState = FLASH_READ_ARRAY;
@@ -95,7 +100,6 @@ void flashReadGame(gzFile gzFile, int version)
 void flashSetSize(int size)
 {
   //  log("Setting flash size to %d\n", size);
-  flashSize = size;
   if(size == 0x10000) {
     flashDeviceID = 0x1b;
     flashManufacturerID = 0x32;
@@ -103,6 +107,11 @@ void flashSetSize(int size)
     flashDeviceID = 0x13; //0x09;
     flashManufacturerID = 0x62; //0xc2;
   }
+  // Added to make 64k saves compatible with 128k ones
+  // (allow wrongfuly set 64k saves to work for Pokemon games)
+  if ((size == 0x20000) && (flashSize == 0x10000))
+    memcpy((u8 *)(flashSaveMemory+0x10000), (u8 *)(flashSaveMemory), 0x10000);
+  flashSize = size;
 }
 
 u8 flashRead(u32 address)
@@ -144,6 +153,13 @@ void flashSaveDecide(u32 address, u8 byte)
   }
 
   (*cpuSaveGameFunc)(address, byte);
+}
+
+void flashDelayedWrite(u32 address, u8 byte)
+{
+  saveType = 2;
+  cpuSaveGameFunc = flashWrite;
+  flashWrite(address, byte);
 }
 
 void flashWrite(u32 address, u8 byte)

@@ -1,0 +1,8 @@
+01_use_dot_dir
+02_amd64_build_fix
+03_translation_swedish
+04_fix_gtk_with_DBKPT_SUPPORT
+05_translation_brazilian
+06_old_2xSaImmx_asm
+07_update_autoconf_macros.dpatch
+08_gvba_load_gb_rom.dpatch

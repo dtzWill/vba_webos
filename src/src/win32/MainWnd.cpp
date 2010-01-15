@@ -1,6 +1,6 @@
 // VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
 // Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2004 Forgotten and the VBA development team
+// Copyright (C) 2005-2006 Forgotten and the VBA development team
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "MainWnd.h"
 
 #include <winsock.h>
+#include <shlwapi.h>
 
 #include "FileDlg.h"
 #include "Reg.h"
@@ -52,6 +53,7 @@ static char THIS_FILE[] = __FILE__;
 #define VBA_CONFIRM_MODE WM_APP + 100
 
 extern void remoteCleanUp();
+extern int gbHardware;
 
 /////////////////////////////////////////////////////////////////////////////
 // MainWnd
@@ -192,14 +194,14 @@ BEGIN_MESSAGE_MAP(MainWnd, CWnd)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_PAUSEWHENINACTIVE, OnUpdateOptionsEmulatorPausewheninactive)
   ON_COMMAND(ID_OPTIONS_EMULATOR_SPEEDUPTOGGLE, OnOptionsEmulatorSpeeduptoggle)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_SPEEDUPTOGGLE, OnUpdateOptionsEmulatorSpeeduptoggle)
-  ON_COMMAND(ID_OPTIONS_EMULATOR_REMOVEINTROSGBA, OnOptionsEmulatorRemoveintrosgba)
-  ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_REMOVEINTROSGBA, OnUpdateOptionsEmulatorRemoveintrosgba)
   ON_COMMAND(ID_OPTIONS_EMULATOR_AUTOMATICALLYIPSPATCH, OnOptionsEmulatorAutomaticallyipspatch)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_AUTOMATICALLYIPSPATCH, OnUpdateOptionsEmulatorAutomaticallyipspatch)
   ON_COMMAND(ID_OPTIONS_EMULATOR_AGBPRINT, OnOptionsEmulatorAgbprint)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_AGBPRINT, OnUpdateOptionsEmulatorAgbprint)
   ON_COMMAND(ID_OPTIONS_EMULATOR_REALTIMECLOCK, OnOptionsEmulatorRealtimeclock)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_REALTIMECLOCK, OnUpdateOptionsEmulatorRealtimeclock)
+  ON_COMMAND(ID_OPTIONS_EMULATOR_GENERICFLASHCARD, OnOptionsEmulatorGenericflashcard)
+  ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_GENERICFLASHCARD, OnUpdateOptionsEmulatorGenericflashcard)
   ON_COMMAND(ID_OPTIONS_EMULATOR_AUTOHIDEMENU, OnOptionsEmulatorAutohidemenu)
   ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_AUTOHIDEMENU, OnUpdateOptionsEmulatorAutohidemenu)
   ON_COMMAND(ID_OPTIONS_EMULATOR_REWINDINTERVAL, OnOptionsEmulatorRewindinterval)
@@ -376,6 +378,9 @@ BEGIN_MESSAGE_MAP(MainWnd, CWnd)
 	ON_COMMAND(ID_CHEATS_DISABLECHEATS, OnCheatsDisablecheats)
 	ON_UPDATE_COMMAND_UI(ID_CHEATS_DISABLECHEATS, OnUpdateCheatsDisablecheats)
 	ON_COMMAND(ID_OPTIONS_VIDEO_FULLSCREENMAXSCALE, OnOptionsVideoFullscreenmaxscale)
+	ON_COMMAND(ID_OPTIONS_EMULATOR_GAMEOVERRIDES, OnOptionsEmulatorGameoverrides)
+	ON_UPDATE_COMMAND_UI(ID_OPTIONS_EMULATOR_GAMEOVERRIDES, OnUpdateOptionsEmulatorGameoverrides)
+	ON_COMMAND(ID_HELP_GNUPUBLICLICENSE, OnHelpGnupubliclicense)
 	//}}AFX_MSG_MAP
   ON_COMMAND_EX_RANGE(ID_FILE_MRU_FILE1, ID_FILE_MRU_FILE10, OnFileRecentFile)
   ON_COMMAND_EX_RANGE(ID_FILE_LOADGAME_SLOT1, ID_FILE_LOADGAME_SLOT10, OnFileLoadSlot)
@@ -414,6 +419,8 @@ BEGIN_MESSAGE_MAP(MainWnd, CWnd)
   ON_UPDATE_COMMAND_UI_RANGE(ID_OPTIONS_JOYPAD_AUTOFIRE_A, ID_OPTIONS_JOYPAD_AUTOFIRE_R, OnUpdateOptionsJoypadAutofire)
   ON_MESSAGE(VBA_CONFIRM_MODE, OnConfirmMode)
   ON_MESSAGE(WM_SYSCOMMAND, OnMySysCommand)
+  ON_COMMAND(ID_OPTIONS_SOUND_HARDWAREACCELERATION, &MainWnd::OnOptionsSoundHardwareacceleration)
+  ON_UPDATE_COMMAND_UI(ID_OPTIONS_SOUND_HARDWAREACCELERATION, &MainWnd::OnUpdateOptionsSoundHardwareacceleration)
   END_MESSAGE_MAP()
 
 
@@ -422,6 +429,7 @@ BEGIN_MESSAGE_MAP(MainWnd, CWnd)
 
 void MainWnd::OnClose() 
 {
+  emulating = false;
   CWnd::OnClose();
 
   delete this;
@@ -469,13 +477,40 @@ bool MainWnd::FileRun()
     return false;
   }
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-  theApp.cartridgeType = (int)type;
+  theApp.cartridgeType = type;
   if(type == IMAGE_GB) {
+    genericflashcardEnable = theApp.winGenericflashcardEnable;
+
+
     if(!gbLoadRom(theApp.szFile))
       return false;
+
+    gbGetHardwareType();
+
+    // used for the handling of the gb Boot Rom
+    if (gbHardware & 5)
+    {
+      char tempName[2048];
+      GetModuleFileName(NULL, tempName, 2048);
+
+      char *p = strrchr(tempName, '\\');
+      if(p)
+        *p = 0;
+    
+      strcat(tempName, "\\DMG_ROM.bin");
+
+      skipBios = theApp.skipBiosFile ? true : false;
+      gbCPUInit(tempName, theApp.useBiosFile ? true : false);
+    }
+
+    
+  
+    gbReset();
     theApp.emulator = GBSystem;
     gbBorderOn = theApp.winGbBorderOn;
     theApp.romSize = gbRomSize;
+
+
     if(theApp.autoIPS) {
       int size = gbRomSize;
       utilApplyIPS(ipsname, &gbRom, &size);
@@ -492,14 +527,11 @@ bool MainWnd::FileRun()
       return false;
 
     theApp.romSize = size;
-    
+   
     flashSetSize(theApp.winFlashSize);
     rtcEnable(theApp.winRtcEnable);
     cpuSaveType = theApp.winSaveType;
 
-    //    if(cpuEnhancedDetection && winSaveType == 0) {
-    //      utilGBAFindSave(rom, size);
-    //    }
     GetModuleFileName(NULL, tempName, 2048);
 
     char *p = strrchr(tempName, '\\');
@@ -532,6 +564,12 @@ bool MainWnd::FileRun()
                              tempName);
     if(i != (UINT)-1 && (i <= 5))
       cpuSaveType = (int)i;
+    i = GetPrivateProfileInt(buffer,
+                             "mirroringEnabled",
+                             -1,
+                             tempName);
+    if(i != (UINT)-1)
+      doMirroring (i == 0 ? false : true);
     
     theApp.emulator = GBASystem;
     /* disabled due to problems
@@ -565,7 +603,7 @@ bool MainWnd::FileRun()
     CPUInit((char *)(LPCTSTR)theApp.biosFileName, theApp.useBiosFile ? true : false);
     CPUReset();
   }
-  
+
   readBatteryFile();
 
   if(theApp.autoSaveLoadCheatList)
@@ -730,6 +768,16 @@ void MainWnd::winSaveCheatListDefault()
   else
     name = theApp.filename;
   CString dir = regQueryStringValue("saveDir", NULL);
+  if( dir[0] == '.' ) {
+	  // handle as relative path
+	  char baseDir[MAX_PATH+1];
+	  GetModuleFileName( NULL, baseDir, MAX_PATH );
+	  baseDir[MAX_PATH] = '\0'; // for security reasons
+	  PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+	  strcat( baseDir, "\\" );
+	  strcat( baseDir, dir );
+	  dir = baseDir;
+	}
 
   if(!dir.GetLength())
     dir = getDirFromFile(filename);
@@ -762,6 +810,16 @@ void MainWnd::winLoadCheatListDefault()
   else
     name = theApp.filename;
   CString dir = regQueryStringValue("saveDir", NULL);
+  if( dir[0] == '.' ) {
+	  // handle as relative path
+	  char baseDir[MAX_PATH+1];
+	  GetModuleFileName( NULL, baseDir, MAX_PATH );
+	  baseDir[MAX_PATH] = '\0'; // for security reasons
+	  PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+	  strcat( baseDir, "\\" );
+	  strcat( baseDir, dir );
+	  dir = baseDir;
+	}
 
   if(!dir.GetLength())
     dir = getDirFromFile(filename);
@@ -824,6 +882,16 @@ void MainWnd::writeBatteryFile()
     buffer = theApp.filename;
 
   CString saveDir = regQueryStringValue("batteryDir", NULL);
+  if( saveDir[0] == '.' ) {
+	  // handle as relative path
+	  char baseDir[MAX_PATH+1];
+	  GetModuleFileName( NULL, baseDir, MAX_PATH );
+	  baseDir[MAX_PATH] = '\0'; // for security reasons
+	  PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+	  strcat( baseDir, "\\" );
+	  strcat( baseDir, saveDir );
+	  saveDir = baseDir;
+	}
 
   if(saveDir.IsEmpty())
     saveDir = getDirFromFile(theApp.filename);
@@ -851,6 +919,16 @@ void MainWnd::readBatteryFile()
     buffer = theApp.filename;
 
   CString saveDir = regQueryStringValue("batteryDir", NULL);
+  if( saveDir[0] == '.' ) {
+	  // handle as relative path
+	  char baseDir[MAX_PATH+1];
+	  GetModuleFileName( NULL, baseDir, MAX_PATH );
+	  baseDir[MAX_PATH] = '\0'; // for security reasons
+	  PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+	  strcat( baseDir, "\\" );
+	  strcat( baseDir, saveDir );
+	  saveDir = baseDir;
+	}
 
   if(saveDir.IsEmpty())
     saveDir = getDirFromFile(theApp.filename);
@@ -915,7 +993,7 @@ void MainWnd::OnContextMenu(CWnd* pWnd, CPoint point)
             info.cch = 256;
             if(!GetMenuItemInfo(theApp.menu, i, MF_BYPOSITION, &info)) {
             }
-            if(!AppendMenu(theApp.popup, MF_POPUP|MF_STRING, (UINT)info.hSubMenu, buffer)) {
+            if(!AppendMenu(theApp.popup, MF_POPUP|MF_STRING, (UINT_PTR)info.hSubMenu, buffer)) {
             }
           }
         } else {
@@ -929,7 +1007,7 @@ void MainWnd::OnContextMenu(CWnd* pWnd, CPoint point)
             info.cch = 256;
             if(!GetMenuItemInfoW(theApp.menu, i, MF_BYPOSITION, &info)) {
             }
-            if(!AppendMenuW(theApp.popup, MF_POPUP|MF_STRING, (UINT)info.hSubMenu, buffer)) {
+            if(!AppendMenuW(theApp.popup, MF_POPUP|MF_STRING, (UINT_PTR)info.hSubMenu, buffer)) {
             }
           }
         }
@@ -951,36 +1029,70 @@ void MainWnd::OnSystemMinimize()
   ShowWindow(SW_SHOWMINIMIZED);
 }
 
-bool MainWnd::fileOpenSelect()
+
+bool MainWnd::fileOpenSelect( bool gb )
 {
-  theApp.dir = "";
-  CString initialDir = regQueryStringValue("romdir",".");
-  if(!initialDir.IsEmpty())
-    theApp.dir = initialDir;
+	theApp.dir = _T("");
+	CString initialDir;
+	if( gb ) {
+		initialDir = regQueryStringValue( _T("gbromdir"), _T(".") );
+	} else {
+		initialDir = regQueryStringValue( _T("romdir"), _T(".") );
+	}
+	
+	if( initialDir[0] == '.' ) {
+		// handle as relative path
+		char baseDir[MAX_PATH+1];
+		GetModuleFileName( NULL, baseDir, MAX_PATH );
+		baseDir[MAX_PATH] = '\0'; // for security reasons
+		PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+		strcat( baseDir, "\\" );
+		strcat( baseDir, initialDir );
+		initialDir = baseDir;
+	}
 
-  int selectedFilter = regQueryDwordValue("selectedFilter", 0);
-  if(selectedFilter < 0 || selectedFilter > 2)
-    selectedFilter = 0;
+	if( !initialDir.IsEmpty() ) {
+		theApp.dir = initialDir;
+	}
 
-  theApp.szFile = "";
+	int selectedFilter = 0;
+	if( !gb ) {
+		selectedFilter = regQueryDwordValue( _T("selectedFilter"), 0);
+		if( (selectedFilter < 0) || (selectedFilter > 2) ) {
+			selectedFilter = 0;
+		}
+	}
+	
+	theApp.szFile = _T("");
+	
+	LPCTSTR exts[] = { _T(""), _T(""), _T(""), _T("") };
+	CString filter;
+	CString title;
+	if( gb ) {
+		filter = winLoadFilter( IDS_FILTER_GBROM );
+		title = winResLoadString( IDS_SELECT_ROM );
+	} else {
+		filter = winLoadFilter( IDS_FILTER_ROM );
+		title = winResLoadString( IDS_SELECT_ROM );
+	}
 
-  LPCTSTR exts[] = { "" };
-  CString filter = winLoadFilter(IDS_FILTER_ROM);
-  CString title = winResLoadString(IDS_SELECT_ROM);
+	FileDlg dlg( this, _T(""), filter, selectedFilter, _T(""), exts, theApp.dir, title, false);
 
-  FileDlg dlg(this, "", filter, selectedFilter, "", exts, theApp.dir, title, false);
-
-  if(dlg.DoModal() == IDOK) {
-    regSetDwordValue("selectedFilter", dlg.m_ofn.nFilterIndex);
-    theApp.szFile = dlg.GetPathName();
-    theApp.dir = theApp.szFile.Left(dlg.m_ofn.nFileOffset);
-    if(theApp.dir.GetLength() > 3 && theApp.dir[theApp.dir.GetLength()-1] == '\\')
-      theApp.dir = theApp.dir.Left(theApp.dir.GetLength()-1);
-    regSetStringValue("romdir", theApp.dir);
-    return true;
-  }
-  return false;
+	if( dlg.DoModal() == IDOK ) {
+		if( !gb ) {
+			regSetDwordValue( _T("selectedFilter"), dlg.m_ofn.nFilterIndex );
+		}
+		theApp.szFile = dlg.GetPathName();
+		theApp.dir = theApp.szFile.Left( dlg.m_ofn.nFileOffset );
+		if( (theApp.dir.GetLength() > 3) && (theApp.dir[theApp.dir.GetLength()-1] == _T('\\')) ) {
+			theApp.dir = theApp.dir.Left( theApp.dir.GetLength() - 1 );
+		}
+		SetCurrentDirectory( theApp.dir );
+		return true;
+	}
+	return false;
 }
+
 
 void MainWnd::OnPaint() 
 {
@@ -1011,6 +1123,16 @@ void MainWnd::screenCapture(int captureNumber)
   CString buffer;
   
   CString captureDir = regQueryStringValue("captureDir", "");
+  if( captureDir[0] == '.' ) {
+	  // handle as relative path
+	  char baseDir[MAX_PATH+1];
+	  GetModuleFileName( NULL, baseDir, MAX_PATH );
+	  baseDir[MAX_PATH] = '\0'; // for security reasons
+	  PathRemoveFileSpec( baseDir ); // removes the trailing file name and backslash
+	  strcat( baseDir, "\\" );
+	  strcat( baseDir, captureDir );
+	  captureDir = baseDir;
+	}
   int index = theApp.filename.ReverseFind('\\');
   
   CString name;
@@ -1038,6 +1160,15 @@ void MainWnd::screenCapture(int captureNumber)
                   name,
                   captureNumber,
                   ext);
+
+  // check if file exists
+  DWORD dwAttr = GetFileAttributes( buffer );
+  if( dwAttr != INVALID_FILE_ATTRIBUTES ) {
+	  // screenshot file already exists
+	  screenCapture(++captureNumber);
+	  // this will recursively use the first non-existent screenshot number
+	  return;
+  }
 
   if(theApp.captureFormat == 0)
     theApp.emulator.emuWritePNG(buffer);
@@ -1098,7 +1229,12 @@ void MainWnd::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
   }
 
   if(theApp.paused && emulating)
+  {
+    theApp.painting = true;
     systemDrawScreen();
+    theApp.painting = false;
+    theApp.renderedFrames--;
+  }
 }
 
 #if _MSC_VER <= 1200
@@ -1145,3 +1281,4 @@ LRESULT MainWnd::OnMySysCommand(WPARAM wParam, LPARAM lParam)
   }
   return Default();
 }
+

@@ -1,0 +1,41 @@
+Source: visualboyadvance
+Section: games
+Priority: extra
+Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+XSBC-Original-Maintainer: Jose Carlos Medeiros <debian@psabs.com.br>
+Uploaders: Ola Lundqvist <opal@debian.org>
+Build-Depends: debhelper (>= 5), autotools-dev, libsdl1.2-dev, zlib1g-dev, nasm [i386 kfreebsd-i386 hurd-i386], libtool, libpng12-dev | libpng-dev, libx11-dev, libxt-dev, x-dev, dpatch, docbook-to-man, libgtkmm-2.4-dev, libglademm-2.4-dev, automake, help2man
+Standards-Version: 3.7.3
+Homepage: http://sourceforge.net/projects/vba
+
+Package: visualboyadvance
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: a full featured Game Boy Advance emulator
+ VisualBoyAdvance is a Game Boy Advance emulator that works with
+ many ROMs that are publically available. It features save states
+ (like those that are available in ZSNES), full screen support,
+ joystick support, the all-important 'speedup emulation' key for
+ impatient gamers, and a lot more.
+ . 
+ It also contains many useful tools for Game Boy Advance developers,
+ such as powerful GDB and gprof integration.
+ .
+ This package contains a version of VisualBoyAdvance compiled with
+ the original GUI-less SDL interface.
+
+Package: visualboyadvance-gtk
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, visualboyadvance (>= 1.8.0-2)
+Description: a GTK+ front-end to VisualBoyAdvance emulator
+ VisualBoyAdvance is a Game Boy Advance emulator that works with
+ many ROMs that are publically available. It features save states
+ (like those that are available in ZSNES), full screen support,
+ joystick support, the all-important 'speedup emulation' key for
+ impatient gamers, and a lot more.
+ . 
+ It also contains many useful tools for Game Boy Advance developers,
+ such as powerful GDB and gprof integration.
+ .
+ This package contains a version of VisualBoyAdvance compiled with
+ the original GUI-less SDL interface.

@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
 // Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2004 Forgotten and the VBA development team
+// Copyright (C) 2005 Forgotten and the VBA development team
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,8 @@
 #define SAVE_GAME_VERSION_6 6
 #define SAVE_GAME_VERSION_7 7
 #define SAVE_GAME_VERSION_8 8
-#define SAVE_GAME_VERSION  SAVE_GAME_VERSION_8
+#define SAVE_GAME_VERSION_9 9
+#define SAVE_GAME_VERSION  SAVE_GAME_VERSION_9
 
 typedef struct {
   u8 *address;
@@ -83,8 +84,17 @@ extern bool armState;
 extern int armMode;
 extern void (*cpuSaveGameFunc)(u32,u8);
 
-extern bool freezeWorkRAM[0x40000];
-extern bool freezeInternalRAM[0x8000];
+#ifdef BKPT_SUPPORT
+extern u8 freezeWorkRAM[0x40000];
+extern u8 freezeInternalRAM[0x8000];
+extern u8 freezeVRAM[0x18000];
+extern u8 freezeOAM[0x400];
+extern u8 freezePRAM[0x400];
+extern bool debugger_last;
+extern int  oldreg[17];
+extern char oldbuffer[10];
+#endif
+
 extern bool CPUReadGSASnapshot(const char *);
 extern bool CPUWriteGSASnapshot(const char *, const char *, const char *, const char *);
 extern bool CPUWriteBatteryFile(const char *);
@@ -100,7 +110,9 @@ extern bool CPUReadState(const char *);
 extern bool CPUWriteMemState(char *, int);
 extern bool CPUWriteState(const char *);
 extern int CPULoadRom(const char *);
+extern void doMirroring(bool);
 extern void CPUUpdateRegister(u32, u16);
+extern void applyTimer ();
 extern void CPUWriteHalfWord(u32, u16);
 extern void CPUWriteByte(u32, u8);
 extern void CPUInit(const char *,bool);
@@ -110,7 +122,8 @@ extern void CPUCheckDMA(int,int);
 extern bool CPUIsGBAImage(const char *);
 extern bool CPUIsZipFile(const char *);
 #ifdef PROFILING
-extern void cpuProfil(char *buffer, int, u32, int);
+#include "prof/prof.h"
+extern void cpuProfil(profile_segment *seg);
 extern void cpuEnableProfiling(int hz);
 #endif
 

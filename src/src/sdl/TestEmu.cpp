@@ -23,17 +23,18 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "AutoBuild.h"
+#include "../AutoBuild.h"
 
-#include "GBA.h"
+#include "../GBA.h"
 #include "debugger.h"
-#include "Sound.h"
-#include "unzip.h"
-#include "Util.h"
-#include "gb/GB.h"
-#include "gb/gbGlobals.h"
+#include "../Sound.h"
+#include "../unzip.h"
+#include "../Util.h"
+#include "../gb/GB.h"
+#include "../gb/gbGlobals.h"
+#include "../getopt.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 # include <unistd.h>
 # define GETCWD getcwd
 #else // WIN32
@@ -255,7 +256,7 @@ int main(int argc, char **argv)
     paletteRAM = (u8 *)calloc(1,0x400);
     vram = (u8 *)calloc(1, 0x20000);
     oam = (u8 *)calloc(1, 0x400);
-    pix = (u8 *)calloc(1, 4 * 240 * 160);
+    pix = (u8 *)calloc(1, 4 * 241 * 162);
     ioMem = (u8 *)calloc(1, 0x400);
 
     emulator = GBASystem;
@@ -350,6 +351,38 @@ void systemFrame()
 
 void systemSetTitle(const char *title)
 {
+}
+
+void sdlWriteState(int num)
+{
+  char stateName[2048];
+
+  if(saveDir[0])
+    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
+            num+1);
+  else
+    sprintf(stateName,"%s%d.sgm", filename, num+1);
+  if(emulator.emuWriteState)
+    emulator.emuWriteState(stateName);
+  sprintf(stateName, "Wrote state %d", num+1);
+  systemScreenMessage(stateName);
+}
+
+void sdlReadState(int num)
+{
+  char stateName[2048];
+
+  if(saveDir[0])
+    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
+            num+1);
+  else
+    sprintf(stateName,"%s%d.sgm", filename, num+1);
+
+  if(emulator.emuReadState)
+    emulator.emuReadState(stateName);
+
+  sprintf(stateName, "Loaded state %d", num+1);
+  systemScreenMessage(stateName);
 }
 
 void systemScreenCapture(int a)

@@ -1,0 +1,18 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 08_gvba_load_gb_rom.dpatch by Javier Serrano Polo <jasp00@terra.es>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix GB ROM loading in gvba
+
+@DPATCH@
+
+--- visualboyadvance-1.8.0.orig/src/gtk/window.cpp	2008-01-28 18:20:28.000000000 +0100
++++ visualboyadvance-1.8.0/src/gtk/window.cpp	2008-01-28 18:04:24.000000000 +0100
+@@ -1428,6 +1428,7 @@
+     bLoaded = gbLoadRom(csFile);
+     if (bLoaded)
+     {
++      gbReset();
+       m_eCartridge = CartridgeGB;
+       m_stEmulator = GBSystem;
+     }
