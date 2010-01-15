@@ -2519,7 +2519,6 @@ void drawScreenText()
     }
   }
 
-<<<<<<< HEAD
   if(showSpeed) {
     char buffer[50];
     if(showSpeed == 1)
