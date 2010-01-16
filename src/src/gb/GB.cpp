@@ -4326,9 +4326,7 @@ void gbDrawLine()
   switch(systemColorDepth) {
     case 16:
     {
-      u16 * dest = (u16 *)pix +
-                   (gbBorderLineSkip+2) * (register_LY + gbBorderRowSkip+1)
-                   + gbBorderColumnSkip;
+      u16 * dest = (u16 *)pix + gbBorderLineSkip * register_LY;
       for(int x = 0; x < 160; ) {
         *dest++ = systemColorMap16[gbLineMix[x++]];
         *dest++ = systemColorMap16[gbLineMix[x++]];
