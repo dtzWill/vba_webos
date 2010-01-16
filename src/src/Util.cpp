@@ -478,7 +478,7 @@ bool utilIsGBAImage(const char * file)
 {
   cpuIsMultiBoot = false;
   if(strlen(file) > 4) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".gba") == 0)
@@ -502,7 +502,7 @@ bool utilIsGBAImage(const char * file)
 bool utilIsGBImage(const char * file)
 {
   if(strlen(file) > 4) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".gb") == 0)
@@ -522,7 +522,7 @@ bool utilIsGBImage(const char * file)
 bool utilIsZipFile(const char *file)
 {
   if(strlen(file) > 4) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".zip") == 0)
@@ -537,7 +537,7 @@ bool utilIsZipFile(const char *file)
 bool utilIsRarFile(const char *file)
 {
   if(strlen(file) > 4) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".rar") == 0)
@@ -552,7 +552,7 @@ bool utilIsRarFile(const char *file)
 bool utilIsGzipFile(const char *file)
 {
   if(strlen(file) > 3) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".gz") == 0)
@@ -570,7 +570,7 @@ void utilGetBaseName(const char *file, char *buffer)
   strcpy(buffer, file);
 
   if(utilIsGzipFile(file)) {
-    char *p = strrchr(buffer, '.');
+    char *p = (char *)strrchr(buffer, '.');
 
     if(p)
       *p = 0;
