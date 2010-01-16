@@ -47,7 +47,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.2"
+#define VERSION "1.0.3"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -303,7 +303,7 @@ int throttle = 0;
 u32 throttleLastTime = 0;
 u32 autoFrameSkipLastTime = 0;
 
-int showSpeed = 1;
+int showSpeed = 0;
 int showSpeedTransparent = 1;
 bool disableStatusMessages = false;
 bool paused = false;
@@ -1492,6 +1492,10 @@ void sdlPollEvents()
 
         GL_InitTexture();
         break;
+      case SDLK_MINUS:
+        //toggle show speed
+        showSpeed = !showSpeed;
+        break;
       default:
         break;
       }
@@ -2533,8 +2537,8 @@ void drawScreenText()
               systemFrameSkip,
               showRenderedFrames);
       //Don't draw on the screen
-      //drawText(pix, srcPitch, 10, srcHeight - 20,
-      //         buffer); 
+      drawText(pix, srcPitch, 10, srcHeight - 20,
+               buffer); 
       static int counter;
       if ( counter++ > 10 )
       {
