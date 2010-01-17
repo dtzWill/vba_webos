@@ -1,2 +1,0 @@
-chdir /media/cryptofs/apps/usr/palm/applications/org.webosinternals.visualboyadvance/bin
-exec  /media/cryptofs/apps/usr/palm/applications/org.webosinternals.visualboyadvance/bin/vba &
