@@ -1635,6 +1635,11 @@ void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination 
     SDL_BlitSurface( source, NULL, destination, &offset );
 }
 
+int sortCompar( const struct dirent ** a, const struct dirent ** b )
+{
+    return strcasecmp( (*a)->d_name, (*b)->d_name );
+}
+
 char * romSelector()
 {
     //Init SDL for non-gl interaction...
@@ -1678,23 +1683,23 @@ char * romSelector()
 
 
     struct dirent ** roms;
-    int filecount = scandir( ROM_PATH, &roms, romFilter, alphasort );
+    int filecount = scandir( ROM_PATH, &roms, romFilter, sortCompar );
     printf( "Rom count: %d\n", filecount );
 
     //Display general information
     int top, bottom;
     SDL_Color textColor = { 255, 255, 255 };
     int borderColor = SDL_MapRGB( surface->format, 0, 0, 50 );
-    SDL_FillRect( surface, NULL, borderColor );
     SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
-    apply_surface( 10, 10, title, surface );
     top = 10+title->h+10;
-    SDL_FreeSurface( title );
 
     SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
     bottom = surface->h - author->h - 20;
-    SDL_FreeSurface( author );
+
+    //Draw border/text
+    SDL_FillRect( surface, NULL, borderColor );
+    apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
+    apply_surface( 10, 10, title, surface );
 
     SDL_UpdateRect( surface, 0, 0, 0, 0 );
     SDL_Rect drawRect;
@@ -1779,9 +1784,14 @@ char * romSelector()
             num_roms_display = filecount - scroll_offset;
         }
 
+        //Draw border/text
+        SDL_FillRect( surface, NULL, borderColor );
+        apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
+        apply_surface( 10, 10, title, surface );
+
         //Clear middle
         SDL_FillRect(surface, &drawRect, black);
-        
+
         //Draw roms...
 
         for ( int i = 0; i < num_roms_display; i++ )
@@ -1807,6 +1817,8 @@ char * romSelector()
             SDL_Delay( 20 );
         }
     }
+    SDL_FreeSurface( title );
+    SDL_FreeSurface( author );
 
     char * rom_base = roms[romSelected]->d_name;
     char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );
@@ -1937,6 +1949,36 @@ void updateOrientation()
     {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
         //vertexCoords[2*i+1] *= xscale/yscale;
+    }
+    
+    //re-set video mode so notifications appear correctly
+
+#if 0
+    //XXX: PDL_SetOrientation?
+    //This doesn't work presently for some reason; I don't think it likes
+    //changing video modes during opengles. Will look into more deeply later.
+    if ( orientation == ORIENTATION_PORTRAIT )
+    {
+        SDL_SetVideoMode( 320, 480, 32, SDL_FULLSCREEN );
+        surface = SDL_SetVideoMode( 320, 480, 32,
+                SDL_OPENGLES|
+                (fullscreen ? SDL_FULLSCREEN : 0));
+
+    }
+    else
+    {
+        SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN );
+        surface = SDL_SetVideoMode( 480, 320, 32,
+                SDL_OPENGLES|
+                (fullscreen ? SDL_FULLSCREEN : 0));
+
+    }
+#endif
+
+    if(surface == NULL) {
+        systemMessage(0, "Failed to set video mode");
+        SDL_Quit();
+        exit(-1);
     }
 }
 
