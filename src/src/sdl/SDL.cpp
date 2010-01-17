@@ -1739,6 +1739,7 @@ char * romSelector()
     bool tap = false;
     bool down = false;
     int romSelected = -1;
+    SDL_EnableUNICODE( 1 );
     while( romSelected == -1 )
     {
         //Calculate scroll, etc
@@ -1775,6 +1776,40 @@ char * romSelector()
                     }
 
                     break;
+                case SDL_KEYDOWN:
+                {
+                    //Filter based on letter presses.
+                    //For now, just jump to the first thing that starts at or after that letter.
+                    char c = (char)event.key.keysym.unicode;
+                    if ( 'A' <= c && c <= 'Z' )
+                    {
+                        //lowercase...
+                        c -= ( 'A' - 'a' );
+                    }
+                    if ( 'a' <= c && c <= 'z' )
+                    {
+                        //find this letter in the roms...
+                        int offset = 0;
+                        while( offset < filecount )
+                        {
+                            char c_file = *roms[offset]->d_name;
+                            printf( "file: %c, %d\n", c_file, c_file );
+                            if ( 'A' <= c_file && c_file <= 'Z' )
+                            {
+                                //lowercase..
+                                c_file -= ( 'A' - 'a' );
+                            }
+                            if ( c_file >= c )
+                            {
+                                break;
+                            }
+                            offset++;
+                        }
+                        scroll_offset = offset;
+                        if ( scroll_offset > filecount - num_roms_display ) scroll_offset = filecount - num_roms_display;
+                        if ( scroll_offset < 0 ) scroll_offset = 0;
+                    }
+                }
                 default:
                     break;
             }
