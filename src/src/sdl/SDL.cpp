@@ -1514,6 +1514,11 @@ void sdlPollEvents()
             sdlReadState( state );
             break;
         }
+        //This seems to only skip rendering frames on our end...
+        //has no speed benefit afaict and makes things choppier :/.
+      //case SDLK_AMPERSAND:
+      //  autoFrameSkip = !autoFrameSkip;
+      //  break;
       default:
         break;
       }
