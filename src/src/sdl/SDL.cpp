@@ -117,10 +117,6 @@ extern bool soundEcho;
 extern bool soundLowPass;
 extern bool soundReverse;
 
-//void Init_Overlay(SDL_Surface *surface, int overlaytype);
-//void Quit_Overlay(void);
-//void Draw_Overlay(SDL_Surface *surface, int size);
-
 extern void remoteInit();
 extern void remoteCleanUp();
 extern void remoteStubMain();
@@ -248,7 +244,7 @@ int cartridgeType = 3;
 int sizeOption = 0;
 int captureFormat = 0;
 
-int pauseWhenInactive = 0;
+int pauseWhenInactive = 1;
 int active = 1;
 int emulating = 0;
 int RGB_LOW_BITS_MASK=0x821;
@@ -336,8 +332,11 @@ bool screenMessage = false;
 char screenMessageBuffer[21];
 u32  screenMessageTime = 0;
 
-SDL_cond *cond = NULL;
-SDL_mutex *mutex = NULL;
+// Patch #1382692 by deathpudding.
+// (pulled from vba 1.8.0)
+SDL_sem *sdlBufferLock  = NULL;
+SDL_sem *sdlBufferFull  = NULL;
+SDL_sem *sdlBufferEmpty = NULL;
 u8 sdlBuffer[4096];
 int sdlSoundLen = 0;
 
@@ -1202,7 +1201,6 @@ void sdlUpdateJoyAxis(int which,
                       int axis,
                       int value)
 {
-  printf( "Joy: %d %d %d\n", which, axis, value );
   int i;
   for(int j = 0; j < 4; j++) {
     for(i = 0; i < 12; i++) {
@@ -1477,7 +1475,6 @@ void sdlPollEvents()
       case SDLK_ASTERISK:
         //Toggle sound
         systemSoundOn = !systemSoundOn;
-        
         break;
       case SDLK_QUOTE:
         //toggle filters...
@@ -2880,65 +2877,69 @@ void soundCallback(void *,u8 *stream,int len)
 {
   if(!emulating)
     return;
-  SDL_mutexP(mutex);
-  //  printf("Locked mutex\n");
-  if(!speedup && !throttle) {
-    while(sdlSoundLen < 2048*2) {
-      if(emulating)
-        SDL_CondWait(cond, mutex);
-      else 
-        break;
-    }
-  }
-  if(emulating) {
-    //  printf("Copying data\n");
-    memcpy(stream, sdlBuffer, len);
-  }
+
+  // Patch #1382692 by deathpudding.
+  // (ported from vba 1.8.0)
+  /* since this is running in a different thread, speedup and
+   * throttle can change at any time; save the value so locks
+   * stay in sync */
+  bool lock = (!speedup && !throttle) ? true : false;
+
+  if (lock)
+    SDL_SemWait (sdlBufferFull);
+
+  SDL_SemWait (sdlBufferLock);
+  memcpy (stream, sdlBuffer, len);
   sdlSoundLen = 0;
-  if(mutex)
-    SDL_mutexV(mutex);
+  SDL_SemPost (sdlBufferLock);
+
+  if (lock)
+    SDL_SemPost (sdlBufferEmpty);
 }
 
 void systemWriteDataToSoundBuffer()
 {
-  if(SDL_GetAudioStatus() != SDL_AUDIO_PLAYING)
-    SDL_PauseAudio(0);
-  bool cont = true;
-  while(cont && !speedup && !throttle) {
-    SDL_mutexP(mutex);
-    //    printf("Waiting for len < 2048 (speed up %d)\n", speedup);
-    if(sdlSoundLen < 2048*2)
-      cont = false;
-    SDL_mutexV(mutex);
-  }
+  // Patch #1382692 by deathpudding.
+  // (ported from vba 1.8.0)
+  if (SDL_GetAudioStatus () != SDL_AUDIO_PLAYING)
+    SDL_PauseAudio (0);
 
-  int len = soundBufferLen;
-  int copied = 0;
-  if((sdlSoundLen+len) >= 2048*2) {
-    //    printf("Case 1\n");
-    memcpy(&sdlBuffer[sdlSoundLen],soundFinalWave, 2048*2-sdlSoundLen);
-    copied = 2048*2 - sdlSoundLen;
+  if ((sdlSoundLen + soundBufferLen) >= 2048*2) {
+    bool lock = (!speedup && !throttle) ? true : false;
+
+    if (lock)
+      SDL_SemWait (sdlBufferEmpty);
+
+    SDL_SemWait (sdlBufferLock);
+    int copied = 2048*2 - sdlSoundLen;
+    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, copied);
     sdlSoundLen = 2048*2;
-    SDL_CondSignal(cond);
-    cont = true;
-    if(!speedup && !throttle) {
-      while(cont) {
-        SDL_mutexP(mutex);
-        if(sdlSoundLen < 2048*2)
-          cont = false;
-        SDL_mutexV(mutex);
-      }
-      memcpy(&sdlBuffer[0],&(((u8 *)soundFinalWave)[copied]),
-             soundBufferLen-copied);
-      sdlSoundLen = soundBufferLen-copied;
-    } else {
-      memcpy(&sdlBuffer[0], &(((u8 *)soundFinalWave)[copied]), 
-soundBufferLen);
+    SDL_SemPost (sdlBufferLock);
+
+    if (lock) {
+      SDL_SemPost (sdlBufferFull);
+
+      /* wait for buffer to be dumped by soundCallback() */
+      SDL_SemWait (sdlBufferEmpty);
+      SDL_SemPost (sdlBufferEmpty);
+
+      SDL_SemWait (sdlBufferLock);
+      memcpy (sdlBuffer, ((u8 *)soundFinalWave) + copied,
+          soundBufferLen - copied);
+      sdlSoundLen = soundBufferLen - copied;
+      SDL_SemPost (sdlBufferLock);
     }
-  } else {
-    //    printf("case 2\n");
-    memcpy(&sdlBuffer[sdlSoundLen], soundFinalWave, soundBufferLen);
-    sdlSoundLen += soundBufferLen;
+    else {
+      SDL_SemWait (sdlBufferLock);
+      memcpy (sdlBuffer, ((u8 *) soundFinalWave) + copied, soundBufferLen);
+      SDL_SemPost (sdlBufferLock);
+    }
+  }
+  else {
+    SDL_SemWait (sdlBufferLock);
+    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, soundBufferLen);
+     sdlSoundLen += soundBufferLen;
+    SDL_SemPost (sdlBufferLock);
   }
 }
 
@@ -2970,8 +2971,11 @@ bool systemSoundInit()
     return false;
   }
   soundBufferTotalLen = soundBufferLen*10;
-  cond = SDL_CreateCond();
-  mutex = SDL_CreateMutex();
+  // Patch #1382692 by deathpudding.
+  // (ported from vba 1.8.0)
+  sdlBufferLock  = SDL_CreateSemaphore (1);
+  sdlBufferFull  = SDL_CreateSemaphore (0);
+  sdlBufferEmpty = SDL_CreateSemaphore (1);
   sdlSoundLen = 0;
   systemSoundOn = true;
   return true;
@@ -2979,14 +2983,14 @@ bool systemSoundInit()
 
 void systemSoundShutdown()
 {
-  SDL_mutexP(mutex);
-  SDL_CondSignal(cond);
-  SDL_mutexV(mutex);
-  SDL_DestroyCond(cond);
-  cond = NULL;
-  SDL_DestroyMutex(mutex);
-  mutex = NULL;
-  SDL_CloseAudio();
+  // Patch #1382692 by deathpudding.
+  SDL_CloseAudio (); //TODO: fix freeze
+  SDL_DestroySemaphore (sdlBufferLock);
+  SDL_DestroySemaphore (sdlBufferFull);
+  SDL_DestroySemaphore (sdlBufferEmpty);
+  sdlBufferLock  = NULL;
+  sdlBufferFull  = NULL;
+  sdlBufferEmpty = NULL;
 }
 
 void systemSoundPause()

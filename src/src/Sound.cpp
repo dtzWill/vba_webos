@@ -387,8 +387,8 @@ void soundEvent(u32 address, u8 data)
       sound2Index = 0;
       sound2On = 1;
     }
-    break;
-    ioMem[address] = data;    
+    ioMem[address] = data;  
+    break;  
   case NR30:
     data &= 0xe0;
     if(!(data & 0x80)) {
@@ -541,7 +541,7 @@ void soundEvent(u32 address, u16 data)
   switch(address) {
   case SGCNT0_H:
     data &= 0xFF0F;
-    soundControl = data & 0x770F;;
+    soundControl = data & 0x770F;
     if(data & 0x0800) {
       soundDSFifoAWriteIndex = 0;
       soundDSFifoAIndex = 0;
@@ -865,7 +865,7 @@ void soundDirectSoundATimer()
     }
     
     soundDSAValue = (soundDSFifoA[soundDSFifoAIndex]);
-    soundDSFifoAIndex = (++soundDSFifoAIndex) & 31;
+    soundDSFifoAIndex = (soundDSFifoAIndex + 1) & 31;
     soundDSFifoACount--;
   } else
     soundDSAValue = 0;
@@ -894,7 +894,7 @@ void soundDirectSoundBTimer()
     }
     
     soundDSBValue = (soundDSFifoB[soundDSFifoBIndex]);
-    soundDSFifoBIndex = (++soundDSFifoBIndex) & 31;
+    soundDSFifoBIndex = (soundDSFifoBIndex + 1) & 31;
     soundDSFifoBCount--;
   } else {
     soundDSBValue = 0;
