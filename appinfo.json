@@ -6,8 +6,8 @@
        "vendor": "WebOS Internals",
        "vendor_email": "support@webos-internals.org",
        "vendor_url": "http://www.webos-internals.org/wiki/Application:VBA",
-       "type": "web",
-       "main": "bin/vba"
+       "type": "game",
+       "main": "bin/vba",
        "icon": "icon.png",
        "removable": "true",
        "noWindow": true,
