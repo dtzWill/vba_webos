@@ -1416,51 +1416,51 @@ void sdlPollEvents()
 //      case SDLK_ESCAPE:
 //        emulating = 0;
 //        break;
-      case SDLK_1:
-      case SDLK_2:
-      case SDLK_3:
-      case SDLK_4:
-        if(!(event.key.keysym.mod & MOD_NOALT) &&
-           (event.key.keysym.mod & KMOD_ALT)) {
-          char *disableMessages[4] = 
-            { "autofire A disabled",
-              "autofire B disabled",
-              "autofire R disabled",
-              "autofire L disabled"};
-          char *enableMessages[4] = 
-            { "autofire A",
-              "autofire B",
-              "autofire R",
-              "autofire L"};
-          int mask = 1 << (event.key.keysym.sym - SDLK_1);
-    if(event.key.keysym.sym > SDLK_2)
-      mask <<= 6;
-          if(autoFire & mask) {
-            autoFire &= ~mask;
-            systemScreenMessage(disableMessages[event.key.keysym.sym - SDLK_1]);
-          } else {
-            autoFire |= mask;
-            systemScreenMessage(enableMessages[event.key.keysym.sym - SDLK_1]);
-          }
-        } if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-             (event.key.keysym.mod & KMOD_CTRL)) {
-          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-          layerSettings ^= mask;
-          layerEnable = DISPCNT & layerSettings;
-          CPUUpdateRenderBuffers(false);
-        }
-        break;
-      case SDLK_5:
-      case SDLK_6:
-      case SDLK_7:
-      case SDLK_8:
-        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-           (event.key.keysym.mod & KMOD_CTRL)) {
-          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-          layerSettings ^= mask;
-          layerEnable = DISPCNT & layerSettings;
-        }
-        break;
+//      case SDLK_1:
+//      case SDLK_2:
+//      case SDLK_3:
+//      case SDLK_4:
+//        if(!(event.key.keysym.mod & MOD_NOALT) &&
+//           (event.key.keysym.mod & KMOD_ALT)) {
+//          char *disableMessages[4] = 
+//            { "autofire A disabled",
+//              "autofire B disabled",
+//              "autofire R disabled",
+//              "autofire L disabled"};
+//          char *enableMessages[4] = 
+//            { "autofire A",
+//              "autofire B",
+//              "autofire R",
+//              "autofire L"};
+//          int mask = 1 << (event.key.keysym.sym - SDLK_1);
+//    if(event.key.keysym.sym > SDLK_2)
+//      mask <<= 6;
+//          if(autoFire & mask) {
+//            autoFire &= ~mask;
+//            systemScreenMessage(disableMessages[event.key.keysym.sym - SDLK_1]);
+//          } else {
+//            autoFire |= mask;
+//            systemScreenMessage(enableMessages[event.key.keysym.sym - SDLK_1]);
+//          }
+//        } if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//             (event.key.keysym.mod & KMOD_CTRL)) {
+//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
+//          layerSettings ^= mask;
+//          layerEnable = DISPCNT & layerSettings;
+//          CPUUpdateRenderBuffers(false);
+//        }
+//        break;
+//      case SDLK_5:
+//      case SDLK_6:
+//      case SDLK_7:
+//      case SDLK_8:
+//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
+//          layerSettings ^= mask;
+//          layerEnable = DISPCNT & layerSettings;
+//        }
+//        break;
 //      case SDLK_n:
 //        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
 //           (event.key.keysym.mod & KMOD_CTRL)) {
@@ -1496,6 +1496,24 @@ void sdlPollEvents()
         //toggle show speed
         showSpeed = !showSpeed;
         break;
+      case SDLK_1:
+      case SDLK_2:
+      case SDLK_3:
+        {
+            //save states 1-3
+            int state = event.key.keysym.sym - SDLK_1;
+            sdlWriteState( state );
+            break;
+        }
+      case SDLK_4:
+      case SDLK_5:
+      case SDLK_6:
+        {
+            //load states 1-3
+            int state = event.key.keysym.sym - SDLK_4;
+            sdlReadState( state );
+            break;
+        }
       default:
         break;
       }
@@ -1793,7 +1811,6 @@ char * romSelector()
                         while( offset < filecount )
                         {
                             char c_file = *roms[offset]->d_name;
-                            printf( "file: %c, %d\n", c_file, c_file );
                             if ( 'A' <= c_file && c_file <= 'Z' )
                             {
                                 //lowercase..
