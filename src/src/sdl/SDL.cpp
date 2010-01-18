@@ -1051,7 +1051,8 @@ void sdlWriteBattery()
 
   emulator.emuWriteBattery(buffer);
 
-  systemScreenMessage("Wrote battery");
+  //No one wants to see this; they assume it saves.
+  //systemScreenMessage("Wrote battery");
 }
 
 void sdlReadBattery()
@@ -1067,8 +1068,10 @@ void sdlReadBattery()
 
   res = emulator.emuReadBattery(buffer);
 
-  if(res)
-    systemScreenMessage("Loaded battery");
+  //Less annoying than 'wrote battery' since only appears once,
+  //but still not the best.
+  //if(res)
+  //  systemScreenMessage("Loaded battery");
 }
 
 #define MOD_KEYS    (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META)
@@ -1327,6 +1330,11 @@ void sdlPollEvents()
   while(SDL_PollEvent(&event)) {
     switch(event.type) {
     case SDL_QUIT:
+      if( emulating )
+      {
+          //FIRST thing we do when request to save--make sure we write the battery!
+          sdlWriteBattery();
+      }
       emulating = 0;
       break;
     case SDL_ACTIVEEVENT:
@@ -1341,7 +1349,12 @@ void sdlPollEvents()
           wasPaused = true;
           if(pauseWhenInactive) {
             if(emulating)
+            {
               soundPause();
+              //write battery when pausing.
+              //Doesn't hurt, and guarantees we get a good save in.
+              sdlWriteBattery();
+            }
           }
           
           memset(delta,255,sizeof(delta));
