@@ -47,7 +47,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.4"
+#define VERSION "1.0.5"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -56,8 +56,10 @@
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
 #define NO_ROMS1 "Welcome to VBA!  Looks like you don't have any ROMs yet."
 #define NO_ROMS2 "To play games, put the roms in "
-#define NO_ROMS3 ROM_PATH
+#define NO_ROMS3 "/vba/roms"
 #define NO_ROMS4 "using USB mode, and then launch VBA again"
+#define NO_ROMS5 "For more information, see the wiki"
+#define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
 
 #define SCROLL_FACTOR 20
 
@@ -1748,14 +1750,19 @@ char * romSelector()
         //No roms found! Tell the user with a nice screen.
         //(Note this is where first-time users most likely end up);
         SDL_Color hiColor = { 255, 200, 200 };
+        //XXX: This code has gone too far--really should make use of some engine or loop or something :(
         SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
         SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
         SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
         SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
-        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 15, nr1, surface );
-        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 5, nr2, surface );
-        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 + 5, nr3, surface );
-        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + 15, nr4, surface );
+        SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
+        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, textColor );
+        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, surface );
+        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, surface );
+        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, surface );
+        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, surface );
+        apply_surface( surface->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, surface );
+        apply_surface( surface->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, surface );
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
         while( 1 );
     }
