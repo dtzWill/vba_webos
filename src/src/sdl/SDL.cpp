@@ -271,6 +271,40 @@ static int rewindCount = 0;
 static bool rewindSaveNeeded = false;
 static int rewindTimer = 0;
 
+//User-friendly names while walking them through the config process.
+char * bindingNames[]= 
+{
+    "Press key for Left",
+    "Press key for Right",
+    "Press key for Up",
+    "Press key for Down",
+    "Press key for A",
+    "Press key for B",
+    "Press key for Start",
+    "Press key for Select",
+    "Press key for L",
+    "Press key for R",
+    "Done binding keys"
+};
+//Config-file names
+char * bindingCfgNames [] = 
+{
+    "Joy0_Left",
+    "Joy0_Right",
+    "Joy0_Up",
+    "Joy0_Down",
+    "Joy0_A",
+    "Joy0_B",
+    "Joy0_Start",
+    "Joy0_Select",
+    "Joy0_L",
+    "Joy0_R"
+};
+#define NOT_BINDING -1
+#define BINDING_DONE ( KEY_BUTTON_R + 1 )
+static int keyBindingMode = NOT_BINDING;
+u16 bindingJoypad[12];
+
 #define REWIND_SIZE 400000
 
 #define _stricmp strcasecmp
@@ -1388,9 +1422,68 @@ void sdlPollEvents()
                        event.jaxis.value);
       break;
     case SDL_KEYDOWN:
-      sdlUpdateKey(event.key.keysym.sym, true);
+      if ( keyBindingMode == NOT_BINDING )
+      {
+          sdlUpdateKey(event.key.keysym.sym, true);
+      }
       break;
     case SDL_KEYUP:
+      if ( keyBindingMode != NOT_BINDING )
+      {
+          int key = event.key.keysym.sym;
+          if ( key == SDLK_EQUALS )
+          {
+              //cancel;
+              keyBindingMode = NOT_BINDING;
+              systemScreenMessage( "Cancelled binding!" );
+              break;
+          }
+
+          //Check that this is a valid key.
+          //XXX: right now we don't support
+          //orange, shift, or sym as keys b/c they are meta keys.
+          int valid = 0
+              || ( key >= SDLK_a && key <= SDLK_z ) //Alpha
+              || key == SDLK_BACKSPACE
+              || key == SDLK_RETURN
+              || key == SDLK_COMMA
+              || key == SDLK_PERIOD
+              || key == SDLK_SPACE
+              || key == SDLK_AT;
+
+          //If so, bind it.
+          if ( valid )
+          {
+              bindingJoypad[keyBindingMode] = key;
+              keyBindingMode++;
+          }
+
+          //Display message for next key.
+          systemScreenMessage( bindingNames[keyBindingMode] );
+
+          if ( keyBindingMode == BINDING_DONE )
+          {
+              //write to file.
+              //XXX: Write to alternate file? Don't overwrite this existing one?
+              FILE * f  = fopen( "VisualBoyAdvance.cfg", "w" );
+
+              for ( int i = 0; i < BINDING_DONE; i++ )
+              {
+                  fprintf( f, "%s=%04x\n", bindingCfgNames[i], bindingJoypad[i] );
+              }
+
+              fclose( f );
+
+              //make this the current joy
+              memcpy( &joypad[0][0], bindingJoypad, 10*sizeof( u16 ) );
+              
+              //we're done here!
+              keyBindingMode = NOT_BINDING;
+
+          }
+                   
+          break;
+      }
       switch(event.key.keysym.sym) {
           //      XXX: bind these to something useful
 //      case SDLK_r:
@@ -1531,6 +1624,10 @@ void sdlPollEvents()
       //case SDLK_AMPERSAND:
       //  autoFrameSkip = !autoFrameSkip;
       //  break;
+      case SDLK_EQUALS:
+        //Enter key-binding mode.
+        keyBindingMode = NOT_BINDING;
+        keyBindingMode++;
       default:
         break;
       }
@@ -2547,6 +2644,11 @@ int main(int argc, char **argv)
       SDL_Delay(500);
     }
     sdlPollEvents();
+    if ( keyBindingMode != NOT_BINDING )
+    {
+        //make sure the message stays up until binding is over
+        systemScreenMessage( bindingNames[keyBindingMode] );
+    }
     if(mouseCounter) {
       mouseCounter--;
       if(mouseCounter == 0)
@@ -2652,7 +2754,6 @@ void drawScreenText()
       sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
               systemFrameSkip,
               showRenderedFrames);
-      //Don't draw on the screen
       drawText(pix, srcPitch, 10, srcHeight - 20,
                buffer); 
       static int counter;
