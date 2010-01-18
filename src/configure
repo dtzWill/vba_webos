@@ -2093,7 +2093,7 @@ case "$target" in
     VBA_USE_MMX=yes
     ;;
   *)
-    VBA_USE_C_CORE=yes
+    VBA_USE_C_CORE=no
     VBA_USE_MMX=no
     ;;
 esac

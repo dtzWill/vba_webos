@@ -267,7 +267,9 @@
               (shift << 31));\
    }
 #else
-#ifdef __GNUC__
+#include "arm-new-pre.h"
+#if 0
+//#ifdef __GNUC__
         #ifdef __POWERPC__
             #define OP_SUB \
                 {\
