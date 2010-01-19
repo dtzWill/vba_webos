@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <time.h>
 
 int Z_FLAG,
            N_FLAG,
@@ -43,7 +44,7 @@ int op1, op2, op3;
 #define SUBOVERFLOW(a, b, c)\
   V_FLAG = ((NEG(a) & POS(b) & POS(c)) |\
             (POS(a) & NEG(b) & NEG(c))) ? true : false;
-void adds_c()
+inline void adds_c()
 {
     int res = op2 + op3;
     op1 = res;
@@ -53,14 +54,14 @@ void adds_c()
     ADDOVERFLOW( op2, op3, res );
 }
 
-void adds_asm()
+inline void adds_asm()
 {
     //Idea for flags:
     //instead of two instructions for each,
     //can we load flags /once/
     //and then use a shift/mask operation to get
     //each?
-asm( "adds %0, %6, %5;"
+__asm( "adds %0, %5, %6;"
      "movmi %1, #1;"
      "movpl %1, #0;"
      "movne %2, #0;"
@@ -76,6 +77,7 @@ asm( "adds %0, %6, %5;"
 
 int main()
 {
+    //Correctness
     int vals[] = { 1<<32 - 1, 1<<31, 1<<16, 10, 1, 0 };
     int count = sizeof( vals ) / sizeof( int );
     for ( int i = 0; i < count*2; i++ )
@@ -92,7 +94,7 @@ int main()
                     op2 = vals[ j % count ] * (  (j>=count) ? -1 : 1 );
                     op3 = vals[ k % count ] * (  (k>=count) ? -1 : 1 );
 
-                    printf( "Testing: %d, %d, %d\n", op1, op2, op3 );
+                    //printf( "Testing: %d, %d, %d\n", op1, op2, op3 );
 
 
                     N_FLAG = Z_FLAG = C_FLAG = V_FLAG = f;
@@ -116,14 +118,14 @@ int main()
                     n2 = N_FLAG; z2 = Z_FLAG; c2 = C_FLAG; v2 = V_FLAG;
                     o21 = op1; o22 = op2; o23 = op3;
 
-                    printf( "\tresults c: %d, %d, %d\t%d, %d, %d, %d\n",
-                            o11, o12, o13,
-                            n1, z1, c1, v1
-                            );
-                    printf( "\tresults a: %d, %d, %d\t%d, %d, %d, %d\n",
-                            o21, o22, o23,
-                            n2, z2, c2, v2
-                            );
+                    //printf( "\tresults c: %d, %d, %d\t%d, %d, %d, %d\n",
+                    //        o11, o12, o13,
+                    //        n1, z1, c1, v1
+                    //        );
+                    //printf( "\tresults a: %d, %d, %d\t%d, %d, %d, %d\n",
+                    //        o21, o22, o23,
+                    //        n2, z2, c2, v2
+                    //        );
 
                     //check results
                     assert( o11 == o21 );
@@ -137,4 +139,32 @@ int main()
             }
         }
     }
+
+    //Speed
+    clock_t s1, s2, e1, e2;
+    int runs = 10000000;
+    s1 = clock();
+    op2 = 1;
+    for ( int i = 0; i < runs; i++ )
+    {
+        adds_c();
+        op2 = op1;
+    }
+    e1 = clock();
+    //This is mainly to prevent the compiler from removing the loop above
+    int t1 = (e1 - s1);
+    printf( "%d, %d, %d, %d\n", op1, op2, op3, t1 );
+    s2 = clock();
+    op2 = 1;
+    for ( int i = 0; i < runs; i++ )
+    {
+        adds_asm();
+        op2 = op1;
+    }
+    e2 = clock();
+    int t2 = (e2 - s2);
+    printf( "%d, %d, %d, %d\n", op1, op2, op3, t2 );
+
+    printf( "Timings: %d, %d, Speedup (bigger is better): %f\n",
+            t1, t2, (float)t1/t2 );
 }
