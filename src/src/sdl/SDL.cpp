@@ -47,7 +47,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.4"
+#define VERSION "1.0.6"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -56,8 +56,10 @@
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
 #define NO_ROMS1 "Welcome to VBA!  Looks like you don't have any ROMs yet."
 #define NO_ROMS2 "To play games, put the roms in "
-#define NO_ROMS3 ROM_PATH
+#define NO_ROMS3 "/vba/roms"
 #define NO_ROMS4 "using USB mode, and then launch VBA again"
+#define NO_ROMS5 "For more information, see the wiki"
+#define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
 
 #define SCROLL_FACTOR 20
 
@@ -268,6 +270,40 @@ static int rewindCounter = 0;
 static int rewindCount = 0;
 static bool rewindSaveNeeded = false;
 static int rewindTimer = 0;
+
+//User-friendly names while walking them through the config process.
+char * bindingNames[]= 
+{
+    "Press key for Left",
+    "Press key for Right",
+    "Press key for Up",
+    "Press key for Down",
+    "Press key for A",
+    "Press key for B",
+    "Press key for Start",
+    "Press key for Select",
+    "Press key for L",
+    "Press key for R",
+    "Done binding keys"
+};
+//Config-file names
+char * bindingCfgNames [] = 
+{
+    "Joy0_Left",
+    "Joy0_Right",
+    "Joy0_Up",
+    "Joy0_Down",
+    "Joy0_A",
+    "Joy0_B",
+    "Joy0_Start",
+    "Joy0_Select",
+    "Joy0_L",
+    "Joy0_R"
+};
+#define NOT_BINDING -1
+#define BINDING_DONE ( KEY_BUTTON_R + 1 )
+static int keyBindingMode = NOT_BINDING;
+u16 bindingJoypad[12];
 
 #define REWIND_SIZE 400000
 
@@ -1051,7 +1087,8 @@ void sdlWriteBattery()
 
   emulator.emuWriteBattery(buffer);
 
-  systemScreenMessage("Wrote battery");
+  //No one wants to see this; they assume it saves.
+  //systemScreenMessage("Wrote battery");
 }
 
 void sdlReadBattery()
@@ -1067,8 +1104,10 @@ void sdlReadBattery()
 
   res = emulator.emuReadBattery(buffer);
 
-  if(res)
-    systemScreenMessage("Loaded battery");
+  //Less annoying than 'wrote battery' since only appears once,
+  //but still not the best.
+  //if(res)
+  //  systemScreenMessage("Loaded battery");
 }
 
 #define MOD_KEYS    (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META)
@@ -1327,6 +1366,11 @@ void sdlPollEvents()
   while(SDL_PollEvent(&event)) {
     switch(event.type) {
     case SDL_QUIT:
+      if( emulating )
+      {
+          //FIRST thing we do when request to save--make sure we write the battery!
+          sdlWriteBattery();
+      }
       emulating = 0;
       break;
     case SDL_ACTIVEEVENT:
@@ -1341,7 +1385,12 @@ void sdlPollEvents()
           wasPaused = true;
           if(pauseWhenInactive) {
             if(emulating)
+            {
               soundPause();
+              //write battery when pausing.
+              //Doesn't hurt, and guarantees we get a good save in.
+              sdlWriteBattery();
+            }
           }
           
           memset(delta,255,sizeof(delta));
@@ -1373,9 +1422,68 @@ void sdlPollEvents()
                        event.jaxis.value);
       break;
     case SDL_KEYDOWN:
-      sdlUpdateKey(event.key.keysym.sym, true);
+      if ( keyBindingMode == NOT_BINDING )
+      {
+          sdlUpdateKey(event.key.keysym.sym, true);
+      }
       break;
     case SDL_KEYUP:
+      if ( keyBindingMode != NOT_BINDING )
+      {
+          int key = event.key.keysym.sym;
+          if ( key == SDLK_EQUALS )
+          {
+              //cancel;
+              keyBindingMode = NOT_BINDING;
+              systemScreenMessage( "Cancelled binding!" );
+              break;
+          }
+
+          //Check that this is a valid key.
+          //XXX: right now we don't support
+          //orange, shift, or sym as keys b/c they are meta keys.
+          int valid = 0
+              || ( key >= SDLK_a && key <= SDLK_z ) //Alpha
+              || key == SDLK_BACKSPACE
+              || key == SDLK_RETURN
+              || key == SDLK_COMMA
+              || key == SDLK_PERIOD
+              || key == SDLK_SPACE
+              || key == SDLK_AT;
+
+          //If so, bind it.
+          if ( valid )
+          {
+              bindingJoypad[keyBindingMode] = key;
+              keyBindingMode++;
+          }
+
+          //Display message for next key.
+          systemScreenMessage( bindingNames[keyBindingMode] );
+
+          if ( keyBindingMode == BINDING_DONE )
+          {
+              //write to file.
+              //XXX: Write to alternate file? Don't overwrite this existing one?
+              FILE * f  = fopen( VBA_HOME "/VisualBoyAdvance.cfg", "w" );
+
+              for ( int i = 0; i < BINDING_DONE; i++ )
+              {
+                  fprintf( f, "%s=%04x\n", bindingCfgNames[i], bindingJoypad[i] );
+              }
+
+              fclose( f );
+
+              //make this the current joy
+              memcpy( &joypad[0][0], bindingJoypad, 10*sizeof( u16 ) );
+              
+              //we're done here!
+              keyBindingMode = NOT_BINDING;
+
+          }
+                   
+          break;
+      }
       switch(event.key.keysym.sym) {
           //      XXX: bind these to something useful
 //      case SDLK_r:
@@ -1516,6 +1624,10 @@ void sdlPollEvents()
       //case SDLK_AMPERSAND:
       //  autoFrameSkip = !autoFrameSkip;
       //  break;
+      case SDLK_EQUALS:
+        //Enter key-binding mode.
+        keyBindingMode = NOT_BINDING;
+        keyBindingMode++;
       default:
         break;
       }
@@ -1735,14 +1847,19 @@ char * romSelector()
         //No roms found! Tell the user with a nice screen.
         //(Note this is where first-time users most likely end up);
         SDL_Color hiColor = { 255, 200, 200 };
+        //XXX: This code has gone too far--really should make use of some engine or loop or something :(
         SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
         SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
         SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
         SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
-        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 15, nr1, surface );
-        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 5, nr2, surface );
-        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 + 5, nr3, surface );
-        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + 15, nr4, surface );
+        SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
+        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, textColor );
+        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, surface );
+        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, surface );
+        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, surface );
+        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, surface );
+        apply_surface( surface->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, surface );
+        apply_surface( surface->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, surface );
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
         while( 1 );
     }
@@ -2528,6 +2645,11 @@ int main(int argc, char **argv)
       SDL_Delay(500);
     }
     sdlPollEvents();
+    if ( keyBindingMode != NOT_BINDING )
+    {
+        //make sure the message stays up until binding is over
+        systemScreenMessage( bindingNames[keyBindingMode] );
+    }
     if(mouseCounter) {
       mouseCounter--;
       if(mouseCounter == 0)
@@ -2633,7 +2755,6 @@ void drawScreenText()
       sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
               systemFrameSkip,
               showRenderedFrames);
-      //Don't draw on the screen
       drawText(pix, srcPitch, 10, srcHeight - 20,
                buffer); 
       static int counter;
