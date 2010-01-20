@@ -23,6 +23,7 @@
 #include "System.h"
 #include "Port.h"
 #include "RTC.h"
+#include <stdio.h>
 
 extern bool cpuSramEnabled;
 extern bool cpuFlashEnabled;

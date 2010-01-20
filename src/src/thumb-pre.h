@@ -14,6 +14,8 @@
  * ===========================================================================
  */
 
+#include <stdio.h>
+
 /*
  * similar to arm-new-pre.h, this file contains
  * the c implementation, the x86 implementation, and a
@@ -43,21 +45,34 @@
 
 /*-----------------------------------------------------------------------------
  *  Thumb macro definitions
+ *  Note that we aren't actually using host thumb mode
  *-----------------------------------------------------------------------------*/
 
 
 
+//=============================================================================
 #define ADD_RD_RS_RN \
-   {\
-     u32 lhs = reg[source].I;\
-     u32 rhs = value;\
-     u32 res = lhs + rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "adds %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[source].I) \
+       : "r3" );
+//#define ADD_RD_RS_RN \
+//   {\
+//     u32 lhs = reg[source].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs + rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define ADD_RD_RS_RN \
 //     asm ("add %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -66,17 +81,29 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "r" (value), "b" (reg[source].I));
+//=============================================================================
 #define ADD_RD_RS_O3 \
-   {\
-     u32 lhs = reg[source].I;\
-     u32 rhs = value;\
-     u32 res = lhs + rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "adds %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[source].I) \
+       : "r3" );
+//#define ADD_RD_RS_O3 \
+//   {\
+//     u32 lhs = reg[source].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs + rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define ADD_RD_RS_O3 \
 //     asm ("add %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -85,17 +112,29 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "r" (value), "b" (reg[source].I));
+//=============================================================================
 #define ADD_RN_O8(d) \
-   {\
-     u32 lhs = reg[(d)].I;\
-     u32 rhs = (opcode & 255);\
-     u32 res = lhs + rhs;\
-     reg[(d)].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "adds %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[(d)].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (opcode & 255), "r" (reg[(d)].I) \
+       : "r3" );
+//#define ADD_RN_O8(d) \
+//   {\
+//     u32 lhs = reg[(d)].I;\
+//     u32 rhs = (opcode & 255);\
+//     u32 res = lhs + rhs;\
+//     reg[(d)].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define ADD_RN_O8(d) \
 //     asm ("add %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -104,6 +143,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[(d)].I)\
 //          : "r" (opcode & 255), "b" (reg[(d)].I));
+//=============================================================================
 #define CMN_RD_RS \
    {\
      u32 lhs = reg[dest].I;\
@@ -122,6 +162,7 @@
 //          "setob V_FLAG;"\
 //          : \
 //          : "r" (value), "r" (reg[dest].I):"1");
+//=============================================================================
 #define ADC_RD_RS \
    {\
      u32 lhs = reg[dest].I;\
@@ -142,6 +183,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "r" (value), "b" (reg[dest].I));
+//=============================================================================
 #define SUB_RD_RS_RN \
    {\
      u32 lhs = reg[source].I;\
@@ -161,6 +203,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "r" (value), "b" (reg[source].I));
+//=============================================================================
 #define SUB_RD_RS_O3 \
    {\
      u32 lhs = reg[source].I;\
@@ -180,6 +223,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "r" (value), "b" (reg[source].I));
+//=============================================================================
 #define SUB_RN_O8(d) \
    {\
      u32 lhs = reg[(d)].I;\
@@ -199,6 +243,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[(d)].I)\
 //          : "r" (opcode & 255), "b" (reg[(d)].I));
+//=============================================================================
 #define CMP_RN_O8(d) \
    {\
      u32 lhs = reg[(d)].I;\
@@ -217,6 +262,7 @@
 //          "setob V_FLAG;"\
 //          : \
 //          : "r" (opcode & 255), "r" (reg[(d)].I) : "1");
+//=============================================================================
 #define SBC_RD_RS \
    {\
      u32 lhs = reg[dest].I;\
@@ -238,6 +284,7 @@
 //                   "setob V_FLAG;"\
 //                   : "=b" (reg[dest].I)\
 //                   : "r" (value), "b" (reg[dest].I) : "cc", "memory");
+//=============================================================================
 #define LSL_RD_RM_I5 \
    {\
      C_FLAG = (reg[source].I >> (32 - shift)) & 1 ? true : false;\
@@ -248,6 +295,7 @@
 //            "setcb C_FLAG;"\
 //            : "=a" (value)\
 //            : "a" (reg[source].I), "c" (shift));
+//=============================================================================
 #define LSL_RD_RS \
    {\
      C_FLAG = (reg[dest].I >> (32 - value)) & 1 ? true : false;\
@@ -258,6 +306,7 @@
 //              "setcb C_FLAG;"\
 //              : "=a" (value)\
 //              : "a" (reg[dest].I), "c" (value));
+//=============================================================================
 #define LSR_RD_RM_I5 \
    {\
      C_FLAG = (reg[source].I >> (shift - 1)) & 1 ? true : false;\
@@ -268,6 +317,7 @@
 //            "setcb C_FLAG;"\
 //            : "=a" (value)\
 //            : "a" (reg[source].I), "c" (shift));
+//=============================================================================
 #define LSR_RD_RS \
    {\
      C_FLAG = (reg[dest].I >> (value - 1)) & 1 ? true : false;\
@@ -278,6 +328,7 @@
 //              "setcb C_FLAG;"\
 //              : "=a" (value)\
 //              : "a" (reg[dest].I), "c" (value));
+//=============================================================================
 #define ASR_RD_RM_I5 \
    {\
      C_FLAG = ((s32)reg[source].I >> (int)(shift - 1)) & 1 ? true : false;\
@@ -288,6 +339,7 @@
 //          "setcb C_FLAG;"\
 //          : "=a" (value)\
 //          : "a" (reg[source].I), "c" (shift));
+//=============================================================================
 #define ASR_RD_RS \
    {\
      C_FLAG = ((s32)reg[dest].I >> (int)(value - 1)) & 1 ? true : false;\
@@ -298,6 +350,7 @@
 //              "setcb C_FLAG;"\
 //              : "=a" (value)\
 //              : "a" (reg[dest].I), "c" (value));
+//=============================================================================
 #define ROR_RD_RS \
    {\
      C_FLAG = (reg[dest].I >> (value - 1)) & 1 ? true : false;\
@@ -309,6 +362,7 @@
 //              "setcb C_FLAG;"\
 //              : "=a" (value)\
 //              : "a" (reg[dest].I), "c" (value));
+//=============================================================================
 #define NEG_RD_RS \
    {\
      u32 lhs = reg[source].I;\
@@ -328,6 +382,7 @@
 //          "setob V_FLAG;"\
 //          : "=b" (reg[dest].I)\
 //          : "b" (reg[source].I));
+//=============================================================================
 #define CMP_RD_RS \
    {\
      u32 lhs = reg[dest].I;\
@@ -346,3 +401,4 @@
 //          "setob V_FLAG;"\
 //          : \
 //          : "r" (value), "r" (reg[dest].I):"1");
+//=============================================================================

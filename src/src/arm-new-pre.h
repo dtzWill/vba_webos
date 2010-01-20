@@ -51,6 +51,7 @@
 
 
 
+//=============================================================================
 #define OP_SUB \
     {\
       reg[dest].I = reg[base].I - value;\
@@ -61,17 +62,29 @@
 //                  : "=b" (reg[dest].I)\
 //                  : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_SUBS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs - rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "subs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_SUBS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs - rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_SUBS \
 //     asm ("sub %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -81,6 +94,7 @@
 //                  : "=b" (reg[dest].I)\
 //                  : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_RSB \
     {\
       reg[dest].I = value - reg[base].I;\
@@ -90,17 +104,29 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (reg[base].I), "b" (value));
 //
+//=============================================================================
 #define OP_RSBS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = rhs - lhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(rhs, lhs, res);\
-     SUBOVERFLOW(rhs, lhs, res);\
-   }
+     asm( "rsbs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_RSBS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = rhs - lhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(rhs, lhs, res);\
+//     SUBOVERFLOW(rhs, lhs, res);\
+//   }
 //#define OP_RSBS \
 //            asm  ("sub %1, %%ebx;"\
 //                  "setsb N_FLAG;"\
@@ -110,6 +136,7 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (reg[base].I), "b" (value));
 //
+//=============================================================================
 #define OP_ADD \
     {\
       reg[dest].I = reg[base].I + value;\
@@ -119,17 +146,29 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_ADDS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs + rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "adds %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_ADDS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs + rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_ADDS \
 //            asm  ("add %1, %%ebx;"\
 //                  "setsb N_FLAG;"\
@@ -139,6 +178,7 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_ADC \
     {\
       reg[dest].I = reg[base].I + value + (u32)C_FLAG;\
@@ -149,17 +189,29 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_ADCS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs + rhs + (u32)C_FLAG;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "adcs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_ADCS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs + rhs + (u32)C_FLAG;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_ADCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "adc %1, %%ebx;"\
@@ -170,6 +222,7 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_SBC \
     {\
       reg[dest].I = reg[base].I - value - !((u32)C_FLAG);\
@@ -181,17 +234,29 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
 //
+//=============================================================================
 #define OP_SBCS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs - rhs - !((u32)C_FLAG);\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "sbcs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_SBCS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs - rhs - !((u32)C_FLAG);\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_SBCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "cmc;"\
@@ -202,6 +267,7 @@
 //                  "setob V_FLAG;"\
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (value), "b" (reg[base].I));
+//=============================================================================
 #define OP_RSC \
     {\
       reg[dest].I = value - reg[base].I - !((u32)C_FLAG);\
@@ -213,17 +279,29 @@
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (reg[base].I), "b" (value));
 //
+//=============================================================================
 #define OP_RSCS \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = rhs - lhs - !((u32)C_FLAG);\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(rhs, lhs, res);\
-     SUBOVERFLOW(rhs, lhs, res);\
-   }
+     asm( "rscs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_RSCS \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = rhs - lhs - !((u32)C_FLAG);\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(rhs, lhs, res);\
+//     SUBOVERFLOW(rhs, lhs, res);\
+//   }
 //#define OP_RSCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "cmc;"\
@@ -234,6 +312,7 @@
 //                  "setob V_FLAG;"\
 //                 : "=b" (reg[dest].I)\
 //                 : "r" (reg[base].I), "b" (value));
+//=============================================================================
 #define OP_CMP \
    {\
      u32 lhs = reg[base].I;\
@@ -253,6 +332,7 @@
 //                 :\
 //                 : "r" (value), "r" (reg[base].I));
 //
+//=============================================================================
 #define OP_CMN \
    {\
      u32 lhs = reg[base].I;\
@@ -271,6 +351,7 @@
 //                  "setob V_FLAG;"\
 //                 : \
 //                 : "r" (value), "r" (reg[base].I));
+//=============================================================================
 #define LOGICAL_LSL_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -283,6 +364,7 @@
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define LOGICAL_LSR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -295,6 +377,7 @@
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define LOGICAL_ASR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -307,6 +390,7 @@
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define LOGICAL_ROR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -320,6 +404,7 @@
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));       
 //
+//=============================================================================
 #define LOGICAL_RRX_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -335,6 +420,7 @@
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (reg[opcode & 0x0f].I));       
 //
+//=============================================================================
 #define LOGICAL_ROR_IMM \
    {\
      u32 v = opcode & 0xff;\
@@ -347,6 +433,7 @@
 //           "setcb %%cl;"\
 //           : "=a" (value), "=c" (C_OUT)\
 //           : "a" (opcode & 0xff), "c" (shift));
+//=============================================================================
 #define ARITHMETIC_LSL_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -358,6 +445,7 @@
 //           : "=a" (value)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define ARITHMETIC_LSR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -369,6 +457,7 @@
 //           : "=a" (value)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define ARITHMETIC_ASR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -380,6 +469,7 @@
 //           : "=a" (value)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));
 //
+//=============================================================================
 #define ARITHMETIC_ROR_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -392,6 +482,7 @@
 //           : "=a" (value)\
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));       
 //
+//=============================================================================
 #define ARITHMETIC_RRX_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -406,6 +497,7 @@
 //           : "=a" (value)\
 //           : "a" (reg[opcode & 0x0f].I));       
 //
+//=============================================================================
 #define ARITHMETIC_ROR_IMM \
    {\
      u32 v = opcode & 0xff;\
@@ -417,6 +509,7 @@
 //             ror %%cl, %%eax;"\
 //           : "=a" (value)\
 //           : "a" (opcode & 0xff), "c" (shift));
+//=============================================================================
 #define ROR_IMM_MSR \
    {\
      u32 v = opcode & 0xff;\
@@ -427,6 +520,7 @@
 //      asm ("ror %%cl, %%eax;"\
 //           : "=a" (value)\
 //           : "a" (opcode & 0xFF), "c" (shift));
+//=============================================================================
 #define ROR_VALUE \
    {\
      value = ((value << (32 - shift)) |\
@@ -436,6 +530,7 @@
 //      asm("ror %%cl, %0"\
 //          : "=r" (value)\
 //          : "r" (value), "c" (shift));
+//=============================================================================
 #define RCR_VALUE \
    {\
      shift = (int)C_FLAG;\
@@ -447,3 +542,4 @@
 //          "rcr $1, %0"\
 //          : "=r" (value)\
 //          : "r" (value));
+//=============================================================================
