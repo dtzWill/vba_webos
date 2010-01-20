@@ -185,16 +185,27 @@
 //          : "r" (value), "b" (reg[dest].I));
 //=============================================================================
 #define SUB_RD_RS_RN \
-   {\
-     u32 lhs = reg[source].I;\
-     u32 rhs = value;\
-     u32 res = lhs - rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "subs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[source].I) \
+       : "r3" );
+//#define SUB_RD_RS_RN \
+//   {\
+//     u32 lhs = reg[source].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs - rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define SUB_RD_RS_RN \
 //     asm ("sub %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -205,16 +216,27 @@
 //          : "r" (value), "b" (reg[source].I));
 //=============================================================================
 #define SUB_RD_RS_O3 \
-   {\
-     u32 lhs = reg[source].I;\
-     u32 rhs = value;\
-     u32 res = lhs - rhs;\
-     reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "subs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[dest].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[source].I) \
+       : "r3" );
+//#define SUB_RD_RS_O3 \
+//   {\
+//     u32 lhs = reg[source].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs - rhs;\
+//     reg[dest].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define SUB_RD_RS_O3 \
 //     asm ("sub %1, %%ebx;"\
 //          "setsb N_FLAG;"\
@@ -225,16 +247,27 @@
 //          : "r" (value), "b" (reg[source].I));
 //=============================================================================
 #define SUB_RN_O8(d) \
-   {\
-     u32 lhs = reg[(d)].I;\
-     u32 rhs = (opcode & 255);\
-     u32 res = lhs - rhs;\
-     reg[(d)].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+     asm( "subs %0, %6, %5;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     "ubfx %2, r3, #30, #1;" \
+     "ubfx %3, r3, #29, #1;" \
+     "ubfx %4, r3, #28, #1;" \
+       : "=r" (reg[(d)].I), \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (opcode & 255), "r" (reg[(d)].I) \
+       : "r3" );
+//#define SUB_RN_O8(d) \
+//   {\
+//     u32 lhs = reg[(d)].I;\
+//     u32 rhs = (opcode & 255);\
+//     u32 res = lhs - rhs;\
+//     reg[(d)].I = res;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define SUB_RN_O8(d) \
 //     asm ("sub %1, %%ebx;"\
 //          "setsb N_FLAG;"\

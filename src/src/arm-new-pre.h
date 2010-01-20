@@ -27,6 +27,14 @@
  * for future people to look at, myself included.
  */
 
+/**
+ * Notes:
+ * I'm not entirely sure why, but many of these implementations *don't* update
+ * all the flags that the ARM reference says the corresponding instructions do.
+ * I'm not really sure why that is the case, so for now I'm just following suit
+ */
+
+
 
 /*-----------------------------------------------------------------------------
  *  Some macros used by the c implementations
@@ -53,10 +61,14 @@
 
 //=============================================================================
 #define OP_SUB \
-    {\
-      reg[dest].I = reg[base].I - value;\
-    }
-
+    asm ( "sub %0, %2, %1;" \
+            : "=r" (reg[dest].I) \
+            : "r" (value), "r" (reg[base].I) );
+//#define OP_SUB \
+//    {\
+//      reg[dest].I = reg[base].I - value;\
+//    }
+//
 //#define OP_SUB \
 //     asm ("sub %1, %%ebx;"\
 //                  : "=b" (reg[dest].I)\
@@ -96,9 +108,13 @@
 //
 //=============================================================================
 #define OP_RSB \
-    {\
-      reg[dest].I = value - reg[base].I;\
-    }
+    asm( "rsb %0, %2, %1;" \
+            : "=r" (reg[dest].I) \
+            : "r" (value), "r" (reg[base].I) );
+//#define OP_RSB \
+//    {\
+//      reg[dest].I = value - reg[base].I;\
+//    }
 //#define OP_RSB \
 //            asm  ("sub %1, %%ebx;"\
 //                 : "=b" (reg[dest].I)\
@@ -138,9 +154,13 @@
 //
 //=============================================================================
 #define OP_ADD \
-    {\
-      reg[dest].I = reg[base].I + value;\
-    }
+    asm( "add %0, %2, %1;" \
+            : "=r" (reg[dest].I) \
+            : "r" (value), "r" (reg[base].I) );
+//#define OP_ADD \
+//    {\
+//      reg[dest].I = reg[base].I + value;\
+//    }
 //#define OP_ADD \
 //            asm  ("add %1, %%ebx;"\
 //                 : "=b" (reg[dest].I)\
@@ -179,6 +199,7 @@
 //                 : "r" (value), "b" (reg[base].I));
 //
 //=============================================================================
+//XXX: Need to 'load' carry flag in to use native adc
 #define OP_ADC \
     {\
       reg[dest].I = reg[base].I + value + (u32)C_FLAG;\
@@ -190,28 +211,29 @@
 //                 : "r" (value), "b" (reg[base].I));
 //
 //=============================================================================
-#define OP_ADCS \
-     asm( "adcs %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
-       : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+//XXX: Need to 'load' carry flag in to use native adcs
 //#define OP_ADCS \
-//   {\
-//     u32 lhs = reg[base].I;\
-//     u32 rhs = value;\
-//     u32 res = lhs + rhs + (u32)C_FLAG;\
-//     reg[dest].I = res;\
-//     Z_FLAG = (res == 0) ? true : false;\
-//     N_FLAG = NEG(res) ? true : false;\
-//     ADDCARRY(lhs, rhs, res);\
-//     ADDOVERFLOW(lhs, rhs, res);\
-//   }
+//     asm( "adcs %0, %6, %5;" \
+//     "mrs r3, cpsr;" \
+//     "ubfx %1, r3, #31, #1;" \
+//     "ubfx %2, r3, #30, #1;" \
+//     "ubfx %3, r3, #29, #1;" \
+//     "ubfx %4, r3, #28, #1;" \
+//       : "=r" (reg[dest].I), \
+//        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+//       : "r" (value), "r" (reg[base].I) \
+//       : "r3" );
+#define OP_ADCS \
+   {\
+     u32 lhs = reg[base].I;\
+     u32 rhs = value;\
+     u32 res = lhs + rhs + (u32)C_FLAG;\
+     reg[dest].I = res;\
+     Z_FLAG = (res == 0) ? true : false;\
+     N_FLAG = NEG(res) ? true : false;\
+     ADDCARRY(lhs, rhs, res);\
+     ADDOVERFLOW(lhs, rhs, res);\
+   }
 //#define OP_ADCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "adc %1, %%ebx;"\
@@ -235,28 +257,29 @@
 //                 : "r" (value), "b" (reg[base].I));
 //
 //=============================================================================
-#define OP_SBCS \
-     asm( "sbcs %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
-       : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+//XXX: Need to 'load' C_FLAG in first before we can use native SBCS
 //#define OP_SBCS \
-//   {\
-//     u32 lhs = reg[base].I;\
-//     u32 rhs = value;\
-//     u32 res = lhs - rhs - !((u32)C_FLAG);\
-//     reg[dest].I = res;\
-//     Z_FLAG = (res == 0) ? true : false;\
-//     N_FLAG = NEG(res) ? true : false;\
-//     SUBCARRY(lhs, rhs, res);\
-//     SUBOVERFLOW(lhs, rhs, res);\
-//   }
+//     asm( "sbcs %0, %6, %5;" \
+//     "mrs r3, cpsr;" \
+//     "ubfx %1, r3, #31, #1;" \
+//     "ubfx %2, r3, #30, #1;" \
+//     "ubfx %3, r3, #29, #1;" \
+//     "ubfx %4, r3, #28, #1;" \
+//       : "=r" (reg[dest].I), \
+//        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+//       : "r" (value), "r" (reg[base].I) \
+//       : "r3" );
+#define OP_SBCS \
+   {\
+     u32 lhs = reg[base].I;\
+     u32 rhs = value;\
+     u32 res = lhs - rhs - !((u32)C_FLAG);\
+     reg[dest].I = res;\
+     Z_FLAG = (res == 0) ? true : false;\
+     N_FLAG = NEG(res) ? true : false;\
+     SUBCARRY(lhs, rhs, res);\
+     SUBOVERFLOW(lhs, rhs, res);\
+   }
 //#define OP_SBCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "cmc;"\
@@ -280,28 +303,29 @@
 //                 : "r" (reg[base].I), "b" (value));
 //
 //=============================================================================
-#define OP_RSCS \
-     asm( "rscs %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
-       : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+//XXX: Load cflag in before native rscs
 //#define OP_RSCS \
-//   {\
-//     u32 lhs = reg[base].I;\
-//     u32 rhs = value;\
-//     u32 res = rhs - lhs - !((u32)C_FLAG);\
-//     reg[dest].I = res;\
-//     Z_FLAG = (res == 0) ? true : false;\
-//     N_FLAG = NEG(res) ? true : false;\
-//     SUBCARRY(rhs, lhs, res);\
-//     SUBOVERFLOW(rhs, lhs, res);\
-//   }
+//     asm( "rscs %0, %6, %5;" \
+//     "mrs r3, cpsr;" \
+//     "ubfx %1, r3, #31, #1;" \
+//     "ubfx %2, r3, #30, #1;" \
+//     "ubfx %3, r3, #29, #1;" \
+//     "ubfx %4, r3, #28, #1;" \
+//       : "=r" (reg[dest].I), \
+//        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+//       : "r" (value), "r" (reg[base].I) \
+//       : "r3" );
+#define OP_RSCS \
+   {\
+     u32 lhs = reg[base].I;\
+     u32 rhs = value;\
+     u32 res = rhs - lhs - !((u32)C_FLAG);\
+     reg[dest].I = res;\
+     Z_FLAG = (res == 0) ? true : false;\
+     N_FLAG = NEG(res) ? true : false;\
+     SUBCARRY(rhs, lhs, res);\
+     SUBOVERFLOW(rhs, lhs, res);\
+   }
 //#define OP_RSCS \
 //            asm  ("bt $0, C_FLAG;"\
 //                  "cmc;"\
@@ -314,15 +338,27 @@
 //                 : "r" (reg[base].I), "b" (value));
 //=============================================================================
 #define OP_CMP \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs - rhs;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     SUBCARRY(lhs, rhs, res);\
-     SUBOVERFLOW(lhs, rhs, res);\
-   }
+    asm ( "cmp %5, %4;" \
+     "mrs r3, cpsr;" \
+     "ubfx %0, r3, #31, #1;" \
+     "ubfx %1, r3, #30, #1;" \
+     "ubfx %2, r3, #29, #1;" \
+     "ubfx %3, r3, #28, #1;" \
+       : \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+
+//#define OP_CMP \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs - rhs;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     SUBCARRY(lhs, rhs, res);\
+//     SUBOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_CMP \
 //            asm  ("sub %0, %1;"\
 //                  "setsb N_FLAG;"\
@@ -334,15 +370,26 @@
 //
 //=============================================================================
 #define OP_CMN \
-   {\
-     u32 lhs = reg[base].I;\
-     u32 rhs = value;\
-     u32 res = lhs + rhs;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
-     ADDCARRY(lhs, rhs, res);\
-     ADDOVERFLOW(lhs, rhs, res);\
-   }
+    asm ( "cmn %5, %4;" \
+     "mrs r3, cpsr;" \
+     "ubfx %0, r3, #31, #1;" \
+     "ubfx %1, r3, #30, #1;" \
+     "ubfx %2, r3, #29, #1;" \
+     "ubfx %3, r3, #28, #1;" \
+       : \
+        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
+       : "r" (value), "r" (reg[base].I) \
+       : "r3" );
+//#define OP_CMN \
+//   {\
+//     u32 lhs = reg[base].I;\
+//     u32 rhs = value;\
+//     u32 res = lhs + rhs;\
+//     Z_FLAG = (res == 0) ? true : false;\
+//     N_FLAG = NEG(res) ? true : false;\
+//     ADDCARRY(lhs, rhs, res);\
+//     ADDOVERFLOW(lhs, rhs, res);\
+//   }
 //#define OP_CMN \
 //            asm  ("add %0, %1;"\
 //                  "setsb N_FLAG;"\
@@ -353,11 +400,17 @@
 //                 : "r" (value), "r" (reg[base].I));
 //=============================================================================
 #define LOGICAL_LSL_REG \
-   {\
-     u32 v = reg[opcode & 0x0f].I;\
-     C_OUT = (v >> (32 - shift)) & 1 ? true : false;\
-     value = v << shift;\
-   }
+    asm( "lsl %0, %2, %3;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #31, #1;" \
+     : "=r" (value), "=r" (C_OUT) \
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) );
+//#define LOGICAL_LSL_REG \
+//   {\
+//     u32 v = reg[opcode & 0x0f].I;\
+//     C_OUT = (v >> (32 - shift)) & 1 ? true : false;\
+//     value = v << shift;\
+//   }
 //#define LOGICAL_LSL_REG \
 //       asm("shl %%cl, %%eax;"\
 //           "setcb %%cl;"\
