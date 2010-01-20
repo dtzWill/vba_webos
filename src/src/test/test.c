@@ -17,65 +17,20 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h>
 
-int Z_FLAG,
+extern int Z_FLAG,
            N_FLAG,
            C_FLAG,
            V_FLAG;
 
-int op1, op2, op3;
+extern int op1, op2, op3;
 
-#define true 1
-#define false 0
+void adds_c();
+void adds_asm();
 
-#define NEG(i) ((i) >> 31)
-#define POS(i) ((~(i)) >> 31)
-#define ADDCARRY(a, b, c) \
-  C_FLAG = ((NEG(a) & NEG(b)) |\
-            (NEG(a) & POS(c)) |\
-            (NEG(b) & POS(c))) ? true : false;
-#define ADDOVERFLOW(a, b, c) \
-  V_FLAG = ((NEG(a) & NEG(b) & POS(c)) |\
-            (POS(a) & POS(b) & NEG(c))) ? true : false;
-#define SUBCARRY(a, b, c) \
-  C_FLAG = ((NEG(a) & POS(b)) |\
-            (NEG(a) & POS(c)) |\
-            (POS(b) & POS(c))) ? true : false;
-#define SUBOVERFLOW(a, b, c)\
-  V_FLAG = ((NEG(a) & POS(b) & POS(c)) |\
-            (POS(a) & NEG(b) & NEG(c))) ? true : false;
-inline void adds_c()
-{
-    int res = op2 + op3;
-    op1 = res;
-    Z_FLAG =  (res == 0) ? true: false;
-    N_FLAG = NEG(res) ? true : false;
-    ADDCARRY(op2, op3, res );
-    ADDOVERFLOW( op2, op3, res );
-}
 
-inline void adds_asm()
-{
-    //Idea for flags:
-    //instead of two instructions for each,
-    //can we load flags /once/
-    //and then use a shift/mask operation to get
-    //each?
-__asm( "adds %0, %5, %6;"
-     "movmi %1, #1;"
-     "movpl %1, #0;"
-     "movne %2, #0;"
-     "moveq %2, #1;"
-     "movcs %3, #1;"
-     "movcc %3, #0;"
-     "movvs %4, #1;"
-     "movvc %4, #0;"
-       : "=r" (op1),
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG)
-       : "r" (op2), "r" (op3));
-}
-
-int main()
+int main( int argc, char ** argv )
 {
     //Correctness
     int vals[] = { 1<<32 - 1, 1<<31, 1<<16, 10, 1, 0 };
@@ -142,24 +97,62 @@ int main()
 
     //Speed
     clock_t s1, s2, e1, e2;
-    int runs = 10000000;
+    int runs = atoi( argv[1] );
     s1 = clock();
-    op2 = 1;
     for ( int i = 0; i < runs; i++ )
     {
         adds_c();
-        op2 = op1;
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        adds_c();
+        op2 = op1 + op3;
     }
     e1 = clock();
     //This is mainly to prevent the compiler from removing the loop above
     int t1 = (e1 - s1);
     printf( "%d, %d, %d, %d\n", op1, op2, op3, t1 );
     s2 = clock();
-    op2 = 1;
     for ( int i = 0; i < runs; i++ )
     {
         adds_asm();
-        op2 = op1;
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        adds_asm();
+        op2 = op1 + op3;
     }
     e2 = clock();
     int t2 = (e2 - s2);
