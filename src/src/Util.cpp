@@ -545,7 +545,7 @@ bool utilIsZipFile(const char *file)
 bool utilIsRarFile(const char *file)
 {
   if(strlen(file) > 4) {
-    char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".rar") == 0)
@@ -578,7 +578,7 @@ void utilGetBaseName(const char *file, char *buffer)
   strcpy(buffer, file);
 
   if(utilIsGzipFile(file)) {
-    char *p = strrchr(buffer, '.');
+    char *p = (char *)strrchr(buffer, '.');
 
     if(p)
       *p = 0;

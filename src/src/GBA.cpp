@@ -1404,7 +1404,7 @@ bool CPUIsGBAImage(const char * file)
 bool CPUIsGBABios(const char * file)
 {
   if(strlen(file) > 4) {
-    const char * p = strrchr(file,'.');
+    char * p = (char *)strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".gba") == 0)
