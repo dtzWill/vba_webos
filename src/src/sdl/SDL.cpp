@@ -184,6 +184,8 @@ int gl_filter = GL_LINEAR;
 
 int combo_down = false;
 
+int centerImage = 1;
+
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
  *-----------------------------------------------------------------------------*/
@@ -1628,10 +1630,14 @@ void sdlPollEvents()
             sdlReadState( state );
             break;
         }
-        //This seems to only skip rendering frames on our end...
-        //has no speed benefit afaict and makes things choppier :/.
+      //Might introduce this later; broken for now
+      //(fails to go back to 'normal' properly)
       //case SDLK_AMPERSAND:
       //  autoFrameSkip = !autoFrameSkip;
+      //  if ( !autoFrameSkip )
+      //  {
+      //      systemFrameSkip = 0;
+      //  }
       //  break;
       case SDLK_EQUALS:
         //Enter key-binding mode.
@@ -2192,6 +2198,15 @@ void updateOrientation()
     {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
         //vertexCoords[2*i+1] *= xscale/yscale;
+    }
+
+    if ( !centerImage )
+    {
+        float offset = 1.0 - vertexCoords[1];
+        for ( int i = 0; i < 4; i++ )
+        {
+            vertexCoords[2*i+1] += offset;
+        }
     }
     
     //re-set video mode so notifications appear correctly
