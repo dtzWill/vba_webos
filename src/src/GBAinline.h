@@ -23,6 +23,7 @@
 #include "System.h"
 #include "Port.h"
 #include "RTC.h"
+#include <stdio.h>
 
 extern bool cpuSramEnabled;
 extern bool cpuFlashEnabled;
@@ -131,6 +132,10 @@ inline u32 CPUReadMemory(u32 address)
   }
 
   if(address & 3) {
+#ifdef ARM_CORE
+    int shift = (address & 3) << 3;
+    value = (value >> shift) | (value << (32 - shift));
+#else
 #ifdef C_CORE
     int shift = (address & 3) << 3;
     value = (value >> shift) | (value << (32 - shift));
@@ -148,6 +153,7 @@ inline u32 CPUReadMemory(u32 address)
       shl ecx, 3;
       ror [dword ptr value], cl;
     }
+#endif
 #endif
 #endif
   }
