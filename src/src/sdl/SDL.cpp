@@ -217,6 +217,15 @@ float portrait_vertexCoords[] =
     1, -1
 };
 
+float texCoords[] =
+{
+    0.0, 0.0,
+    0.0, 1.0,
+    1.0, 0.0,
+    1.0, 1.0
+};
+
+
 int systemSpeed = 0;
 int systemRedShift = 0;
 int systemBlueShift = 0;
@@ -2778,15 +2787,6 @@ void systemDrawScreen()
     glUseProgram ( programObject );
     checkError();
 
-
-    float texCoords[] =
-    {
-        0.0, 0.0,
-        0.0, 1.0,
-        1.0, 0.0,
-        1.0, 1.0
-    };
-
     glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
     checkError();
     glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
@@ -2809,6 +2809,8 @@ void systemDrawScreen()
     glTexSubImage2D( GL_TEXTURE_2D,0,
             0,0, srcWidth,srcHeight,
             GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
+    //        GL_UNSIGNED_SHORT_5_6_5, pix );
 
     checkError();
 
