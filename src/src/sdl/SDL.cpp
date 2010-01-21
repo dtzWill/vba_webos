@@ -47,7 +47,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.6"
+#define VERSION "1.0.7"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -1760,20 +1760,34 @@ int romFilter( const struct dirent * file )
     return !(
             strcasecmp( extPtr, "gb" ) &&
             strcasecmp( extPtr, "gbc" ) &&
-            strcasecmp( extPtr, "gba" ) );
+            strcasecmp( extPtr, "gba" ) &&
+            strcasecmp( extPtr, "zip" ) );
 }
 
-void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
+void apply_surface( int x, int y, int w, SDL_Surface* source, SDL_Surface* destination )
 {
     //Holds offsets
     SDL_Rect offset;
+    
+    //Source rect
+    SDL_Rect src;
 
     //Get offsets
     offset.x = x;
     offset.y = y;
 
+    src.x = 0;
+    src.y = 0;
+    src.w = w;
+    src.h = source->h;
+
     //Blit
-    SDL_BlitSurface( source, NULL, destination, &offset );
+    SDL_BlitSurface( source, &src, destination, &offset );
+}
+
+void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
+{
+    apply_surface( x, y, source->w, source, destination );
 }
 
 int sortCompar( const struct dirent ** a, const struct dirent ** b )
@@ -1783,8 +1797,8 @@ int sortCompar( const struct dirent ** a, const struct dirent ** b )
 
 char * romSelector()
 {
-    //Init SDL for non-gl interaction...
-    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
+    //Init SDL for non-gl interaction... (portrait)
+    surface = SDL_SetVideoMode( 320, 480, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
     if (!surface )
     {
         fprintf( stderr, "Error setting video mode!\n" );
@@ -1835,7 +1849,7 @@ char * romSelector()
     top = 10+title->h+10;
 
     SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    bottom = surface->h - author->h - 20;
+    bottom = surface->h - author->h - 10;
 
     //Draw border/text
     SDL_FillRect( surface, NULL, borderColor );
@@ -1877,7 +1891,50 @@ char * romSelector()
     SDL_Surface * roms_surface[filecount];
     for ( int i = 0; i < filecount; i++ )
     {
-        roms_surface[i] = TTF_RenderText_Blended( font_normal, roms[i]->d_name, textColor );
+        //Here we remove everything in '()'s or '[]'s
+        //which is usually annoying release information, etc
+        char buffer[100];
+        char * src = roms[i]->d_name;
+        char * dst = buffer;
+        int inParen = 0;
+        while ( *src && dst < buffer+sizeof(buffer) - 1 )
+        {
+            char c = *src;
+            if ( c == '(' || c == '[' )
+            {
+                inParen++;
+            }
+            if ( !inParen )
+            {
+                *dst++ = *src;
+            }
+            if ( c == ')' || c == ']' )
+            {
+                inParen--;
+            }
+
+            src++;
+        }
+        *dst = '\0';
+
+        //now remove the extension..
+        char * extPtr = NULL;
+        dst = buffer;
+        while ( *dst )
+        {
+            if( *dst == '.' )
+            {
+                extPtr = dst;
+            }
+            dst++;
+        }
+        //If we found an extension, end the string at that period
+        if ( extPtr )
+        {
+            *extPtr = '\0';
+        }
+
+        roms_surface[i] = TTF_RenderText_Blended( font_normal, buffer, textColor );
     }
 
     int scroll_offset = 0;
@@ -1889,7 +1946,7 @@ char * romSelector()
     while( romSelected == -1 )
     {
         //Calculate scroll, etc
-        int num_roms_display = ( bottom - top ) / ( roms_surface[0]->h + 10 );
+        int num_roms_display = ( bottom - top + 10 ) / ( roms_surface[0]->h + 10 );
         //Get key input, process.
         while ( SDL_PollEvent( &event ) )
         {
@@ -1987,7 +2044,7 @@ char * romSelector()
                hiRect.w = surface->w - 20;
                SDL_FillRect( surface, &hiRect, hiColor );
            }
-           apply_surface( 20, top + (10+roms_surface[0]->h)*i, roms_surface[index], surface );
+           apply_surface( 20, top + (10+roms_surface[0]->h)*i, surface->w - 40, roms_surface[index], surface );
         }
 
         //Update screen.
@@ -2757,7 +2814,7 @@ void drawScreenText()
   }
 
   if(showSpeed) {
-    char buffer[50];
+    char buffer[40];
     if(showSpeed == 1)
       sprintf(buffer, "%d%%", systemSpeed);
     else
