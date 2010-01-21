@@ -42,6 +42,7 @@
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
+#include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <assert.h>
 #include <dirent.h>
@@ -60,6 +61,8 @@
 #define NO_ROMS4 "using USB mode, and then launch VBA again"
 #define NO_ROMS5 "For more information, see the wiki"
 #define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
+
+#define CONTROLLER_IMG "controller.png"
 
 #define SCROLL_FACTOR 20
 
@@ -155,7 +158,8 @@ SDL_Rect overlay_rect;
 /*-----------------------------------------------------------------------------
  *  GL variables
  *-----------------------------------------------------------------------------*/
-GLuint texture;
+GLuint texture = 0;
+GLuint controller_tex = 0;
 
 // Handle to a program object
 GLuint programObject;
@@ -184,7 +188,7 @@ int gl_filter = GL_LINEAR;
 
 int combo_down = false;
 
-int centerImage = 1;
+int centerImage = 0;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -216,6 +220,14 @@ float portrait_vertexCoords[] =
     -1, 1,
     -1, -1,
     1, 1,
+    1, -1
+};
+
+float controller_coords[] = 
+{
+    -1, 0,
+    -1, -1,
+    1, 0,
     1, -1
 };
 
@@ -1411,10 +1423,6 @@ void sdlPollEvents()
     case SDL_MOUSEMOTION:
     case SDL_MOUSEBUTTONUP:
     case SDL_MOUSEBUTTONDOWN:
-      if(fullscreen) {
-        SDL_ShowCursor(SDL_ENABLE);
-        mouseCounter = 120;
-      }
       break;
     case SDL_JOYHATMOTION:
       sdlUpdateJoyHat(event.jhat.which,
@@ -2133,6 +2141,11 @@ void GL_InitTexture()
         glDeleteTextures( 1, &texture );
         texture = 0;
     }
+    if ( controller_tex )
+    {
+        glDeleteTextures( 1, &controller_tex );
+        controller_tex = 0;
+    }
 
     glGenTextures(1, &texture);
     checkError();
@@ -2147,8 +2160,6 @@ void GL_InitTexture()
     assert( num == GL_TEXTURE0 );
     checkError();
 
-    //Eventually we'll probably want something like GL_NEAREST_MIPMAP_LINEAR
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
     checkError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
@@ -2162,6 +2173,37 @@ void GL_InitTexture()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
             GL_UNSIGNED_BYTE, NULL );
     checkError();
+
+    //Load controller
+    SDL_Surface * initial_surface = IMG_Load( CONTROLLER_IMG );
+    if ( !initial_surface )
+    {
+        printf( "No controller image found!  Running without one...\n" );
+        return;
+    }
+    //Create RGB surface and copy controller into it
+    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
+            0xff0000, 0x00ff00, 0x0000ff, 0);
+    SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
+
+    glGenTextures(1, &controller_tex );
+    glBindTexture( GL_TEXTURE_2D, controller_tex );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
+    checkError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
+    checkError();
+
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    checkError();
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    checkError();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, controller_surface->w, controller_surface->h, 0, GL_RGB,
+            GL_UNSIGNED_BYTE, controller_surface->pixels );
+    checkError();
+
+    SDL_FreeSurface( initial_surface );
+    SDL_FreeSurface( controller_surface );
 }
 
 void updateOrientation()
@@ -2737,11 +2779,6 @@ int main(int argc, char **argv)
         //make sure the message stays up until binding is over
         systemScreenMessage( bindingNames[keyBindingMode] );
     }
-    if(mouseCounter) {
-      mouseCounter--;
-      if(mouseCounter == 0)
-        SDL_ShowCursor(SDL_DISABLE);
-    }
   }
   
   emulating = 0;
@@ -2773,53 +2810,6 @@ void systemMessage(int num, const char *msg, ...)
   
   fprintf(stderr, "%s\n", buffer);
   va_end(valist);
-}
-
-/*
- * Renders some known values to the screen
- * Used for debugging rendering issues
- * independent of getting the emu
- * to encode colors the way I want
- *
- * This function creates a checkered pattern
- * of size 'tileSize' into pix.
- */
-void testPattern()
-{
-    //This code creates a checkered pattern
-    //of size 'tileSize'
-    u8 * ptr = pix;
-
-    int tileSize = 40;
-    int Bpp = 2;
-    int tileLen = tileSize * Bpp;
-
-    int j, i;
-    //for each row vertically
-    for ( j = 0; j < srcHeight; j++ )
-    {
-        u8 * rowPtr = ptr;
-        //color a streak the same color
-        for ( i = 0; i < srcWidth; i+=tileSize )
-        {
-            int tileX = i / tileSize;
-            int tileY = j / tileSize;
-            bool tileDark = ( tileX + tileY ) % 2 == 1;
-
-            //I actually have no idea if 00 or FF is white/black :).
-            //Luckily that doesn't matter
-            u8 tileColor = tileDark ? 0x00 : 0xFF;
-
-            memset( rowPtr, tileColor, tileLen );
-
-            rowPtr += tileLen;
-
-        }
-
-        assert( ptr + srcWidth*Bpp == rowPtr );
-        //There's an extra row... for no good reason.
-        ptr = rowPtr + 4;
-    }
 }
 
 void drawScreenText()
@@ -2876,19 +2866,12 @@ void systemDrawScreen()
     glEnableVertexAttribArray( texCoordLoc );
     checkError();
 
-    //Uncomment this to enable the testPattern instead of the rendered game.
-    //Useful to decouple pixel format issues from openGL rendering ones.
-    //testPattern();
-
     drawScreenText();
 
-    //XXX: Conveivably reloading the whole image is faster here.
-    //(reference: random forum post)
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D( GL_TEXTURE_2D,0,
             0,0, srcWidth,srcHeight,
             GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
-    //        GL_UNSIGNED_SHORT_5_6_5, pix );
 
     checkError();
 
@@ -2900,6 +2883,35 @@ void systemDrawScreen()
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
     checkError();
 
+    
+    /*-----------------------------------------------------------------------------
+     *  Overlay
+     *-----------------------------------------------------------------------------*/
+
+    // Use the program object
+    glUseProgram ( programObject );
+    checkError();
+
+    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+    checkError();
+    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+    checkError();
+
+    glEnableVertexAttribArray( positionLoc );
+    checkError();
+    glEnableVertexAttribArray( texCoordLoc );
+    checkError();
+
+    checkError();
+
+    //sampler texture unit to 0
+    glBindTexture(GL_TEXTURE_2D, controller_tex);
+    glUniform1i( samplerLoc, 0 );
+    checkError();
+
+    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+    checkError();
 
     //Push to screen
     SDL_GL_SwapBuffers();
@@ -3301,315 +3313,8 @@ bool systemPauseOnFrame()
   return false;
 }
 
-// Code donated by Niels Wagenaar (BoycottAdvance)
-
-// GBA screensize.
-#define GBA_WIDTH   240
-#define GBA_HEIGHT  160
-
-// void Init_Overlay(SDL_Surface *gbascreen, int overlaytype)
-// {
-//   
-//   overlay = SDL_CreateYUVOverlay( GBA_WIDTH,
-//                                   GBA_HEIGHT,
-//                                   overlaytype, gbascreen);
-//   fprintf(stderr, "Created %dx%dx%d %s %s overlay\n",
-//           overlay->w,overlay->h,overlay->planes,
-//           overlay->hw_overlay?"hardware":"software",
-//           overlay->format==SDL_YV12_OVERLAY?"YV12":
-//           overlay->format==SDL_IYUV_OVERLAY?"IYUV":
-//           overlay->format==SDL_YUY2_OVERLAY?"YUY2":
-//           overlay->format==SDL_UYVY_OVERLAY?"UYVY":
-//           overlay->format==SDL_YVYU_OVERLAY?"YVYU":
-//           "Unknown");
-// }
-// 
-// void Quit_Overlay(void)
-// {
-//   
-//   SDL_FreeYUVOverlay(overlay);
-// }
-// 
-// /* NOTE: These RGB conversion functions are not intended for speed,
-//    only as examples.
-// */
-// inline void RGBtoYUV(Uint8 *rgb, int *yuv)
-// {
-//   yuv[0] = (int)((0.257 * rgb[0]) + (0.504 * rgb[1]) + (0.098 * rgb[2]) + 16);
-//   yuv[1] = (int)(128 - (0.148 * rgb[0]) - (0.291 * rgb[1]) + (0.439 * rgb[2]));
-//   yuv[2] = (int)(128 + (0.439 * rgb[0]) - (0.368 * rgb[1]) - (0.071 * rgb[2]));
-// }
-// 
-// inline void ConvertRGBtoYV12(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op[3];
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   /* Black initialization */
-//   /*
-//     memset(o->pixels[0],0,o->pitches[0]*o->h);
-//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-//   */
-//   
-//   /* Convert */
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op[0]=o->pixels[0]+o->pitches[0]*y;
-//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       *(op[0]++)=yuv[0];
-//       if(x%2==0 && y%2==0) {
-//         *(op[1]++)=yuv[2];
-//         *(op[2]++)=yuv[1];
-//       }
-//       p+=4;//s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoIYUV(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op[3];
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   /* Black initialization */
-//   /*
-//     memset(o->pixels[0],0,o->pitches[0]*o->h);
-//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-//   */
-//   
-//   /* Convert */
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op[0]=o->pixels[0]+o->pitches[0]*y;
-//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       *(op[0]++)=yuv[0];
-//       if(x%2==0 && y%2==0) {
-//         *(op[1]++)=yuv[1];
-//         *(op[2]++)=yuv[2];
-//       }
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoUYVY(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[1];
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[2];
-//       } else
-//         *(op++)=yuv[0];
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoYVYU(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[2];
-//         op[1]=yuv[1];
-//       } else {
-//         *op=yuv[0];
-//         op+=2;
-//       }
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoYUY2(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[1];
-//         op[1]=yuv[2];
-//       } else {
-//         *op=yuv[0];
-//         op+=2;
-//       }
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void Convert32bit(SDL_Surface *display)
-// {
-//   switch(overlay->format) {
-//   case SDL_YV12_OVERLAY:
-//     ConvertRGBtoYV12(overlay);
-//     break;
-//   case SDL_UYVY_OVERLAY:
-//     ConvertRGBtoUYVY(overlay);
-//     break;
-//   case SDL_YVYU_OVERLAY:
-//     ConvertRGBtoYVYU(overlay);
-//     break;
-//   case SDL_YUY2_OVERLAY:
-//     ConvertRGBtoYUY2(overlay);
-//     break;
-//   case SDL_IYUV_OVERLAY:
-//     ConvertRGBtoIYUV(overlay);
-//     break;
-//   default:
-//     fprintf(stderr, "cannot convert RGB picture to obtained YUV format!\n");
-//     exit(1);
-//     break;
-//   }
-//   
-// }
-// 
-// 
-// inline void Draw_Overlay(SDL_Surface *display, int size)
-// {
-//   SDL_LockYUVOverlay(overlay);
-//   
-//   Convert32bit(display);
-//   
-//   overlay_rect.x = 0;
-//   overlay_rect.y = 0;
-//   overlay_rect.w = GBA_WIDTH  * size;
-//   overlay_rect.h = GBA_HEIGHT * size;
-// 
-//   SDL_DisplayYUVOverlay(overlay, &overlay_rect);
-//   SDL_UnlockYUVOverlay(overlay);
-// }
-
 void systemGbBorderOn()
 {
   printf( "Not supported!\n" );
   exit( -1 );
-//
-//  srcWidth = 256;
-//  srcHeight = 224;
-//  gbBorderLineSkip = 256;
-//  gbBorderColumnSkip = 48;
-//  gbBorderRowSkip = 40;
-//
-//  destWidth = (sizeOption+1)*srcWidth;
-//  destHeight = (sizeOption+1)*srcHeight;
-//  
-//  surface = SDL_SetVideoMode(destWidth, destHeight, 16,
-//                             SDL_SWSURFACE|
-//                             (fullscreen ? SDL_FULLSCREEN : 0));  
-//#ifndef C_CORE
-//  sdlMakeStretcher(srcWidth);
-//#else
-//  switch(systemColorDepth) {
-//  case 16:
-//    sdlStretcher = sdlStretcher16[sizeOption];
-//    break;
-//  case 24:
-//    sdlStretcher = sdlStretcher24[sizeOption];
-//    break;
-//  case 32:
-//    sdlStretcher = sdlStretcher32[sizeOption];
-//    break;
-//  default:
-//    fprintf(stderr, "Unsupported resolution: %d\n", systemColorDepth);
-//    exit(-1);
-//  }
-//#endif
-//
-//  if(systemColorDepth == 16) {
-//    if(sdlCalculateMaskWidth(surface->format->Gmask) == 6) {
-//      Init_2xSaI(565);
-//      RGB_LOW_BITS_MASK = 0x821;
-//    } else {
-//      Init_2xSaI(555);
-//      RGB_LOW_BITS_MASK = 0x421;      
-//    }
-//    if(cartridgeType == 2) {
-//      for(int i = 0; i < 0x10000; i++) {
-//        systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-//          (((i & 0x7c0) >> 6) << systemGreenShift) |
-//          (((i & 0xf800) >> 11) << systemRedShift);  
-//      }      
-//    } else {
-//      for(int i = 0; i < 0x10000; i++) {
-//        systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-//          (((i & 0x3e0) >> 5) << systemGreenShift) |
-//          (((i & 0x7c00) >> 10) << systemBlueShift);  
-//      }
-//    }
-//    srcPitch = srcWidth * 2+4;
-//  } else {
-//    if(systemColorDepth != 32)
-//      filterFunction = NULL;
-//    RGB_LOW_BITS_MASK = 0x010101;
-//    if(systemColorDepth == 32) {
-//      Init_2xSaI(32);
-//    }
-//    for(int i = 0; i < 0x10000; i++) {
-//      systemColorMap32[i] = ((i & 0x1f) << systemRedShift) |
-//        (((i & 0x3e0) >> 5) << systemGreenShift) |
-//        (((i & 0x7c00) >> 10) << systemBlueShift);  
-//    }
-//    if(systemColorDepth == 32)
-//      srcPitch = srcWidth*4 + 4;
-//    else
-//      srcPitch = srcWidth*3;
-//  }
 }
