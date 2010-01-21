@@ -1740,6 +1740,12 @@ int romFilter( const struct dirent * file )
 {
     const char * curPtr = file->d_name;
     const char * extPtr = NULL;
+    //Don't show 'hidden' files (that start with a '.')
+    if ( *curPtr == '.' )
+    {
+        return false;
+    }
+
     //Find the last period
     while ( *curPtr )
     {
