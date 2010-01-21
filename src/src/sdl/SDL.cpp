@@ -186,9 +186,9 @@ int orientation = ORIENTATION_PORTRAIT;
 
 int gl_filter = GL_LINEAR;
 
-int combo_down = false;
+char combo_down = false;
 
-int centerImage = 0;
+char use_on_screen = true;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -1603,6 +1603,9 @@ void sdlPollEvents()
         //Toggle sound
         systemSoundOn = !systemSoundOn;
         break;
+      case SDLK_PLUS:
+        //toggle on-screen controls...
+        use_on_screen = !use_on_screen;
       case SDLK_QUOTE:
         //toggle filters...
         if ( gl_filter == GL_LINEAR )
@@ -2183,7 +2186,7 @@ void GL_InitTexture()
     }
     //Create RGB surface and copy controller into it
     SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
-            0xff0000, 0x00ff00, 0x0000ff, 0);
+            0x0000ff, 0x00ff00, 0xff0000, 0);
     SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
 
     glGenTextures(1, &controller_tex );
@@ -2242,7 +2245,7 @@ void updateOrientation()
         //vertexCoords[2*i+1] *= xscale/yscale;
     }
 
-    if ( !centerImage )
+    if ( use_on_screen && orientation == ORIENTATION_PORTRAIT )
     {
         float offset = 1.0 - vertexCoords[1];
         for ( int i = 0; i < 4; i++ )
@@ -2675,6 +2678,7 @@ int main(int argc, char **argv)
   surface = SDL_SetVideoMode( 320, 480, 32,
                              SDL_OPENGLES|
                              (fullscreen ? SDL_FULLSCREEN : 0));
+  SDL_ShowCursor( SDL_DISABLE );
   
   if(surface == NULL) {
     systemMessage(0, "Failed to set video mode");
@@ -2887,31 +2891,33 @@ void systemDrawScreen()
     /*-----------------------------------------------------------------------------
      *  Overlay
      *-----------------------------------------------------------------------------*/
+    if ( use_on_screen )
+    {
+        // Use the program object
+        glUseProgram ( programObject );
+        checkError();
 
-    // Use the program object
-    glUseProgram ( programObject );
-    checkError();
+        glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+        checkError();
+        glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
 
-    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
-    checkError();
-    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+        checkError();
 
-    checkError();
+        glEnableVertexAttribArray( positionLoc );
+        checkError();
+        glEnableVertexAttribArray( texCoordLoc );
+        checkError();
 
-    glEnableVertexAttribArray( positionLoc );
-    checkError();
-    glEnableVertexAttribArray( texCoordLoc );
-    checkError();
+        checkError();
 
-    checkError();
+        //sampler texture unit to 0
+        glBindTexture(GL_TEXTURE_2D, controller_tex);
+        glUniform1i( samplerLoc, 0 );
+        checkError();
 
-    //sampler texture unit to 0
-    glBindTexture(GL_TEXTURE_2D, controller_tex);
-    glUniform1i( samplerLoc, 0 );
-    checkError();
-
-    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-    checkError();
+        glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+        checkError();
+    }
 
     //Push to screen
     SDL_GL_SwapBuffers();
