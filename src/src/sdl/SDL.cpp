@@ -1518,6 +1518,10 @@ void sdlPollEvents()
     case SDL_MOUSEBUTTONUP:
     case SDL_MOUSEBUTTONDOWN:
     {
+      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
+      {
+          return;
+      }
       int x = event.button.x;
       int y = event.button.y;
       int state = event.button.state;
@@ -1529,6 +1533,10 @@ void sdlPollEvents()
     }
     case SDL_MOUSEMOTION:
     {
+      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
+      {
+          return;
+      }
       int x = event.motion.x;
       int y = event.motion.y;
       int xrel = event.motion.xrel;
