@@ -106,7 +106,7 @@ extern void system10Frames(int);
 extern void systemFrame();
 extern void systemGbBorderOn();
 
-extern bool systemSoundOn;
+extern int systemSoundOn;
 extern u16 systemColorMap16[0x10000];
 extern u32 systemColorMap32[0x10000];
 extern u16 systemGbPalette[24];

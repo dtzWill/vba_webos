@@ -63,9 +63,11 @@
 #define NO_ROMS5 "For more information, see the wiki"
 #define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
 
-#define CONTROLLER_IMG "controller.png"
+#define CONTROLLER_IMG VBA_HOME "/controller.png"
+#define OPTIONS_CFG VBA_HOME "/options.cfg"
 
 #define SCROLL_FACTOR 20
+#define AUTOSAVE_STATE 100
 
 #define DEBUG_CONTROLLER
 
@@ -189,9 +191,11 @@ int orientation = ORIENTATION_LANDSCAPE_R;
 
 int gl_filter = GL_LINEAR;
 
-char combo_down = false;
+int combo_down = false;
 
-char use_on_screen = true;
+int use_on_screen = true;
+
+int autosave = false;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -326,6 +330,7 @@ char * bindingCfgNames [] =
 static int keyBindingMode = NOT_BINDING;
 u16 bindingJoypad[12];
 
+
 #define REWIND_SIZE 400000
 
 #define _stricmp strcasecmp
@@ -364,7 +369,7 @@ bool pauseNextFrame = false;
 bool debugger = false;
 bool debuggerStub = false;
 int fullscreen = 0;
-bool systemSoundOn = false;
+int systemSoundOn = false;
 bool yuv = false;
 int yuvType = 0;
 bool removeIntros = false;
@@ -372,6 +377,22 @@ int sdlFlashSize = 0;
 int sdlAutoIPS = 1;
 int sdlRtcEnable = 0;
 int sdlAgbPrint = 0;
+
+typedef struct
+{
+    char * name;
+    int * value;
+} vba_option;
+
+vba_option options[] =
+{
+    { "orientation", &orientation },
+    { "sound", &systemSoundOn },
+    { "filter", &gl_filter },
+    { "speed", &showSpeed },
+    { "onscreen", &use_on_screen },
+    { "autosave", &autosave }
+};
 
 int sdlDefaultJoypad = 0;
 
@@ -768,6 +789,89 @@ FILE *sdlFindFile(const char *name)
     }
   }
   return NULL;
+}
+
+void writeOptions()
+{
+   FILE * f = fopen( OPTIONS_CFG, "w" );
+   if ( !f )
+   {
+       perror( "Failed to read options!" );
+       return;
+   }
+
+   int count = sizeof( options ) / sizeof( vba_option );
+   for ( int i = 0; i < count; i++ )
+   {
+       fprintf( f, "%s=%x\n", options[i].name, *options[i].value );
+   }
+
+   fclose( f );
+}
+
+void readOptions()
+{
+   FILE * f = fopen( OPTIONS_CFG, "r" );
+   if ( !f )
+   {
+       perror( "Failed to read options!" );
+       return;
+   }
+
+   char buffer[2048];
+
+   while ( 1 )
+   {
+       char * s = fgets( buffer, 2048, f );
+
+       //More to the file?
+       if( s == NULL )
+       {
+           break;
+       }
+
+       //Ignore parts from '#' onwards
+       char * p  = strchr(s, '#');
+
+       if ( p )
+       {
+           *p = '\0';
+       }
+
+       char * token = strtok( s, " \t\n\r=" );
+
+       if ( !token || strlen( token ) == 0 )
+       {
+           continue;
+       }
+
+       char * key = token;
+       char * value = strtok( NULL, "\t\n\r" );
+
+       if( value == NULL )
+       {
+           fprintf( stderr, "Empty value for key %s\n", key );
+           continue;
+       }
+
+       //Okay now we have key/value pair.
+       //match it to one of the ones we know about...
+       int count = sizeof( options ) / sizeof( vba_option );
+       char known = false;
+       for ( int i = 0; i < count; i++ )
+       {
+           if ( !strcasecmp( key, options[i].name ) )
+           {
+                *options[i].value = sdlFromHex( value );
+                known = true;
+                break;
+           }
+       }
+       if ( !known )
+       {
+           fprintf( stderr, "Unrecognized option %s\n", key );
+       }
+   }
 }
 
 void sdlReadPreferences(FILE *f)
@@ -1190,8 +1294,15 @@ void sdlReadState(int num)
   if(emulator.emuReadState)
     emulator.emuReadState(stateName);
 
-  sprintf(stateName, "Loaded state %d", num+1);
-  systemScreenMessage(stateName);
+  if ( autosave && num == AUTOSAVE_STATE )
+  {
+      systemScreenMessage( "Resuming auto state save...\n" );
+  }
+  else
+  {
+      sprintf(stateName, "Loaded state %d", num+1);
+      systemScreenMessage(stateName);
+  }
 }
 
 void sdlWriteBattery()
@@ -1207,6 +1318,15 @@ void sdlWriteBattery()
 
   //No one wants to see this; they assume it saves.
   //systemScreenMessage("Wrote battery");
+
+  //Write the current options.
+  writeOptions();
+
+  //Write the autosave!
+  if ( autosave )
+  {
+      sdlWriteState( AUTOSAVE_STATE );
+  }
 }
 
 void sdlReadBattery()
@@ -1774,15 +1894,17 @@ void sdlPollEvents()
             sdlReadState( state );
             break;
         }
-      //Might introduce this later; broken for now
-      //(fails to go back to 'normal' properly)
-      //case SDLK_AMPERSAND:
-      //  autoFrameSkip = !autoFrameSkip;
-      //  if ( !autoFrameSkip )
-      //  {
-      //      systemFrameSkip = 0;
-      //  }
-      //  break;
+      case SDLK_AMPERSAND:
+        autosave = !autosave;
+        if ( autosave )
+        {
+            systemScreenMessage( "Auto save enabled" );
+        }
+        else
+        {
+            systemScreenMessage( "Auto save disabled" );
+        }
+        break;
       case SDLK_EQUALS:
         //Enter key-binding mode.
         keyBindingMode = NOT_BINDING;
@@ -2439,6 +2561,7 @@ int main(int argc, char **argv)
   parseDebug = true;
 
   sdlReadPreferences();
+  readOptions();
 
   sdlPrintUsage = 0;
   
@@ -2750,6 +2873,12 @@ int main(int argc, char **argv)
 //}
 
   sdlReadBattery();
+
+  if ( autosave )
+  {
+    sdlReadState( AUTOSAVE_STATE );
+  }
+
   
   if(debuggerStub) 
     remoteInit();
@@ -2822,7 +2951,6 @@ int main(int argc, char **argv)
 
   GL_Init();
   GL_InitTexture();
-  orientation = ORIENTATION_LANDSCAPE_R;
   updateOrientation();
   
   // Here we are forcing the bitdepth and format to use.

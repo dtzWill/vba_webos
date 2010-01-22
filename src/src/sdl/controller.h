@@ -17,41 +17,41 @@
 
 //Here are x/y/radius for each control element.
 
-#define CONTROLLER_SCREEN_X_OFFSET 124.0f
-#define CONTROLLER_SCREEN_Y_OFFSET 65.0f
+#define CONTROLLER_SCREEN_X_OFFSET 121.0f
+#define CONTROLLER_SCREEN_Y_OFFSET 0.0f
 
-#define CONTROLLER_SCREEN_WIDTH 280.0f
-#define CONTROLLER_SCREEN_HEIGHT 252.0f
+#define CONTROLLER_SCREEN_WIDTH 240.0f
+#define CONTROLLER_SCREEN_HEIGHT 216.0f
 
 //the '320.0f -' is because of the way x is measured here.
 //NOTE: these coordinates are measured relative to PORTRAIT orientation
-#define JOY_X (320.0f - 171.0f )
+#define JOY_X (320.0f - 145.0f )
 #define JOY_Y 62.0f
-#define JOY_RADIUS 90.0f
-#define JOY_DEAD 15.0f
+#define JOY_RADIUS 70.0f
+#define JOY_DEAD 25.0f
 
-#define B_X ( 320.0f - 190.0f )
-#define B_Y 440.0f
-#define B_RADIUS 30.0f
+#define B_X ( 320.0f - 263.0f )
+#define B_Y 359.0f
+#define B_RADIUS 40.0f
 
-#define A_X ( 320.0f - 120.0f )
-#define A_Y 440.0f
-#define A_RADIUS 30.0f
+#define A_X ( 320.0f - 228.0f )
+#define A_Y 434.0f
+#define A_RADIUS 40.0f
 
-#define START_X ( 320.0f - 296.0f )
+#define START_X ( 320.0f - 293.0f )
 #define START_Y 88.0f
 #define START_RADIUS 20.0f
 
-#define SELECT_X ( 320.0f - 296.0f )
-#define SELECT_Y 33.0f
+#define SELECT_X ( 320.0f - 293.0f )
+#define SELECT_Y 43.0f
 #define SELECT_RADIUS 20.0f
 
-#define L_X ( 320.0f - 37.0f )
-#define L_Y 65.0f
+#define L_X ( 320.0f - 34.0f )
+#define L_Y 62.0f
 #define L_RADIUS 40.0f
 
-#define R_X ( 320.0f - 30.0f )
-#define R_Y 440.0f
+#define R_X ( 320.0f - 34.0f )
+#define R_Y 422.0f
 #define R_RADIUS 40.0f
 
 /*-----------------------------------------------------------------------------
