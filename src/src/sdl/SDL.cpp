@@ -39,6 +39,7 @@
 #include "Util.h"
 #include "gb/GB.h"
 #include "gb/gbGlobals.h"
+#include "controller.h"
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
@@ -48,7 +49,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.7"
+#define VERSION "1.1.0"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -65,6 +66,8 @@
 #define CONTROLLER_IMG "controller.png"
 
 #define SCROLL_FACTOR 20
+
+#define DEBUG_CONTROLLER
 
 //#define DEBUG_GL
 
@@ -223,13 +226,9 @@ float portrait_vertexCoords[] =
     1, -1
 };
 
-float controller_coords[] = 
-{
-    -1, 0,
-    -1, -1,
-    1, 0,
-    1, -1
-};
+const float controller_dim = ( 229.0 / 320.0 ) * ( 320.0 / 480.0 ) / 2;
+
+float * controller_coords = portrait_vertexCoords;
 
 float texCoords[] =
 {
@@ -239,6 +238,7 @@ float texCoords[] =
     1.0, 1.0
 };
 
+GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
 
 int systemSpeed = 0;
 int systemRedShift = 0;
@@ -512,6 +512,81 @@ struct option sdlOptions[] = {
 
 extern bool CPUIsGBAImage(char *);
 extern bool gbIsGameboyRom(char *);
+
+
+
+/* ===========================================================================
+ * controllerHitCheck
+ *   
+ *  Description:  Handles touch-screen events.
+ *       Inputs:  x,y coordinates of the event, 'down' state of the event.
+ * =========================================================================*/
+void controllerHitCheck( int x, int y, int down )
+{
+    int button = -1;
+    int button2 = -1;
+    if ( HIT_A( x, y ) )
+    {
+        button = KEY_BUTTON_A;
+    }
+    if ( HIT_B( x, y ) )
+    {
+        button = KEY_BUTTON_B;
+    }
+    if ( HIT_L( x, y ) )
+    {
+        button = KEY_BUTTON_L;
+    }
+    if ( HIT_R( x, y ) )
+    {
+        button = KEY_BUTTON_R;
+    }
+    if ( HIT_START( x, y ) )
+    {
+        button = KEY_BUTTON_START;
+    }
+    if ( HIT_SELECT( x, y ) )
+    {
+        button = KEY_BUTTON_SELECT;
+    }
+    if ( HIT_AB( x, y ) )
+    {
+        button = KEY_BUTTON_A;
+        button2 = KEY_BUTTON_B;
+    }
+    //We assign up/down to button '1', and
+    //left/right to button '2'.
+    //(You can't hit u/d or l/r at same time
+    if ( HIT_UP( x, y ) )
+    {
+        button = KEY_UP;
+    }
+    if ( HIT_DOWN( x, y ) )
+    {
+        button = KEY_DOWN;
+    }
+    if ( HIT_LEFT( x, y ) )
+    {
+        button2 = KEY_LEFT;
+    }
+    if ( HIT_RIGHT( x, y ) )
+    {
+        button2 = KEY_RIGHT;
+    }
+
+    //Update the button corresponding to this location
+    if ( button != -1 )
+    {
+        sdlButtons[0][button] = down;
+    }
+
+    //If this location has a secondary button to hit
+    //Update it as well
+    if ( button2 != -1 )
+    {
+        sdlButtons[0][button2] = down;
+    }
+}
 
 u32 sdlFromHex(char *s)
 {
@@ -1420,10 +1495,32 @@ void sdlPollEvents()
         }
       }
       break;
-    case SDL_MOUSEMOTION:
     case SDL_MOUSEBUTTONUP:
     case SDL_MOUSEBUTTONDOWN:
+    {
+      int x = event.button.x;
+      int y = event.button.y;
+      int state = event.button.state;
+
+      controllerHitCheck( x, y, state );
+
       break;
+    }
+    case SDL_MOUSEMOTION:
+    {
+      int x = event.motion.x;
+      int y = event.motion.y;
+      int xrel = event.motion.xrel;
+      int yrel = event.motion.yrel;
+
+      //We make this work by considering a motion event
+      //as releasing where we came FROM
+      //and a down event where it is now.
+      //XXX: Note that if from==now no harm, it'll end up down still
+      controllerHitCheck( x - xrel, y - yrel, false );
+      controllerHitCheck( x, y, true );
+      break;
+    }
     case SDL_JOYHATMOTION:
       sdlUpdateJoyHat(event.jhat.which,
                       event.jhat.hat,
@@ -2248,6 +2345,7 @@ void updateOrientation()
     if ( use_on_screen && orientation == ORIENTATION_PORTRAIT )
     {
         float offset = 1.0 - vertexCoords[1];
+        offset -= ( 58.0 / 240.0 );
         for ( int i = 0; i < 4; i++ )
         {
             vertexCoords[2*i+1] += offset;
@@ -2678,7 +2776,6 @@ int main(int argc, char **argv)
   surface = SDL_SetVideoMode( 320, 480, 32,
                              SDL_OPENGLES|
                              (fullscreen ? SDL_FULLSCREEN : 0));
-  SDL_ShowCursor( SDL_DISABLE );
   
   if(surface == NULL) {
     systemMessage(0, "Failed to set video mode");
@@ -2855,39 +2952,6 @@ void systemDrawScreen()
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
 
-    // Use the program object
-    glUseProgram ( programObject );
-    checkError();
-
-    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
-    checkError();
-    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
-
-    checkError();
-
-    glEnableVertexAttribArray( positionLoc );
-    checkError();
-    glEnableVertexAttribArray( texCoordLoc );
-    checkError();
-
-    drawScreenText();
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D( GL_TEXTURE_2D,0,
-            0,0, srcWidth,srcHeight,
-            GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
-
-    checkError();
-
-    //sampler texture unit to 0
-    glUniform1i( samplerLoc, 0 );
-    checkError();
-
-    GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
-    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-    checkError();
-
-    
     /*-----------------------------------------------------------------------------
      *  Overlay
      *-----------------------------------------------------------------------------*/
@@ -2919,6 +2983,43 @@ void systemDrawScreen()
         checkError();
     }
 
+
+    /*-----------------------------------------------------------------------------
+     *  Draw the frame of the gb(c/a)
+     *-----------------------------------------------------------------------------*/
+
+    // Use the program object
+    glUseProgram ( programObject );
+    checkError();
+
+    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
+    checkError();
+    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+    checkError();
+
+    glEnableVertexAttribArray( positionLoc );
+    checkError();
+    glEnableVertexAttribArray( texCoordLoc );
+    checkError();
+
+    drawScreenText();
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D( GL_TEXTURE_2D,0,
+            0,0, srcWidth,srcHeight,
+            GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
+
+    checkError();
+
+    //sampler texture unit to 0
+    glUniform1i( samplerLoc, 0 );
+    checkError();
+
+    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+    checkError();
+
+    
     //Push to screen
     SDL_GL_SwapBuffers();
     checkError();
