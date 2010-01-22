@@ -513,78 +513,100 @@ struct option sdlOptions[] = {
 extern bool CPUIsGBAImage(char *);
 extern bool gbIsGameboyRom(char *);
 
-
+typedef struct
+{
+    int button1;
+    int button2;
+    char valid;
+} controllerEvent;
 
 /* ===========================================================================
  * controllerHitCheck
  *   
- *  Description:  Handles touch-screen events.
- *       Inputs:  x,y coordinates of the event, 'down' state of the event.
+ *  Description:  Determines which on-screen controls were hit for the given x,y
  * =========================================================================*/
-void controllerHitCheck( int x, int y, int down )
+controllerEvent controllerHitCheck( int x, int y )
 {
-    int button = -1;
-    int button2 = -1;
+    controllerEvent event;
+    event.valid = false;
+    event.button1 = -1;
+    event.button2 = -1;
+
     if ( HIT_A( x, y ) )
     {
-        button = KEY_BUTTON_A;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_A;
     }
-    if ( HIT_B( x, y ) )
+    else if ( HIT_B( x, y ) )
     {
-        button = KEY_BUTTON_B;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_B;
     }
-    if ( HIT_L( x, y ) )
+    else if ( HIT_AB( x, y ) )
     {
-        button = KEY_BUTTON_L;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_A;
+        event.button2 = KEY_BUTTON_B;
     }
-    if ( HIT_R( x, y ) )
+    else if ( HIT_L( x, y ) )
     {
-        button = KEY_BUTTON_R;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_L;
     }
-    if ( HIT_START( x, y ) )
+    else if ( HIT_R( x, y ) )
     {
-        button = KEY_BUTTON_START;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_R;
     }
-    if ( HIT_SELECT( x, y ) )
+    else if ( HIT_START( x, y ) )
     {
-        button = KEY_BUTTON_SELECT;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_START;
     }
-    if ( HIT_AB( x, y ) )
+    else if ( HIT_SELECT( x, y ) )
     {
-        button = KEY_BUTTON_A;
-        button2 = KEY_BUTTON_B;
+        event.valid = true;
+        event.button1 = KEY_BUTTON_SELECT;
     }
     //We assign up/down to button '1', and
     //left/right to button '2'.
     //(You can't hit u/d or l/r at same time
     if ( HIT_UP( x, y ) )
     {
-        button = KEY_UP;
+        event.valid = true;
+        event.button1 = KEY_UP;
     }
     if ( HIT_DOWN( x, y ) )
     {
-        button = KEY_DOWN;
+        event.valid = true;
+        event.button1 = KEY_DOWN;
     }
     if ( HIT_LEFT( x, y ) )
     {
-        button2 = KEY_LEFT;
+        event.valid = true;
+        event.button2 = KEY_LEFT;
     }
     if ( HIT_RIGHT( x, y ) )
     {
-        button2 = KEY_RIGHT;
+        event.valid = true;
+        event.button2 = KEY_RIGHT;
     }
 
-    //Update the button corresponding to this location
-    if ( button != -1 )
-    {
-        sdlButtons[0][button] = down;
-    }
+    return event;
+}
 
-    //If this location has a secondary button to hit
-    //Update it as well
-    if ( button2 != -1 )
+void applyControllerEvent( controllerEvent ev, char state )
+{
+    if ( ev.valid )
     {
-        sdlButtons[0][button2] = down;
+        if ( ev.button1 != -1 )
+        {
+            sdlButtons[0][ev.button1] = state;
+        }
+        if ( ev.button2 != -1 )
+        {
+            sdlButtons[0][ev.button2] = state;
+        }
     }
 }
 
@@ -1502,7 +1524,8 @@ void sdlPollEvents()
       int y = event.button.y;
       int state = event.button.state;
 
-      controllerHitCheck( x, y, state );
+      controllerEvent ev = controllerHitCheck( x, y );
+      applyControllerEvent( ev, state );
 
       break;
     }
@@ -1517,8 +1540,13 @@ void sdlPollEvents()
       //as releasing where we came FROM
       //and a down event where it is now.
       //XXX: Note that if from==now no harm, it'll end up down still
-      controllerHitCheck( x - xrel, y - yrel, false );
-      controllerHitCheck( x, y, true );
+      controllerEvent ev = controllerHitCheck( x, y );
+      controllerEvent old_ev = controllerHitCheck( x - xrel, y - yrel );
+
+      //Where the mouse is now
+      applyControllerEvent( old_ev, false );
+      applyControllerEvent( ev, true );
+
       break;
     }
     case SDL_JOYHATMOTION:
