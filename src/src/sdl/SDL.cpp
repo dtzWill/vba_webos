@@ -1729,6 +1729,8 @@ void sdlPollEvents()
       case SDLK_PLUS:
         //toggle on-screen controls...
         use_on_screen = !use_on_screen;
+        updateOrientation();
+        break;
       case SDLK_QUOTE:
         //toggle filters...
         if ( gl_filter == GL_LINEAR )
@@ -2982,7 +2984,7 @@ void systemDrawScreen()
     /*-----------------------------------------------------------------------------
      *  Overlay
      *-----------------------------------------------------------------------------*/
-    if ( use_on_screen )
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R )
     {
         // Use the program object
         glUseProgram ( programObject );
