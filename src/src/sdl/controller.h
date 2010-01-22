@@ -28,7 +28,7 @@
 #define JOY_X (320.0f - 171.0f )
 #define JOY_Y 62.0f
 #define JOY_RADIUS 90.0f
-#define JOY_DEAD 10.0f
+#define JOY_DEAD 15.0f
 
 #define B_X ( 320.0f - 190.0f )
 #define B_Y 440.0f
@@ -86,7 +86,10 @@
 #define HIT_R( X, Y ) HIT( X, Y, R_X, R_Y, R_RADIUS )
 
 //d-pad is more complicated...
-#define HIT_JOY( X, Y ) HIT( X, Y, JOY_X, JOY_Y, JOY_RADIUS )
+#define HIT_JOY( X, Y ) \
+    HIT( X, Y, JOY_X, JOY_Y, JOY_RADIUS ) && \
+    ! HIT( X, Y, JOY_X, JOY_Y, JOY_DEAD )
+
 //These are for portrait mode..
 //#define HIT_UP( X, Y ) HIT_JOY( X, Y ) && ( Y < JOY_Y - JOY_DEAD )
 //#define HIT_DOWN( X, Y ) HIT_JOY( X, Y ) && ( Y > JOY_Y + JOY_DEAD )
