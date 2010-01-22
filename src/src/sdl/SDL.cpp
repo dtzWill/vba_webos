@@ -185,7 +185,7 @@ enum orientation
     ORIENTATION_LANDSCAPE_L  // landscape, keyboard on left
 };
 
-int orientation = ORIENTATION_PORTRAIT;
+int orientation = ORIENTATION_LANDSCAPE_R;
 
 int gl_filter = GL_LINEAR;
 
@@ -226,9 +226,7 @@ float portrait_vertexCoords[] =
     1, -1
 };
 
-const float controller_dim = ( 229.0 / 320.0 ) * ( 320.0 / 480.0 ) / 2;
-
-float * controller_coords = portrait_vertexCoords;
+float * controller_coords = land_r_vertexCoords;
 
 float texCoords[] =
 {
@@ -1945,8 +1943,8 @@ int sortCompar( const struct dirent ** a, const struct dirent ** b )
 
 char * romSelector()
 {
-    //Init SDL for non-gl interaction... (portrait)
-    surface = SDL_SetVideoMode( 320, 480, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
+    //Init SDL for non-gl interaction...
+    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
     if (!surface )
     {
         fprintf( stderr, "Error setting video mode!\n" );
@@ -2336,6 +2334,8 @@ void GL_InitTexture()
 
 void updateOrientation()
 {
+    //XXX: This function is a beast, make it less crazy.
+    //
     float screenAspect = (float)destWidth/(float)destHeight;
     float emulatedAspect = (float)srcWidth/(float)srcHeight;
     
@@ -2367,47 +2367,46 @@ void updateOrientation()
     for ( int i = 0; i < 4; i++ )
     {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
-        //vertexCoords[2*i+1] *= xscale/yscale;
     }
 
-    if ( use_on_screen && orientation == ORIENTATION_PORTRAIT )
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R )
     {
-        float offset = 1.0 - vertexCoords[1];
-        offset -= ( 58.0 / 240.0 );
+        float controller_aspect = CONTROLLER_SCREEN_WIDTH / CONTROLLER_SCREEN_HEIGHT;
+        float scale_factor;
+        if ( srcHeight * controller_aspect  > CONTROLLER_SCREEN_WIDTH )
+        {
+            //width is limiting factor
+            scale_factor = ( CONTROLLER_SCREEN_HEIGHT / (float)destWidth );
+        }
+        else
+        {
+            //height is limiting factor
+            //'effectiveWidth' b/c we already scaled previously
+            //and we don't fill the screen due to aspect ratio
+            float effectiveWidth = (float)destWidth / emulatedAspect;
+            scale_factor = ( CONTROLLER_SCREEN_WIDTH / effectiveWidth );
+        }
+
         for ( int i = 0; i < 4; i++ )
         {
-            vertexCoords[2*i+1] += offset;
+            //scale
+            vertexCoords[2*i] *= scale_factor;
+            vertexCoords[2*i+1] *= scale_factor;
         }
-    }
-    
-    //re-set video mode so notifications appear correctly
 
-#if 0
-    //XXX: PDL_SetOrientation?
-    //This doesn't work presently for some reason; I don't think it likes
-    //changing video modes during opengles. Will look into more deeply later.
-    if ( orientation == ORIENTATION_PORTRAIT )
-    {
-        SDL_SetVideoMode( 320, 480, 32, SDL_FULLSCREEN );
-        surface = SDL_SetVideoMode( 320, 480, 32,
-                SDL_OPENGLES|
-                (fullscreen ? SDL_FULLSCREEN : 0));
+        float y_offset = 1.0 - vertexCoords[0];
+        float x_offset = 1.0 - vertexCoords[1];
 
-    }
-    else
-    {
-        SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN );
-        surface = SDL_SetVideoMode( 480, 320, 32,
-                SDL_OPENGLES|
-                (fullscreen ? SDL_FULLSCREEN : 0));
+        //push the screen to the coordinates indicated
+        y_offset -= ( CONTROLLER_SCREEN_Y_OFFSET / (float)destWidth ) * 2;
+        x_offset -= ( CONTROLLER_SCREEN_X_OFFSET / (float)destHeight ) * 2;
 
-    }
-#endif
-
-    if(surface == NULL) {
-        systemMessage(0, "Failed to set video mode");
-        SDL_Quit();
-        exit(-1);
+        for ( int i = 0; i < 4; i++ )
+        {
+            //translate
+            vertexCoords[2*i] += y_offset;
+            vertexCoords[2*i+1] += x_offset;
+        }
     }
 }
 
@@ -2813,7 +2812,7 @@ int main(int argc, char **argv)
 
   GL_Init();
   GL_InitTexture();
-  orientation = ORIENTATION_PORTRAIT;
+  orientation = ORIENTATION_LANDSCAPE_R;
   updateOrientation();
   
   // Here we are forcing the bitdepth and format to use.
