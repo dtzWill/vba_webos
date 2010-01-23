@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#put controller.png where it goes
+
+VBA_HOME=/media/internal/vba
+CONTROLLER=$VBA_HOME/controller.png
+
+if [ -z "$IPKG_OFFLINE_ROOT" ]; then
+  IPKG_OFFLINE_ROOT=/media/cryptofs/apps
+fi
+
+rm -f $CONTROLLER
+cp $IPKG_OFFLINE_ROOT/$CONTROLLER $CONTROLLER

@@ -1862,7 +1862,6 @@ void sdlPollEvents()
       case SDLK_ASTERISK:
         //Toggle sound
         soundMute = !soundMute;
-        printf( "sound mute: %d\n", soundMute );
         break;
       case SDLK_PLUS:
         //toggle on-screen controls...
