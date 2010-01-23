@@ -107,7 +107,7 @@ bool utilWritePNGFile(const char *fileName, int w, int h, u8 *pix)
   switch(systemColorDepth) {
   case 16:
     {
-      u16 *p = (u16 *)(pix+(w+2)*2); // skip first black line
+      u16 *p = (u16 *)(pix); // skip first black line
       for(int y = 0; y < sizeY; y++) {
          for(int x = 0; x < sizeX; x++) {
           u16 v = *p++;
@@ -116,8 +116,6 @@ bool utilWritePNGFile(const char *fileName, int w, int h, u8 *pix)
           *b++ = ((v >> systemGreenShift) & 0x001f) << 3; // G 
           *b++ = ((v >> systemBlueShift) & 0x01f) << 3; // B
         }
-        p++; // skip black pixel for filters
-        p++; // skip black pixel for filters
         png_write_row(png_ptr,writeBuffer);
         
         b = writeBuffer;
@@ -203,7 +201,7 @@ void utilWriteBMP(char *buf, int w, int h, u8 *pix)
   switch(systemColorDepth) {
   case 16:
     {
-      u16 *p = (u16 *)(pix+(w+2)*(h)*2); // skip first black line
+      u16 *p = (u16 *)(pix+w*h); // skip first black line
       for(int y = 0; y < sizeY; y++) {
         for(int x = 0; x < sizeX; x++) {
           u16 v = *p++;
@@ -212,9 +210,9 @@ void utilWriteBMP(char *buf, int w, int h, u8 *pix)
           *b++ = ((v >> systemGreenShift) & 0x001f) << 3; // G 
           *b++ = ((v >> systemRedShift) & 0x001f) << 3; // R
         }
-        p++; // skip black pixel for filters
-        p++; // skip black pixel for filters
-        p -= 2*(w+2);
+        //p++; // skip black pixel for filters
+        //p++; // skip black pixel for filters
+        p -= w;
       }
     }
     break;

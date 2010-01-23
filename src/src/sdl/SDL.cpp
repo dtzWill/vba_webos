@@ -49,7 +49,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
