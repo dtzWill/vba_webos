@@ -1277,8 +1277,16 @@ void sdlWriteState(int num)
     sprintf(stateName,"%s%d.sgm", filename, num+1);
   if(emulator.emuWriteState)
     emulator.emuWriteState(stateName);
-  sprintf(stateName, "Wrote state %d", num+1);
-  systemScreenMessage(stateName);
+
+  if ( autosave && num == AUTOSAVE_STATE )
+  {
+      //Nothing
+  }
+  else
+  {
+      sprintf(stateName, "Wrote state %d", num+1);
+      systemScreenMessage(stateName);
+  }
 }
 
 void sdlReadState(int num)
