@@ -369,7 +369,8 @@ bool pauseNextFrame = false;
 bool debugger = false;
 bool debuggerStub = false;
 int fullscreen = 0;
-int systemSoundOn = false;
+int soundMute = false;
+bool systemSoundOn = false;
 bool yuv = false;
 int yuvType = 0;
 bool removeIntros = false;
@@ -387,7 +388,7 @@ typedef struct
 vba_option options[] =
 {
     { "orientation", &orientation },
-    { "sound", &systemSoundOn },
+    { "sound", &soundMute },
     { "filter", &gl_filter },
     { "speed", &showSpeed },
     { "onscreen", &use_on_screen },
@@ -1860,7 +1861,8 @@ void sdlPollEvents()
         break;
       case SDLK_ASTERISK:
         //Toggle sound
-        systemSoundOn = !systemSoundOn;
+        soundMute = !soundMute;
+        printf( "sound mute: %d\n", soundMute );
         break;
       case SDLK_PLUS:
         //toggle on-screen controls...
