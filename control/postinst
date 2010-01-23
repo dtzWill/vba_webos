@@ -13,4 +13,8 @@ rm -f $CONTROLLER
 mkdir -p $VBA_HOME
 #while we're at it...
 mkdir -p $VBA_HOME/roms
+
+#copy the controller.png over
 cp $IPKG_OFFLINE_ROOT/$CONTROLLER $CONTROLLER
+
+exit 0`
