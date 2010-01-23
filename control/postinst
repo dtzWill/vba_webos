@@ -10,4 +10,7 @@ if [ -z "$IPKG_OFFLINE_ROOT" ]; then
 fi
 
 rm -f $CONTROLLER
+mkdir -p $VBA_HOME
+#while we're at it...
+mkdir -p $VBA_HOME/roms
 cp $IPKG_OFFLINE_ROOT/$CONTROLLER $CONTROLLER
