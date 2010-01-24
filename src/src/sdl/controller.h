@@ -6,7 +6,7 @@
  *    Description:  Contains constants that are specific to a particular
  *                  controller layout.
  *
- *        Version:  1.0
+ *        Version:  1.1
  *        Created:  01/22/2010 03:46:06 AM
  *
  *         Author:  Will Dietz (WD), w@wdtz.org
@@ -17,42 +17,42 @@
 
 //Here are x/y/radius for each control element.
 
-#define CONTROLLER_SCREEN_X_OFFSET 121.0f
-#define CONTROLLER_SCREEN_Y_OFFSET 0.0f
+int CONTROLLER_SCREEN_X_OFFSET = 121;
+int CONTROLLER_SCREEN_Y_OFFSET = 0;
 
-#define CONTROLLER_SCREEN_WIDTH 240.0f
-#define CONTROLLER_SCREEN_HEIGHT 216.0f
+int CONTROLLER_SCREEN_WIDTH = 240;
+int CONTROLLER_SCREEN_HEIGHT = 216;
 
-//the '320.0f -' is because of the way x is measured here.
+//the '320 -' is because of the way x is measured here.
 //NOTE: these coordinates are measured relative to PORTRAIT orientation
-#define JOY_X (320.0f - 145.0f )
-#define JOY_Y 62.0f
-#define JOY_RADIUS 70.0f
-#define JOY_DEAD 25.0f
+int JOY_X = (320 - 145 );
+int JOY_Y = 62;
+int JOY_RADIUS = 70;
+int JOY_DEAD = 25;
 
-#define B_X ( 320.0f - 263.0f )
-#define B_Y 359.0f
-#define B_RADIUS 40.0f
+int B_X = ( 320 - 263 );
+int B_Y = 359;
+int B_RADIUS = 40;
 
-#define A_X ( 320.0f - 228.0f )
-#define A_Y 434.0f
-#define A_RADIUS 40.0f
+int A_X = ( 320 - 228 );
+int A_Y = 434;
+int A_RADIUS = 40;
 
-#define START_X ( 320.0f - 293.0f )
-#define START_Y 88.0f
-#define START_RADIUS 20.0f
+int START_X = ( 320 - 293 );
+int START_Y = 88;
+int START_RADIUS = 20;
 
-#define SELECT_X ( 320.0f - 293.0f )
-#define SELECT_Y 43.0f
-#define SELECT_RADIUS 20.0f
+int SELECT_X = ( 320 - 293 );
+int SELECT_Y = 43;
+int SELECT_RADIUS = 20;
 
-#define L_X ( 320.0f - 34.0f )
-#define L_Y 62.0f
-#define L_RADIUS 40.0f
+int L_X = ( 320 - 34 );
+int L_Y = 62;
+int L_RADIUS = 40;
 
-#define R_X ( 320.0f - 34.0f )
-#define R_Y 422.0f
-#define R_RADIUS 40.0f
+int R_X = ( 320 - 34 );
+int R_Y = 422;
+int R_RADIUS = 40;
 
 /*-----------------------------------------------------------------------------
  *  Combinations
@@ -60,12 +60,12 @@
 //For now, define AB to be between A and B.
 //Started out as me being too lazy to fire up an graphical editor for this
 //But actually might be a useful idea :)
-#define AB_X ( ( B_X + A_X ) / 2.0f )
-#define AB_Y ( ( B_Y + A_Y ) / 2.0f )
+int AB_X = ( ( B_X + A_X ) / 2.0f );
+int AB_Y = ( ( B_Y + A_Y ) / 2.0f );
 //Note: this radius is too big for it to make sense normally--
 //but we count on the fact that we check a/b FIRST leaving this zone
 //behind/around/what's left over, so this larger radius makes sense in that context
-#define AB_RADIUS 30.0f
+int AB_RADIUS = 30;
 
 /*-----------------------------------------------------------------------------
  *  Some helpful macros

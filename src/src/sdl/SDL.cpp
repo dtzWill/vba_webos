@@ -392,7 +392,37 @@ vba_option options[] =
     { "filter", &gl_filter },
     { "speed", &showSpeed },
     { "onscreen", &use_on_screen },
-    { "autosave", &autosave }
+    { "autosave", &autosave },
+    //Controller stuff
+    { "touch_screen_x_offset", &CONTROLLER_SCREEN_X_OFFSET },
+    { "touch_screen_y_offset", &CONTROLLER_SCREEN_Y_OFFSET },
+    { "touch_screen_width", &CONTROLLER_SCREEN_WIDTH },
+    { "touch_screen_height", &CONTROLLER_SCREEN_HEIGHT },
+    { "touch_joy_x", &JOY_X },
+    { "touch_joy_y", &JOY_Y },
+    { "touch_joy_radius", &JOY_RADIUS },
+    { "touch_joy_deadzone", &JOY_DEAD },
+    { "touch_b_x", &B_X },
+    { "touch_b_y", &B_Y },
+    { "touch_b_radius", &B_RADIUS },
+    { "touch_a_x", &A_X },
+    { "touch_a_y", &A_Y },
+    { "touch_a_radius", &A_RADIUS },
+    { "touch_start_x", &START_X },
+    { "touch_start_y", &START_Y },
+    { "touch_start_radius", &START_RADIUS },
+    { "touch_select_x", &SELECT_X },
+    { "touch_select_y", &SELECT_Y },
+    { "touch_select_radius", &SELECT_RADIUS },
+    { "touch_l_x", &L_X },
+    { "touch_l_y", &L_Y },
+    { "touch_l_radius", &L_RADIUS },
+    { "touch_r_x", &R_X },
+    { "touch_r_y", &R_Y },
+    { "touch_r_radius", &R_RADIUS },
+    { "touch_ab_x", &AB_X },
+    { "touch_ab_y", &AB_Y },
+    { "touch_ab_radius", &AB_RADIUS }
 };
 
 int sdlDefaultJoypad = 0;
@@ -2077,9 +2107,16 @@ void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination 
     apply_surface( x, y, source->w, source, destination );
 }
 
-int sortCompar( const struct dirent ** a, const struct dirent ** b )
+//XXX: Figure out if there isn't something we can #ifdef for these
+//autoconf maybe?
+int sortComparD( const struct dirent ** a, const struct dirent ** b )
 {
     return strcasecmp( (*a)->d_name, (*b)->d_name );
+}
+
+int sortCompar( const void * a, const void * b )
+{
+    return sortComparD( (const struct dirent **)a, (const struct dirent**)b );
 }
 
 char * romSelector()
@@ -2512,12 +2549,12 @@ void updateOrientation()
 
     if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R )
     {
-        float controller_aspect = CONTROLLER_SCREEN_WIDTH / CONTROLLER_SCREEN_HEIGHT;
+        float controller_aspect = (float)CONTROLLER_SCREEN_WIDTH / (float)CONTROLLER_SCREEN_HEIGHT;
         float scale_factor;
-        if ( srcHeight * controller_aspect  > CONTROLLER_SCREEN_WIDTH )
+        if ( (float)destHeight * controller_aspect  > (float)CONTROLLER_SCREEN_WIDTH )
         {
             //width is limiting factor
-            scale_factor = ( CONTROLLER_SCREEN_HEIGHT / (float)destWidth );
+            scale_factor = ( (float)CONTROLLER_SCREEN_HEIGHT / (float)destWidth );
         }
         else
         {
@@ -2525,7 +2562,8 @@ void updateOrientation()
             //'effectiveWidth' b/c we already scaled previously
             //and we don't fill the screen due to aspect ratio
             float effectiveWidth = (float)destWidth / emulatedAspect;
-            scale_factor = ( CONTROLLER_SCREEN_WIDTH / effectiveWidth );
+            scale_factor = ( (float)CONTROLLER_SCREEN_WIDTH / effectiveWidth );
+            scaled_height = CONTROLLER_SCREEN_WIDTH / emulatedAspect;
         }
 
         for ( int i = 0; i < 4; i++ )
@@ -2539,8 +2577,8 @@ void updateOrientation()
         float x_offset = 1.0 - vertexCoords[1];
 
         //push the screen to the coordinates indicated
-        y_offset -= ( CONTROLLER_SCREEN_Y_OFFSET / (float)destWidth ) * 2;
-        x_offset -= ( CONTROLLER_SCREEN_X_OFFSET / (float)destHeight ) * 2;
+        y_offset -= ( (float)CONTROLLER_SCREEN_Y_OFFSET / (float)destWidth ) * 2;
+        x_offset -= ( (float)CONTROLLER_SCREEN_X_OFFSET / (float)destHeight ) * 2;
 
         for ( int i = 0; i < 4; i++ )
         {
