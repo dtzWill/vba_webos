@@ -54,6 +54,14 @@ int R_X = ( 320 - 34 );
 int R_Y = 422;
 int R_RADIUS = 40;
 
+int TURBO_X = 10000;
+int TURBO_Y = 10000;
+int TURBO_RADIUS = 0;
+
+int CAPTURE_X = 10000;
+int CAPTURE_Y = 10000;
+int CAPTURE_RADIUS = 0;
+
 /*-----------------------------------------------------------------------------
  *  Combinations
  *-----------------------------------------------------------------------------*/
@@ -84,6 +92,9 @@ int AB_RADIUS = 30;
 #define HIT_SELECT( X, Y ) HIT( X, Y, SELECT_X, SELECT_Y, SELECT_RADIUS )
 #define HIT_L( X, Y ) HIT( X, Y, L_X, L_Y, L_RADIUS )
 #define HIT_R( X, Y ) HIT( X, Y, R_X, R_Y, R_RADIUS )
+
+#define HIT_TURBO( X, Y ) HIT( X, Y, TURBO_X, TURBO_Y, TURBO_RADIUS )
+#define HIT_CAPTURE( X, Y ) HIT( X, Y, CAPTURE_X, CAPTURE_Y, CAPTURE_RADIUS )
 
 //d-pad is more complicated...
 #define HIT_JOY( X, Y ) \

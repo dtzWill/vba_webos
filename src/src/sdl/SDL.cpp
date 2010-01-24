@@ -309,6 +309,8 @@ char * bindingNames[]=
     "Press key for Select",
     "Press key for L",
     "Press key for R",
+    "Press key for turbo",
+    "Press key for capture",
     "Done binding keys"
 };
 //Config-file names
@@ -323,10 +325,12 @@ char * bindingCfgNames [] =
     "Joy0_Start",
     "Joy0_Select",
     "Joy0_L",
-    "Joy0_R"
+    "Joy0_R",
+    "Joy0_Speed",
+    "Joy0_Capture"
 };
 #define NOT_BINDING -1
-#define BINDING_DONE ( KEY_BUTTON_R + 1 )
+#define BINDING_DONE ( KEY_BUTTON_CAPTURE + 1 )
 static int keyBindingMode = NOT_BINDING;
 u16 bindingJoypad[12];
 
@@ -422,7 +426,13 @@ vba_option options[] =
     { "touch_r_radius", &R_RADIUS },
     { "touch_ab_x", &AB_X },
     { "touch_ab_y", &AB_Y },
-    { "touch_ab_radius", &AB_RADIUS }
+    { "touch_ab_radius", &AB_RADIUS },
+    { "touch_turbo_x", &TURBO_X },
+    { "touch_turbo_y", &TURBO_Y },
+    { "touch_turbo_radius", &TURBO_RADIUS },
+    { "touch_capture_x", &CAPTURE_X },
+    { "touch_capture_y", &CAPTURE_Y },
+    { "touch_capture_radius", &CAPTURE_RADIUS }
 };
 
 int sdlDefaultJoypad = 0;
@@ -617,6 +627,16 @@ controllerEvent controllerHitCheck( int x, int y )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_SELECT;
+    }
+    else if ( HIT_TURBO( x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_SPEED;
+    }
+    else if ( HIT_CAPTURE( x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_CAPTURE;
     }
     //We assign up/down to button '1', and
     //left/right to button '2'.
@@ -1784,7 +1804,7 @@ void sdlPollEvents()
               fclose( f );
 
               //make this the current joy
-              memcpy( &joypad[0][0], bindingJoypad, 10*sizeof( u16 ) );
+              memcpy( &joypad[0][0], bindingJoypad, 12*sizeof( u16 ) );
               
               //we're done here!
               keyBindingMode = NOT_BINDING;
@@ -2563,7 +2583,6 @@ void updateOrientation()
             //and we don't fill the screen due to aspect ratio
             float effectiveWidth = (float)destWidth / emulatedAspect;
             scale_factor = ( (float)CONTROLLER_SCREEN_WIDTH / effectiveWidth );
-            scaled_height = CONTROLLER_SCREEN_WIDTH / emulatedAspect;
         }
 
         for ( int i = 0; i < 4; i++ )
