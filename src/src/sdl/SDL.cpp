@@ -2076,7 +2076,7 @@ char * romSelector()
     }
 
     TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
-    TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
+    TTF_Font * font_normal = TTF_OpenFont( FONT, 22 );
     if ( !font_small || !font_normal )
     {
         fprintf( stderr, "Failed to open font: %s\n", FONT );
