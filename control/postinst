@@ -3,7 +3,7 @@
 #put controller.png where it goes
 
 VBA_HOME=/media/internal/vba
-CONTROLLER=$VBA_HOME/controller.png
+SKINS=$VBA_HOME/skins
 
 if [ -z "$IPKG_OFFLINE_ROOT" ]; then
   IPKG_OFFLINE_ROOT=/media/cryptofs/apps
@@ -15,6 +15,6 @@ mkdir -p $VBA_HOME
 mkdir -p $VBA_HOME/roms
 
 #copy the controller.png over
-cp $IPKG_OFFLINE_ROOT/$CONTROLLER $CONTROLLER
+cp -r $IPKG_OFFLINE_ROOT/$SKINS $SKINS
 
 exit 0`
