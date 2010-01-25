@@ -2528,7 +2528,6 @@ void updateOrientation()
     if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
     {
         float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
-        printf( "dims: %d, %d\n", skin->controller_screen_width, skin->controller_screen_height );
         float scale_factor;
         if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
         {
@@ -2543,7 +2542,6 @@ void updateOrientation()
             float effectiveWidth = (float)destWidth / emulatedAspect;
             scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
         }
-        printf( "scale_factor: %f\n", scale_factor );
 
         for ( int i = 0; i < 4; i++ )
         {
