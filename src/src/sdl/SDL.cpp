@@ -40,6 +40,7 @@
 #include "gb/GB.h"
 #include "gb/gbGlobals.h"
 #include "controller.h"
+#include "options.h"
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
@@ -53,6 +54,9 @@
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
+#define SKIN_PATH VBA_HOME "/skins/"
+#define SKIN_CFG_NAME "controller.cfg"
+#define SKIN_IMG_NAME "controller.png"
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
@@ -63,13 +67,10 @@
 #define NO_ROMS5 "For more information, see the wiki"
 #define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
 
-#define CONTROLLER_IMG VBA_HOME "/controller.png"
 #define OPTIONS_CFG VBA_HOME "/options.cfg"
 
 #define SCROLL_FACTOR 20
 #define AUTOSAVE_STATE 100
-
-#define DEBUG_CONTROLLER
 
 //#define DEBUG_GL
 
@@ -196,6 +197,9 @@ int combo_down = false;
 int use_on_screen = true;
 
 int autosave = false;
+
+//current skin
+controller_skin * skin = NULL;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -383,13 +387,7 @@ int sdlAutoIPS = 1;
 int sdlRtcEnable = 0;
 int sdlAgbPrint = 0;
 
-typedef struct
-{
-    char * name;
-    int * value;
-} vba_option;
-
-vba_option options[] =
+vba_option state_options[] =
 {
     { "orientation", &orientation },
     { "sound", &soundMute },
@@ -397,42 +395,6 @@ vba_option options[] =
     { "speed", &showSpeed },
     { "onscreen", &use_on_screen },
     { "autosave", &autosave },
-    //Controller stuff
-    { "touch_screen_x_offset", &CONTROLLER_SCREEN_X_OFFSET },
-    { "touch_screen_y_offset", &CONTROLLER_SCREEN_Y_OFFSET },
-    { "touch_screen_width", &CONTROLLER_SCREEN_WIDTH },
-    { "touch_screen_height", &CONTROLLER_SCREEN_HEIGHT },
-    { "touch_joy_x", &JOY_X },
-    { "touch_joy_y", &JOY_Y },
-    { "touch_joy_radius", &JOY_RADIUS },
-    { "touch_joy_deadzone", &JOY_DEAD },
-    { "touch_b_x", &B_X },
-    { "touch_b_y", &B_Y },
-    { "touch_b_radius", &B_RADIUS },
-    { "touch_a_x", &A_X },
-    { "touch_a_y", &A_Y },
-    { "touch_a_radius", &A_RADIUS },
-    { "touch_start_x", &START_X },
-    { "touch_start_y", &START_Y },
-    { "touch_start_radius", &START_RADIUS },
-    { "touch_select_x", &SELECT_X },
-    { "touch_select_y", &SELECT_Y },
-    { "touch_select_radius", &SELECT_RADIUS },
-    { "touch_l_x", &L_X },
-    { "touch_l_y", &L_Y },
-    { "touch_l_radius", &L_RADIUS },
-    { "touch_r_x", &R_X },
-    { "touch_r_y", &R_Y },
-    { "touch_r_radius", &R_RADIUS },
-    { "touch_ab_x", &AB_X },
-    { "touch_ab_y", &AB_Y },
-    { "touch_ab_radius", &AB_RADIUS },
-    { "touch_turbo_x", &TURBO_X },
-    { "touch_turbo_y", &TURBO_Y },
-    { "touch_turbo_radius", &TURBO_RADIUS },
-    { "touch_capture_x", &CAPTURE_X },
-    { "touch_capture_y", &CAPTURE_Y },
-    { "touch_capture_radius", &CAPTURE_RADIUS }
 };
 
 int sdlDefaultJoypad = 0;
@@ -592,48 +554,53 @@ controllerEvent controllerHitCheck( int x, int y )
     event.button1 = -1;
     event.button2 = -1;
 
-    if ( HIT_A( x, y ) )
+    if ( !skin )
+    {
+        return event;
+    }
+
+    if ( hit_a( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_A;
     }
-    else if ( HIT_B( x, y ) )
+    else if ( hit_b( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_B;
     }
-    else if ( HIT_AB( x, y ) )
+    else if ( hit_ab( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_A;
         event.button2 = KEY_BUTTON_B;
     }
-    else if ( HIT_L( x, y ) )
+    else if ( hit_l( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_L;
     }
-    else if ( HIT_R( x, y ) )
+    else if ( hit_r( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_R;
     }
-    else if ( HIT_START( x, y ) )
+    else if ( hit_start( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_START;
     }
-    else if ( HIT_SELECT( x, y ) )
+    else if ( hit_select( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_SELECT;
     }
-    else if ( HIT_TURBO( x, y ) )
+    else if ( hit_turbo( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_SPEED;
     }
-    else if ( HIT_CAPTURE( x, y ) )
+    else if ( hit_capture( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_BUTTON_CAPTURE;
@@ -641,22 +608,22 @@ controllerEvent controllerHitCheck( int x, int y )
     //We assign up/down to button '1', and
     //left/right to button '2'.
     //(You can't hit u/d or l/r at same time
-    if ( HIT_UP( x, y ) )
+    if ( hit_up( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_UP;
     }
-    if ( HIT_DOWN( x, y ) )
+    if ( hit_down( skin, x, y ) )
     {
         event.valid = true;
         event.button1 = KEY_DOWN;
     }
-    if ( HIT_LEFT( x, y ) )
+    if ( hit_left( skin, x, y ) )
     {
         event.valid = true;
         event.button2 = KEY_LEFT;
     }
-    if ( HIT_RIGHT( x, y ) )
+    if ( hit_right( skin, x, y ) )
     {
         event.valid = true;
         event.button2 = KEY_RIGHT;
@@ -794,7 +761,7 @@ FILE *sdlFindFile(const char *name)
     if(f != NULL)
       return f;
 #endif // ! WIN32
-    fprintf( stderr, "Searching %s", VBA_HOME );
+    fprintf( stderr, "Searching %s\n", VBA_HOME );
     sprintf(path, "%s%c%s", VBA_HOME, FILE_SEP, name);
     f = fopen(path, "r");
     if( f != NULL)
@@ -844,85 +811,20 @@ FILE *sdlFindFile(const char *name)
 
 void writeOptions()
 {
-   FILE * f = fopen( OPTIONS_CFG, "w" );
-   if ( !f )
-   {
-       perror( "Failed to read options!" );
-       return;
-   }
-
-   int count = sizeof( options ) / sizeof( vba_option );
-   for ( int i = 0; i < count; i++ )
-   {
-       fprintf( f, "%s=%x\n", options[i].name, *options[i].value );
-   }
-
-   fclose( f );
+    writeOptions(
+            OPTIONS_CFG,
+            state_options,
+            sizeof( state_options ) / sizeof( vba_option ),
+            true );
 }
 
 void readOptions()
 {
-   FILE * f = fopen( OPTIONS_CFG, "r" );
-   if ( !f )
-   {
-       perror( "Failed to read options!" );
-       return;
-   }
-
-   char buffer[2048];
-
-   while ( 1 )
-   {
-       char * s = fgets( buffer, 2048, f );
-
-       //More to the file?
-       if( s == NULL )
-       {
-           break;
-       }
-
-       //Ignore parts from '#' onwards
-       char * p  = strchr(s, '#');
-
-       if ( p )
-       {
-           *p = '\0';
-       }
-
-       char * token = strtok( s, " \t\n\r=" );
-
-       if ( !token || strlen( token ) == 0 )
-       {
-           continue;
-       }
-
-       char * key = token;
-       char * value = strtok( NULL, "\t\n\r" );
-
-       if( value == NULL )
-       {
-           fprintf( stderr, "Empty value for key %s\n", key );
-           continue;
-       }
-
-       //Okay now we have key/value pair.
-       //match it to one of the ones we know about...
-       int count = sizeof( options ) / sizeof( vba_option );
-       char known = false;
-       for ( int i = 0; i < count; i++ )
-       {
-           if ( !strcasecmp( key, options[i].name ) )
-           {
-                *options[i].value = sdlFromHex( value );
-                known = true;
-                break;
-           }
-       }
-       if ( !known )
-       {
-           fprintf( stderr, "Unrecognized option %s\n", key );
-       }
-   }
+    readOptions(
+            OPTIONS_CFG,
+            state_options,
+            sizeof( state_options ) / sizeof( vba_option ),
+            true );
 }
 
 void sdlReadPreferences(FILE *f)
@@ -1701,8 +1603,9 @@ void sdlPollEvents()
       {
           return;
       }
-      int x = event.button.x;
-      int y = event.button.y;
+      //These are switched and transformed because we're in landscape
+      int x = event.button.y;
+      int y = destWidth -event.button.x;
       int state = event.button.state;
 
       controllerEvent ev = controllerHitCheck( x, y );
@@ -1716,10 +1619,11 @@ void sdlPollEvents()
       {
           return;
       }
-      int x = event.motion.x;
-      int y = event.motion.y;
-      int xrel = event.motion.xrel;
-      int yrel = event.motion.yrel;
+      //These are switched and transformed because we're in landscape
+      int x = event.motion.y;
+      int y = destWidth - event.motion.x;
+      int xrel = event.motion.yrel;
+      int yrel = -event.motion.xrel;
 
       //We make this work by considering a motion event
       //as releasing where we came FROM
@@ -2409,6 +2313,54 @@ char * romSelector()
     return rom_full_path;
 }
 
+void loadSkins()
+{
+    skin = NULL;
+
+    DIR * d = opendir( SKIN_PATH );
+    if ( !d )
+    {
+        perror( "Failed to open skin path!\n" );
+        return;
+    }
+    //Note: this code isn't super portable, mostly because I don't care right now :).
+    //Should work on most/all linux boxes...
+    //(including of course the pre :))
+
+    struct dirent * dp;
+    //For each entry in this directory..
+    while ( dp = readdir( d ) )
+    {
+        //If this is a directory
+        if ( dp->d_type == DT_DIR && dp->d_name[0] != '.' )
+        {
+            char * skin_name = dp->d_name;
+            int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
+
+            //build full path
+            char skin_folder[folderlen];
+            strcpy( skin_folder, SKIN_PATH );
+            strcpy( skin_folder + strlen( SKIN_PATH ), "/" );
+            strcpy( skin_folder + strlen( SKIN_PATH ) + 1, skin_name );
+
+            load_skin( SKIN_CFG_NAME, SKIN_IMG_NAME, skin_name, skin_folder, &skin );
+        }
+    }
+
+    closedir( d );
+
+    //As we build the list, the 'skin' always point to the last one in the list.
+    //Here we just wrap around to the first (circule ll) so we default to the 'first' one.
+    //XXX: Remember which one the user was using
+    //and go to it.
+    if ( skin )
+    {
+        skin = skin->next;
+    }
+
+
+}
+
 void GL_Init()
 {
     // setup 2D gl environment
@@ -2498,8 +2450,14 @@ void GL_InitTexture()
             GL_UNSIGNED_BYTE, NULL );
     checkError();
 
+    if( !skin )
+    {
+        printf( "No skins found! Running without one...\n" );
+        return;
+    }
+
     //Load controller
-    SDL_Surface * initial_surface = IMG_Load( CONTROLLER_IMG );
+    SDL_Surface * initial_surface = IMG_Load( skin->image_path );
     if ( !initial_surface )
     {
         printf( "No controller image found!  Running without one...\n" );
@@ -2567,14 +2525,15 @@ void updateOrientation()
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
     }
 
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R )
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
     {
-        float controller_aspect = (float)CONTROLLER_SCREEN_WIDTH / (float)CONTROLLER_SCREEN_HEIGHT;
+        float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
+        printf( "dims: %d, %d\n", skin->controller_screen_width, skin->controller_screen_height );
         float scale_factor;
-        if ( (float)destHeight * controller_aspect  > (float)CONTROLLER_SCREEN_WIDTH )
+        if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
         {
             //width is limiting factor
-            scale_factor = ( (float)CONTROLLER_SCREEN_HEIGHT / (float)destWidth );
+            scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
         }
         else
         {
@@ -2582,8 +2541,9 @@ void updateOrientation()
             //'effectiveWidth' b/c we already scaled previously
             //and we don't fill the screen due to aspect ratio
             float effectiveWidth = (float)destWidth / emulatedAspect;
-            scale_factor = ( (float)CONTROLLER_SCREEN_WIDTH / effectiveWidth );
+            scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
         }
+        printf( "scale_factor: %f\n", scale_factor );
 
         for ( int i = 0; i < 4; i++ )
         {
@@ -2596,8 +2556,8 @@ void updateOrientation()
         float x_offset = 1.0 - vertexCoords[1];
 
         //push the screen to the coordinates indicated
-        y_offset -= ( (float)CONTROLLER_SCREEN_Y_OFFSET / (float)destWidth ) * 2;
-        x_offset -= ( (float)CONTROLLER_SCREEN_X_OFFSET / (float)destHeight ) * 2;
+        y_offset -= ( (float)skin->controller_screen_y_offset / (float)destWidth ) * 2;
+        x_offset -= ( (float)skin->controller_screen_x_offset / (float)destHeight ) * 2;
 
         for ( int i = 0; i < 4; i++ )
         {
@@ -2628,6 +2588,7 @@ int main(int argc, char **argv)
 
   sdlReadPreferences();
   readOptions();
+  loadSkins();
 
   sdlPrintUsage = 0;
   
@@ -3186,7 +3147,7 @@ void systemDrawScreen()
     /*-----------------------------------------------------------------------------
      *  Overlay
      *-----------------------------------------------------------------------------*/
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R )
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
     {
         // Use the program object
         glUseProgram ( programObject );
