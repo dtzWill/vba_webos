@@ -4,8 +4,7 @@
 
 VBA_HOME=/media/internal/vba
 SKINS=$VBA_HOME/skins
-SKIN1=$SKINS/vincentlaw1
-SKIN2=$SKINS/zsoc1
+
 if [ -z "$IPKG_OFFLINE_ROOT" ]; then
   IPKG_OFFLINE_ROOT=/media/cryptofs/apps
 fi
@@ -15,11 +14,7 @@ mkdir -p $VBA_HOME
 mkdir -p $VBA_HOME/roms
 mkdir -p $SKINS
 
-rm -rf $SKIN1
-#rm -rf $SKIN2
-
-#copy the controller.png over
-cp -r $IPKG_OFFLINE_ROOT/$SKINS/vincentlaw1 $SKINS
-#cp -r $IPKG_OFFLINE_ROOT/$SKINS/zsoc1 $SKINS
+#extract the skins tar
+tar xf $IPKG_OFFLINE_ROOT/$SKINS/skins.tar -C $SKINS
 
 exit 0

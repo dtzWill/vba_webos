@@ -200,6 +200,8 @@ int autosave = false;
 
 //current skin
 controller_skin * skin = NULL;
+int skin_index = 0;
+int skin_count;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -395,6 +397,7 @@ vba_option state_options[] =
     { "speed", &showSpeed },
     { "onscreen", &use_on_screen },
     { "autosave", &autosave },
+    { "skin", &skin_index }
 };
 
 int sdlDefaultJoypad = 0;
@@ -1839,6 +1842,18 @@ void sdlPollEvents()
         //toggle show speed
         showSpeed = !showSpeed;
         break;
+      case SDLK_SLASH:
+        //toggle skins..
+        if ( skin_count > 0 )
+        {
+            skin = skin->next;
+            //So next time we know which one
+            skin_index = ( skin_index + 1 ) % skin_count;
+        }
+
+        GL_InitTexture();
+        updateOrientation();
+        break;
       case SDLK_1:
       case SDLK_2:
       case SDLK_3:
@@ -2356,9 +2371,28 @@ void loadSkins()
     if ( skin )
     {
         skin = skin->next;
+
+        controller_skin * first = skin;
+        skin_count = 1;
+        while ( skin->next != first )
+        {
+            skin_count++;
+            skin = skin->next;
+        }
+        skin = first;
+    }
+    else
+    {
+        skin_count = 0;
     }
 
-
+    //count 'skin_index' skins, this is the one we used last time.
+    //Nope, not very robust to adding/removing skins, but whatcha gonna do.
+    //Not sure it's worth implementing string support for in the cfg files.
+    for ( int i = 0; i < skin_index; i++ )
+    {
+        skin = skin->next;
+    }
 }
 
 void GL_Init()
