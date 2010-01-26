@@ -41,6 +41,7 @@
 #include "gb/gbGlobals.h"
 #include "controller.h"
 #include "options.h"
+#include "pdl.h"
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
@@ -50,7 +51,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.1.1"
+#define VERSION "1.1.2"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
@@ -2060,6 +2061,9 @@ int sortCompar( const void * a, const void * b )
 
 char * romSelector()
 {
+    //Put notifications on the 'bottom' of the screen with respect to our orientation
+    PDL_SetOrientation( PDL_ORIENTATION_LEFT );
+
     //Init SDL for non-gl interaction...
     surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
     if (!surface )
@@ -2598,6 +2602,25 @@ void updateOrientation()
             vertexCoords[2*i+1] += x_offset;
         }
     }
+
+    int notification_direction;
+    switch ( orientation )
+    {
+        case ORIENTATION_PORTRAIT:
+            notification_direction = PDL_ORIENTATION_BOTTOM;
+            break;
+        case ORIENTATION_LANDSCAPE_L:
+            notification_direction = PDL_ORIENTATION_RIGHT;
+            break;
+        case ORIENTATION_LANDSCAPE_R:
+            notification_direction = PDL_ORIENTATION_LEFT;
+            break;
+        default:
+            //o_O invalid orientation.
+            notification_direction = PDL_ORIENTATION_BOTTOM;
+            break;
+    }
+    PDL_SetOrientation( notification_direction );
 }
 
 int main(int argc, char **argv)
