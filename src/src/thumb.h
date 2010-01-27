@@ -28,6 +28,9 @@
 		   } 
 
 
+#ifdef ARM_CORE
+#include "thumb-pre.h"
+#else
 #ifdef C_CORE
 #define NEG(i) ((i) >> 31)
 #define POS(i) ((~(i)) >> 31)
@@ -771,6 +774,7 @@
        __asm setnc byte ptr C_FLAG\
        __asm seto byte ptr V_FLAG\
      }
+#endif
 #endif
 #endif
 

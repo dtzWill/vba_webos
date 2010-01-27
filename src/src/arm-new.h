@@ -48,6 +48,9 @@
       N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
       Z_FLAG = (reg[dest].I) ? false : true;\
       C_FLAG = C_OUT;
+#ifdef ARM_CORE
+#include "arm-new-pre.h"
+#else
 #ifdef C_CORE
 #define NEG(i) ((i) >> 31)
 #define POS(i) ((~(i)) >> 31)
@@ -1016,6 +1019,7 @@
         __asm bt word ptr C_FLAG, 0\
         __asm rcr dword ptr value, 1\
       }
+#endif
 #endif
 #endif
 

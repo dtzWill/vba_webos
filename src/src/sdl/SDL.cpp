@@ -1783,7 +1783,7 @@ int sortCompar( const struct dirent ** a, const struct dirent ** b )
 char * romSelector()
 {
     //Init SDL for non-gl interaction...
-    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN );
+    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
     if (!surface )
     {
         fprintf( stderr, "Error setting video mode!\n" );
@@ -2551,6 +2551,7 @@ int main(int argc, char **argv)
   //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 ) );
  //assert( !SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, -1 ) );
 
+  SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
   surface = SDL_SetVideoMode( 320, 480, 32,
                              SDL_OPENGLES|
                              (fullscreen ? SDL_FULLSCREEN : 0));
