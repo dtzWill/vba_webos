@@ -66,7 +66,15 @@ VisualBoyAdvance_SOURCES = \
 	../remote.cpp		\
 	../thumb.h		\
 	../unzip.cpp		\
-	../unzip.h
+	../unzip.h \
+	../GBA-arm.cpp \
+	../GBA-thumb.cpp \
+	../GBAGfx.h \
+	../GBAGfx.cpp \
+	../GBAcpu.h \
+	../Types.h \
+	../fex_mini.cpp \
+	../fex.h
 
 VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2 -lsrv_um -lIMGegl -LSDL_ttf
 

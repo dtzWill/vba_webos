@@ -2875,7 +2875,8 @@ int main(int argc, char **argv)
       exit(-1);
     }
 
-    utilGetBaseName(szFile, filename);
+    //utilGetBaseName(szFile, filename);
+    utilStripDoubleExtension( szFile, filename );
     char *p = strrchr(filename, '.');
 
     if(p)

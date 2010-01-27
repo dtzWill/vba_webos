@@ -1,25 +1,7 @@
-// VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
-// Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2005 Forgotten and the VBA development team
-
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or(at your option)
-// any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
 #include "GBA.h"
 
 #ifdef BKPT_SUPPORT
-int  oldreg[17];
+int  oldreg[18];
 char oldbuffer[10];
 #endif
 
@@ -50,16 +32,23 @@ bool speedHack = false;
 int cpuSaveType = 0;
 bool cheatsEnabled = true;
 bool mirroringEnable = false;
+bool skipSaveGameBattery = false;
+bool skipSaveGameCheats = false;
 
-u8 *bios = NULL;
-u8 *rom = NULL;
-u8 *internalRAM = NULL;
-u8 *workRAM = NULL;
-u8 *paletteRAM = NULL;
-u8 *vram = NULL;
-u8 *pix = NULL;
-u8 *oam = NULL;
-u8 *ioMem = NULL;
+// this is an optional hack to change the backdrop/background color:
+// -1: disabled
+// 0x0000 to 0x7FFF: set custom 15 bit color
+int customBackdropColor = -1;
+
+u8 *bios = 0;
+u8 *rom = 0;
+u8 *internalRAM = 0;
+u8 *workRAM = 0;
+u8 *paletteRAM = 0;
+u8 *vram = 0;
+u8 *pix = 0;
+u8 *oam = 0;
+u8 *ioMem = 0;
 
 u16 DISPCNT  = 0x0080;
 u16 DISPSTAT = 0x0000;

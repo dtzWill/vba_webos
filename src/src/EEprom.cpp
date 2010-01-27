@@ -1,25 +1,7 @@
-// VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
-// Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2005 Forgotten and the VBA development team
-
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or(at your option)
-// any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
 #include <memory.h>
 #include "GBA.h"
 #include "EEprom.h"
-#include "Util.h"
+#include "../Util.h"
 
 extern int cpuDmaCount;
 
@@ -77,6 +59,15 @@ void eepromReadGame(gzFile gzFile, int version)
   }
 }
 
+void eepromReadGameSkip(gzFile gzFile, int version)
+{
+  // skip the eeprom data in a save game
+  utilReadDataSkip(gzFile, eepromSaveData);
+  if(version >= SAVE_GAME_VERSION_3) {
+    utilGzSeek(gzFile, sizeof(int), SEEK_CUR);
+    utilGzSeek(gzFile, 0x2000, SEEK_CUR);
+  }
+}
 
 int eepromRead(u32 /* address */)
 {
@@ -140,7 +131,7 @@ void eepromWrite(u32 /* address */, u8 value)
         eepromAddress = ((eepromBuffer[0] & 0x3F) << 8) |
           ((eepromBuffer[1] & 0xFF));
         if(!(eepromBuffer[0] & 0x40)) {
-          eepromBuffer[0] = bit;          
+          eepromBuffer[0] = bit;
           eepromBits = 1;
           eepromByte = 0;
           eepromMode = EEPROM_WRITEDATA;
@@ -157,7 +148,7 @@ void eepromWrite(u32 /* address */, u8 value)
         if(!(eepromBuffer[0] & 0x40)) {
           eepromBuffer[0] = bit;
           eepromBits = 1;
-          eepromByte = 0;         
+          eepromByte = 0;
           eepromMode = EEPROM_WRITEDATA;
         } else {
           eepromMode = EEPROM_READDATA;
@@ -194,4 +185,3 @@ void eepromWrite(u32 /* address */, u8 value)
     break;
   }
 }
-  

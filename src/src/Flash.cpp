@@ -1,28 +1,10 @@
-// VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
-// Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2004-2006 Forgotten and the VBA development team
-
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or(at your option)
-// any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
 #include <stdio.h>
 #include <memory.h>
 #include "GBA.h"
 #include "Globals.h"
 #include "Flash.h"
 #include "Sram.h"
-#include "Util.h"
+#include "../Util.h"
 
 #define FLASH_READ_ARRAY         0
 #define FLASH_CMD_1              1
@@ -53,7 +35,7 @@ static variable_desc flashSaveData[] = {
 static variable_desc flashSaveData2[] = {
   { &flashState, sizeof(int) },
   { &flashReadState, sizeof(int) },
-  { &flashSize, sizeof(int) },  
+  { &flashSize, sizeof(int) },
   { &flashSaveMemory[0], 0x20000 },
   { NULL, 0 }
 };
@@ -94,6 +76,18 @@ void flashReadGame(gzFile gzFile, int version)
     flashSetSize(flashSize);
   } else {
     utilReadData(gzFile, flashSaveData3);
+  }
+}
+
+void flashReadGameSkip(gzFile gzFile, int version)
+{
+  // skip the flash data in a save game
+  if(version < SAVE_GAME_VERSION_5)
+    utilReadDataSkip(gzFile, flashSaveData);
+  else if(version < SAVE_GAME_VERSION_7) {
+    utilReadDataSkip(gzFile, flashSaveData2);
+  } else {
+    utilReadDataSkip(gzFile, flashSaveData3);
   }
 }
 

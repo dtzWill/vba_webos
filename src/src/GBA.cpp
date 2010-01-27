@@ -1,69 +1,28 @@
-// VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
-// Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2005-2006 Forgotten and the VBA development team
-
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or(at your option)
-// any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <string.h>
-
 #include "GBA.h"
+#include "GBAcpu.h"
 #include "GBAinline.h"
 #include "Globals.h"
-#include "Gfx.h"
+#include "GBAGfx.h"
 #include "EEprom.h"
 #include "Flash.h"
 #include "Sound.h"
 #include "Sram.h"
 #include "bios.h"
-#include "unzip.h"
 #include "Cheats.h"
-#include "NLS.h"
+#include "../NLS.h"
 #include "elf.h"
-#include "Util.h"
+#include "../Util.h"
 #include "Port.h"
+#include "../System.h"
 #include "agbprint.h"
 #ifdef PROFILING
 #include "prof/prof.h"
 #endif
-
-#define UPDATE_REG(address, value)\
-  {\
-    WRITE16LE(((u16 *)&ioMem[address]),value);\
-  }\
-
-#define ARM_PREFETCH \
-  {\
-    cpuPrefetch[0] = CPUReadMemoryQuick(armNextPC);\
-    cpuPrefetch[1] = CPUReadMemoryQuick(armNextPC+4);\
-  }
-
-#define THUMB_PREFETCH \
-  {\
-    cpuPrefetch[0] = CPUReadHalfWordQuick(armNextPC);\
-    cpuPrefetch[1] = CPUReadHalfWordQuick(armNextPC+2);\
-  }
-
-#define ARM_PREFETCH_NEXT \
-  cpuPrefetch[1] = CPUReadMemoryQuick(armNextPC+4);
-
-#define THUMB_PREFETCH_NEXT\
-  cpuPrefetch[1] = CPUReadHalfWordQuick(armNextPC+2);
 
 #ifdef __GNUC__
 #define _stricmp strcasecmp
@@ -71,6 +30,15 @@
 
 
 extern int emulating;
+#ifdef LINK_EMULATION
+extern int linktime;
+extern void StartLink(u16);
+extern void StartJOYLink(u16);
+extern void StartGPLink(u16);
+extern void LinkSSend(u16);
+extern void LinkUpdate(int);
+extern int linktime2;
+#endif
 int SWITicks = 0;
 int IRQTicks = 0;
 
@@ -175,7 +143,7 @@ const u8 gamepakWaitState1[2] = { 4, 1 };
 const u8 gamepakWaitState2[2] = { 8, 1 };
 const bool isInRom [16]=
   { false, false, false, false, false, false, false, false,
-    true, true, true, true, true, true, false, false };              
+    true, true, true, true, true, true, false, false };
 
 u8 memoryWait[16] =
   { 0, 0, 2, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 0 };
@@ -492,7 +460,7 @@ variable_desc saveGameStruct[] = {
   { &armNextPC , sizeof(u32) },
   { &armMode , sizeof(int) },
   { &saveType , sizeof(int) },
-  { NULL, 0 } 
+  { NULL, 0 }
 };
 
 static int romSize = 0x2000000;
@@ -513,217 +481,13 @@ void cpuEnableProfiling(int hz)
 #endif
 
 
-// Waitstates when accessing data
-inline int dataTicksAccess16(u32 address) // DATA 8/16bits NON SEQ
-{
-  int addr = (address>>24)&15;
-  int value =  memoryWait[addr];
-
-  if ((addr>=0x08) || (addr < 0x02))
-  {
-    busPrefetchCount=0;
-    busPrefetch=false;
-  }
-  else if (busPrefetch)
-  {
-    int waitState = value;
-    if (!waitState)
-      waitState = 1;
-    busPrefetchCount = ((++busPrefetchCount)<<waitState) - 1;
-  }
-
-  return value;
-}
-
-inline int dataTicksAccess32(u32 address) // DATA 32bits NON SEQ
-{
-  int addr = (address>>24)&15;
-  int value = memoryWait32[addr];
-
-  if ((addr>=0x08) || (addr < 0x02))
-  {
-    busPrefetchCount=0;
-    busPrefetch=false;
-  }
-  else if (busPrefetch)
-  {
-    int waitState = value;
-    if (!waitState)
-      waitState = 1;
-    busPrefetchCount = ((++busPrefetchCount)<<waitState) - 1;
-  }
-
-  return value;
-}
-
-inline int dataTicksAccessSeq16(u32 address)// DATA 8/16bits SEQ
-{
-  int addr = (address>>24)&15;
-  int value = memoryWaitSeq[addr];
-
-  if ((addr>=0x08) || (addr < 0x02))
-  {
-    busPrefetchCount=0;
-    busPrefetch=false;
-  }
-  else if (busPrefetch)
-  {
-    int waitState = value;
-    if (!waitState)
-      waitState = 1;
-    busPrefetchCount = ((++busPrefetchCount)<<waitState) - 1;
-  }
-
-  return value;
-}
-
-inline int dataTicksAccessSeq32(u32 address)// DATA 32bits SEQ
-{
-  int addr = (address>>24)&15;
-  int value =  memoryWaitSeq32[addr];
-
-  if ((addr>=0x08) || (addr < 0x02))
-  {
-    busPrefetchCount=0;
-    busPrefetch=false;
-  }
-  else if (busPrefetch)
-  {
-    int waitState = value;
-    if (!waitState)
-      waitState = 1;
-    busPrefetchCount = ((++busPrefetchCount)<<waitState) - 1;
-  }
-
-  return value;
-}
-
-
-// Waitstates when executing opcode
-inline int codeTicksAccess16(u32 address) // THUMB NON SEQ
-{
-  int addr = (address>>24)&15;
-
-  if ((addr>=0x08) && (addr<=0x0D))
-  {
-    if (busPrefetchCount&0x1)
-    {
-      if (busPrefetchCount&0x2)
-      {
-        busPrefetchCount = ((busPrefetchCount&0xFF)>>2) | (busPrefetchCount&0xFFFFFF00);
-        return 0;
-      }
-      busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr]-1;
-    }
-    else
-    {
-      busPrefetchCount=0;
-      return memoryWait[addr];
-    }
-  }
-  else
-  {
-    busPrefetchCount = 0;
-    return memoryWait[addr];
-  }
-}
-
-inline int codeTicksAccess32(u32 address) // ARM NON SEQ
-{
-  int addr = (address>>24)&15;
-
-  if ((addr>=0x08) && (addr<=0x0D))
-  {
-    if (busPrefetchCount&0x1)
-    {
-      if (busPrefetchCount&0x2)
-      {
-        busPrefetchCount = ((busPrefetchCount&0xFF)>>2) | (busPrefetchCount&0xFFFFFF00);
-        return 0;
-      }
-      busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr] - 1;
-    }
-    else
-    {
-      busPrefetchCount = 0;
-      return memoryWait32[addr];
-    }
-  }
-  else
-  {
-    busPrefetchCount = 0;
-    return memoryWait32[addr];
-  }
-}
-
-inline int codeTicksAccessSeq16(u32 address) // THUMB SEQ
-{
-  int addr = (address>>24)&15;
-
-  if ((addr>=0x08) && (addr<=0x0D))
-  {
-    if (busPrefetchCount&0x1)
-    {
-      busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return 0;
-    }
-    else
-    if (busPrefetchCount>0xFF)
-    {
-      busPrefetchCount=0;
-      return memoryWait[addr];
-    }
-    else
-      return memoryWaitSeq[addr];
-  }
-  else
-  {
-    busPrefetchCount = 0;
-    return memoryWaitSeq[addr];
-  }
-}
-
-inline int codeTicksAccessSeq32(u32 address) // ARM SEQ
-{
-  int addr = (address>>24)&15;
-
-  if ((addr>=0x08) && (addr<=0x0D))
-  {
-    if (busPrefetchCount&0x1)
-    {
-      if (busPrefetchCount&0x2)
-      {
-        busPrefetchCount = ((busPrefetchCount&0xFF)>>2) | (busPrefetchCount&0xFFFFFF00);
-        return 0;
-      }
-      busPrefetchCount = ((busPrefetchCount&0xFF)>>1) | (busPrefetchCount&0xFFFFFF00);
-      return memoryWaitSeq[addr];
-    }
-    else
-    if (busPrefetchCount>0xFF)
-    {
-      busPrefetchCount=0;
-      return memoryWait32[addr];
-    }
-    else
-      return memoryWaitSeq32[addr];
-  }
-  else
-  {
-    return memoryWaitSeq32[addr];
-  }
-}
-
-
 inline int CPUUpdateTicks()
 {
   int cpuLoopTicks = lcdTicks;
-  
+
   if(soundTicks < cpuLoopTicks)
     cpuLoopTicks = soundTicks;
-  
+
   if(timer0On && (timer0Ticks < cpuLoopTicks)) {
     cpuLoopTicks = timer0Ticks;
   }
@@ -825,7 +589,7 @@ static bool CPUWriteState(gzFile gzFile)
   utilGzWrite(gzFile, &rom[0xa0], 16);
 
   utilWriteInt(gzFile, useBios);
-  
+
   utilGzWrite(gzFile, &reg[0], sizeof(reg));
 
   utilWriteData(gzFile, saveGameStruct);
@@ -851,7 +615,7 @@ static bool CPUWriteState(gzFile gzFile)
 
   // version 1.5
   rtcSaveGame(gzFile);
-  
+
   return true;
 }
 
@@ -863,11 +627,11 @@ bool CPUWriteState(const char *file)
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
     return false;
   }
-  
+
   bool res = CPUWriteState(gzFile);
 
   utilGzClose(gzFile);
-  
+
   return res;
 }
 
@@ -901,7 +665,7 @@ static bool CPUReadState(gzFile gzFile)
                   version);
     return false;
   }
-  
+
   u8 romname[17];
 
   utilGzRead(gzFile, romname, 16);
@@ -952,7 +716,7 @@ static bool CPUReadState(gzFile gzFile)
       IRQTicks = 0;
     }
   }
-  
+
   utilGzRead(gzFile, internalRAM, 0x8000);
   utilGzRead(gzFile, paletteRAM, 0x400);
   utilGzRead(gzFile, workRAM, 0x40000);
@@ -964,12 +728,24 @@ static bool CPUReadState(gzFile gzFile)
     utilGzRead(gzFile, pix, 4*241*162);
   utilGzRead(gzFile, ioMem, 0x400);
 
-  eepromReadGame(gzFile, version);
-  flashReadGame(gzFile, version);
+  //if(skipSaveGameBattery) {
+  //  // skip eeprom data
+  //  eepromReadGameSkip(gzFile, version);
+  //  // skip flash data
+  //  flashReadGameSkip(gzFile, version);
+  //} else {
+    eepromReadGame(gzFile, version);
+    flashReadGame(gzFile, version);
+  //}
   soundReadGame(gzFile, version);
-  
+
   if(version > SAVE_GAME_VERSION_1) {
-    cheatsReadGame(gzFile, version);
+    //if(skipSaveGameCheats) {
+    //  // skip cheats list data
+    //  cheatsReadGameSkip(gzFile, version);
+    //} else {
+      cheatsReadGame(gzFile, version);
+    //}
   }
   if(version > SAVE_GAME_VERSION_6) {
     rtcReadGame(gzFile);
@@ -982,7 +758,7 @@ static bool CPUReadState(gzFile gzFile)
     (a) = (b)<<16|(c);\
     (b) = (temp) >> 16;\
     (c) = (temp) & 0xFFFF;
-    
+
     SWAP(dma0Source, DM0SAD_H, DM0SAD_L);
     SWAP(dma0Dest,   DM0DAD_H, DM0DAD_L);
     SWAP(dma1Source, DM1SAD_H, DM1SAD_L);
@@ -994,7 +770,7 @@ static bool CPUReadState(gzFile gzFile)
   }
 
   if(version <= SAVE_GAME_VERSION_8) {
-    timer0ClockReload = TIMER_TICKS[TM0CNT & 3]; 
+    timer0ClockReload = TIMER_TICKS[TM0CNT & 3];
     timer1ClockReload = TIMER_TICKS[TM1CNT & 3];
     timer2ClockReload = TIMER_TICKS[TM2CNT & 3];
     timer3ClockReload = TIMER_TICKS[TM3CNT & 3];
@@ -1003,11 +779,12 @@ static bool CPUReadState(gzFile gzFile)
     timer1Ticks = ((0x10000 - TM1D) << timer1ClockReload) - timer1Ticks;
     timer2Ticks = ((0x10000 - TM2D) << timer2ClockReload) - timer2Ticks;
     timer3Ticks = ((0x10000 - TM3D) << timer3ClockReload) - timer3Ticks;
+    interp_rate();
   }
 
   // set pointers!
   layerEnable = layerSettings & DISPCNT;
-  
+
   CPUUpdateRender();
   CPUUpdateRenderBuffers(true);
   CPUUpdateWindow0();
@@ -1046,8 +823,8 @@ static bool CPUReadState(gzFile gzFile)
   }
 
   CPUUpdateRegister(0x204, CPUReadHalfWordQuick(0x4000204));
-  
-  return true;  
+
+  return true;
 }
 
 bool CPUReadMemState(char *memory, int available)
@@ -1067,7 +844,7 @@ bool CPUReadState(const char * file)
 
   if(gzFile == NULL)
     return false;
-  
+
   bool res = CPUReadState(gzFile);
 
   utilGzClose(gzFile);
@@ -1079,7 +856,7 @@ bool CPUExportEepromFile(const char *fileName)
 {
   if(eepromInUse) {
     FILE *file = fopen(fileName, "wb");
-    
+
     if(!file) {
       systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"),
                     fileName);
@@ -1114,16 +891,16 @@ bool CPUWriteBatteryFile(const char *fileName)
       break;
     }
   }
-  
+
   if((gbaSaveType) && (gbaSaveType!=5)) {
     FILE *file = fopen(fileName, "wb");
-    
+
     if(!file) {
       systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"),
                     fileName);
       return false;
     }
-    
+
     // only save if Flash/Sram in use or EEprom in use
     if(gbaSaveType != 3) {
       if(gbaSaveType == 2) {
@@ -1152,12 +929,12 @@ bool CPUReadGSASnapshot(const char *fileName)
 {
   int i;
   FILE *file = fopen(fileName, "rb");
-    
+
   if(!file) {
     systemMessage(MSG_CANNOT_OPEN_FILE, N_("Cannot open file %s"), fileName);
     return false;
   }
-  
+
   // check file size to know what we should read
   fseek(file, 0, SEEK_END);
 
@@ -1186,7 +963,7 @@ bool CPUReadGSASnapshot(const char *fileName)
   buffer2[16] = 0;
   for(i = 0; i < 16; i++)
     if(buffer2[i] < 32)
-      buffer2[i] = 32;  
+      buffer2[i] = 32;
   if(memcmp(buffer, buffer2, 16)) {
     systemMessage(MSG_CANNOT_IMPORT_SNAPSHOT_FOR,
                   N_("Cannot import snapshot for %s. Current game is %s"),
@@ -1213,13 +990,13 @@ bool CPUReadGSASnapshot(const char *fileName)
   return true;
 }
 
-bool CPUWriteGSASnapshot(const char *fileName, 
-                         const char *title, 
-                         const char *desc, 
+bool CPUWriteGSASnapshot(const char *fileName,
+                         const char *title,
+                         const char *desc,
                          const char *notes)
 {
   FILE *file = fopen(fileName, "wb");
-    
+
   if(!file) {
     systemMessage(MSG_CANNOT_OPEN_FILE, N_("Cannot open file %s"), fileName);
     return false;
@@ -1249,7 +1026,7 @@ bool CPUWriteGSASnapshot(const char *fileName,
   utilPutDword(buffer, totalSize); // length of remainder of save - CRC
   fwrite(buffer, 1, 4, file);
 
-  char temp[0x2001c];
+  char *temp = new char[0x2001c];
   memset(temp, 0, 28);
   memcpy(temp, &rom[0xa0], 16); // copy internal name
   temp[0x10] = rom[0xbe]; // reserved area (old checksum)
@@ -1260,25 +1037,26 @@ bool CPUWriteGSASnapshot(const char *fileName,
   memcpy(&temp[0x1c], flashSaveMemory, saveSize); // copy save
   fwrite(temp, 1, totalSize, file); // write save + header
   u32 crc = 0;
-  
+
   for(int i = 0; i < totalSize; i++) {
     crc += ((u32)temp[i] << (crc % 0x18));
   }
-  
+
   utilPutDword(buffer, crc);
   fwrite(buffer, 1, 4, file); // CRC?
-  
+
   fclose(file);
+  delete [] temp;
   return true;
 }
 
 bool CPUImportEepromFile(const char *fileName)
 {
   FILE *file = fopen(fileName, "rb");
-    
+
   if(!file)
     return false;
-  
+
   // check file size to know what we should read
   fseek(file, 0, SEEK_END);
 
@@ -1301,11 +1079,11 @@ bool CPUImportEepromFile(const char *fileName)
       tmp = eepromData[i];
       eepromData[i] = eepromData[7-i];
       eepromData[7-i] = tmp;
-      i++;      
+      i++;
       tmp = eepromData[i];
       eepromData[i] = eepromData[7-i];
       eepromData[7-i] = tmp;
-      i++;      
+      i++;
       i += 4;
     }
   } else
@@ -1317,10 +1095,10 @@ bool CPUImportEepromFile(const char *fileName)
 bool CPUReadBatteryFile(const char *fileName)
 {
   FILE *file = fopen(fileName, "rb");
-    
+
   if(!file)
     return false;
-  
+
   // check file size to know what we should read
   fseek(file, 0, SEEK_END);
 
@@ -1404,7 +1182,7 @@ bool CPUIsGBAImage(const char * file)
 bool CPUIsGBABios(const char * file)
 {
   if(strlen(file) > 4) {
-    char * p = (char *)strrchr(file,'.');
+    const char * p = strrchr(file,'.');
 
     if(p != NULL) {
       if(_stricmp(p, ".gba") == 0)
@@ -1415,9 +1193,11 @@ bool CPUIsGBABios(const char * file)
         return true;
       if(_stricmp(p, ".bios") == 0)
         return true;
+      if(_stricmp(p, ".rom") == 0)
+        return true;
     }
   }
-  
+
   return false;
 }
 
@@ -1425,7 +1205,7 @@ bool CPUIsELF(const char *file)
 {
   if(strlen(file) > 4) {
     const char * p = strrchr(file,'.');
-    
+
     if(p != NULL) {
       if(_stricmp(p, ".elf") == 0)
         return true;
@@ -1441,7 +1221,7 @@ void CPUCleanUp()
     profCleanup();
   }
 #endif
-  
+
   if(rom != NULL) {
     free(rom);
     rom = NULL;
@@ -1456,7 +1236,7 @@ void CPUCleanUp()
     free(paletteRAM);
     paletteRAM = NULL;
   }
-  
+
   if(internalRAM != NULL) {
     free(internalRAM);
     internalRAM = NULL;
@@ -1486,8 +1266,10 @@ void CPUCleanUp()
     free(ioMem);
     ioMem = NULL;
   }
-  
+
+#ifndef NO_DEBUGGER
   elfCleanUp();
+#endif //NO_DEBUGGER
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
@@ -1502,7 +1284,7 @@ int CPULoadRom(const char *szFile)
   }
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
-  
+
   rom = (u8 *)malloc(0x2000000);
   if(rom == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
@@ -1516,10 +1298,9 @@ int CPULoadRom(const char *szFile)
     return 0;
   }
 
-  u8 *whereToLoad = rom;
-  if(cpuIsMultiBoot)
-    whereToLoad = workRAM;
+  u8 *whereToLoad = cpuIsMultiBoot ? workRAM : rom;
 
+#ifndef NO_DEBUGGER
   if(CPUIsELF(szFile)) {
     FILE *f = fopen(szFile, "rb");
     if(!f) {
@@ -1540,7 +1321,9 @@ int CPULoadRom(const char *szFile)
       elfCleanUp();
       return 0;
     }
-  } else if(!utilLoad(szFile,
+  } else
+#endif //NO_DEBUGGER
+  if(!utilLoad(szFile,
                       utilIsGBAImage,
                       whereToLoad,
                       romSize)) {
@@ -1564,49 +1347,49 @@ int CPULoadRom(const char *szFile)
                   "BIOS");
     CPUCleanUp();
     return 0;
-  }    
+  }
   internalRAM = (u8 *)calloc(1,0x8000);
   if(internalRAM == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "IRAM");
     CPUCleanUp();
     return 0;
-  }    
+  }
   paletteRAM = (u8 *)calloc(1,0x400);
   if(paletteRAM == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "PRAM");
     CPUCleanUp();
     return 0;
-  }      
+  }
   vram = (u8 *)calloc(1, 0x20000);
   if(vram == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "VRAM");
     CPUCleanUp();
     return 0;
-  }      
+  }
   oam = (u8 *)calloc(1, 0x400);
   if(oam == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "OAM");
     CPUCleanUp();
     return 0;
-  }      
+  }
   pix = (u8 *)calloc(1, 4 * 241 * 162);
   if(pix == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "PIX");
     CPUCleanUp();
     return 0;
-  }      
+  }
   ioMem = (u8 *)calloc(1, 0x400);
   if(ioMem == NULL) {
     systemMessage(MSG_OUT_OF_MEMORY, N_("Failed to allocate memory for %s"),
                   "IO");
     CPUCleanUp();
     return 0;
-  }      
+  }
 
   flashInit();
   eepromInit();
@@ -1642,7 +1425,7 @@ void CPUUpdateRender()
       renderLine = mode0RenderLine;
     else if(fxOn && !windowOn && !(layerEnable & 0x8000))
       renderLine = mode0RenderLineNoWindow;
-    else 
+    else
       renderLine = mode0RenderLineAll;
     break;
   case 1:
@@ -1716,7 +1499,7 @@ void CPUUpdateCPSR()
 void CPUUpdateFlags(bool breakLoop)
 {
   u32 CPSR = reg[16].I;
-  
+
   N_FLAG = (CPSR & 0x80000000) ? true: false;
   Z_FLAG = (CPSR & 0x40000000) ? true: false;
   C_FLAG = (CPSR & 0x20000000) ? true: false;
@@ -1754,7 +1537,7 @@ void CPUSwitchMode(int mode, bool saveState, bool breakLoop)
 {
   //  if(armMode == mode)
   //    return;
-  
+
   CPUUpdateCPSR();
 
   switch(armMode) {
@@ -1798,7 +1581,7 @@ void CPUSwitchMode(int mode, bool saveState, bool breakLoop)
 
   u32 CPSR = reg[16].I;
   u32 SPSR = reg[17].I;
-  
+
   switch(mode) {
   case 0x10:
   case 0x1F:
@@ -1845,7 +1628,7 @@ void CPUSwitchMode(int mode, bool saveState, bool breakLoop)
       reg[17].I = CPSR;
     else
       reg[17].I = reg[SPSR_ABT].I;
-    break;    
+    break;
   case 0x1b:
     reg[13].I = reg[R13_UND].I;
     reg[14].I = reg[R14_UND].I;
@@ -1854,7 +1637,7 @@ void CPUSwitchMode(int mode, bool saveState, bool breakLoop)
       reg[17].I = CPSR;
     else
       reg[17].I = reg[SPSR_UND].I;
-    break;    
+    break;
   default:
     systemMessage(MSG_UNSUPPORTED_ARM_MODE, N_("Unsupported ARM mode %02x"), mode);
     break;
@@ -1880,7 +1663,7 @@ void CPUUndefinedException()
   armIrqEnable = false;
   armNextPC = 0x04;
   ARM_PREFETCH;
-  reg[15].I += 4;  
+  reg[15].I += 4;
 }
 
 void CPUSoftwareInterrupt()
@@ -1901,13 +1684,12 @@ void CPUSoftwareInterrupt(int comment)
 {
   static bool disableMessage = false;
   if(armState) comment >>= 16;
-#ifdef BKPT_SUPPORT
-  if(comment == 0xff) {
-    extern void (*dbgOutput)(char *, u32);
-    dbgOutput(NULL, reg[0].I);
-    return;
-  }
-#endif
+//#ifdef BKPT_SUPPORT
+//  if(comment == 0xff) {
+//    dbgOutput(NULL, reg[0].I);
+//    return;
+//  }
+//#endif
 #ifdef PROFILING
   if(comment == 0xfe) {
     profStartup(reg[0].I, reg[1].I);
@@ -1939,7 +1721,7 @@ void CPUSoftwareInterrupt(int comment)
   }
 #endif
   if(useBios) {
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("SWI: %08x at %08x (0x%08x,0x%08x,0x%08x,VCOUNT = %2d)\n", comment,
           armState ? armNextPC - 4: armNextPC -2,
@@ -1956,7 +1738,7 @@ void CPUSoftwareInterrupt(int comment)
   //  else {
   //    biosProtected = 0xe3a02004;
   //  }
-     
+
   switch(comment) {
   case 0x00:
     BIOS_SoftReset();
@@ -1966,44 +1748,44 @@ void CPUSoftwareInterrupt(int comment)
     BIOS_RegisterRamReset();
     break;
   case 0x02:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("Halt: (VCOUNT = %2d)\n",
-          VCOUNT);      
+          VCOUNT);
     }
-#endif    
+#endif
     holdState = true;
     holdType = -1;
     cpuNextEvent = cpuTotalTicks;
     break;
   case 0x03:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("Stop: (VCOUNT = %2d)\n",
-          VCOUNT);      
+          VCOUNT);
     }
-#endif    
+#endif
     holdState = true;
     holdType = -1;
     stopState = true;
     cpuNextEvent = cpuTotalTicks;
     break;
   case 0x04:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("IntrWait: 0x%08x,0x%08x (VCOUNT = %2d)\n",
           reg[0].I,
           reg[1].I,
-          VCOUNT);      
+          VCOUNT);
     }
 #endif
     CPUSoftwareInterrupt();
-    break;    
+    break;
   case 0x05:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
-      log("VBlankIntrWait: (VCOUNT = %2d)\n", 
-          VCOUNT);      
+      log("VBlankIntrWait: (VCOUNT = %2d)\n",
+          VCOUNT);
     }
 #endif
     CPUSoftwareInterrupt();
@@ -2031,14 +1813,14 @@ void CPUSoftwareInterrupt(int comment)
       {
         if ((reg[2].I >> 24) & 1)
         {
-          if ((reg[2].I >> 26) & 1) 
+          if ((reg[2].I >> 26) & 1)
           SWITicks = (7 + memoryWait32[(reg[1].I>>24) & 0xF]) * (len>>1);
           else
           SWITicks = (8 + memoryWait[(reg[1].I>>24) & 0xF]) * (len);
         }
         else
         {
-          if ((reg[2].I >> 26) & 1) 
+          if ((reg[2].I >> 26) & 1)
           SWITicks = (10 + memoryWait32[(reg[0].I>>24) & 0xF] +
               memoryWait32[(reg[1].I>>24) & 0xF]) * (len>>1);
           else
@@ -2060,7 +1842,7 @@ void CPUSoftwareInterrupt(int comment)
               7 * (memoryWaitSeq32[(reg[1].I>>24) & 0xF] + 1)) * len;
         else
           SWITicks = (9 + memoryWait32[(reg[0].I>>24) & 0xF] +
-              memoryWait32[(reg[1].I>>24) & 0xF] + 
+              memoryWait32[(reg[1].I>>24) & 0xF] +
               7 * (memoryWaitSeq32[(reg[0].I>>24) & 0xF] +
               memoryWaitSeq32[(reg[1].I>>24) & 0xF] + 2)) * len;
       }
@@ -2163,17 +1945,17 @@ void CPUSoftwareInterrupt(int comment)
     BIOS_Diff16bitUnFilter();
     break;
   case 0x19:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("SoundBiasSet: 0x%08x (VCOUNT = %2d)\n",
           reg[0].I,
-          VCOUNT);      
+          VCOUNT);
     }
-#endif    
+#endif
     if(reg[0].I)
-      systemSoundPause();
+      soundPause();
     else
-      systemSoundResume();
+      soundResume();
     break;
   case 0x1F:
     BIOS_MidiKey2Freq();
@@ -2182,7 +1964,7 @@ void CPUSoftwareInterrupt(int comment)
     BIOS_SndDriverJmpTableCopy();
     // let it go, because we don't really emulate this function
   default:
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
     if(systemVerbose & VERBOSE_SWI) {
       log("SWI: %08x at %08x (0x%08x,0x%08x,0x%08x,VCOUNT = %2d)\n", comment,
           armState ? armNextPC - 4: armNextPC -2,
@@ -2192,7 +1974,7 @@ void CPUSoftwareInterrupt(int comment)
           VCOUNT);
     }
 #endif
-    
+
     if(!disableMessage) {
       systemMessage(MSG_UNSUPPORTED_BIOS_FUNCTION,
                     N_("Unsupported BIOS function %02x called from %08x. A BIOS file is needed in order to get correct behaviour."),
@@ -2241,7 +2023,7 @@ void doDMA(u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
       sm=15;
   if (dm>15)
       dm=15;
-  
+
   //if ((sm>=0x05) && (sm<=0x07) || (dm>=0x05) && (dm <=0x07))
   //    blank = (((DISPSTAT | ((DISPSTAT>>1)&1))==1) ?  true : false);
 
@@ -2285,7 +2067,7 @@ void doDMA(u32 &s, u32 &d, u32 si, u32 di, u32 c, int transfer32)
   }
 
   cpuDmaCount = 0;
-  
+
   int totalTicks = 0;
 
   if(transfer32) {
@@ -2332,13 +2114,13 @@ void CPUCheckDMA(int reason, int dmamask)
       case 2:
         destIncrement = 0;
         break;
-      }      
-#ifdef DEV_VERSION
+      }
+#ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA0) {
         int count = (DM0CNT_L ? DM0CNT_L : 0x4000) << 1;
         if(DM0CNT_H & 0x0400)
           count <<= 1;
-        log("DMA0: s=%08x d=%08x c=%04x count=%08x\n", dma0Source, dma0Dest, 
+        log("DMA0: s=%08x d=%08x c=%04x count=%08x\n", dma0Source, dma0Dest,
             DM0CNT_H,
             count);
       }
@@ -2353,18 +2135,18 @@ void CPUCheckDMA(int reason, int dmamask)
         UPDATE_REG(0x202, IF);
         cpuNextEvent = cpuTotalTicks;
       }
-      
+
       if(((DM0CNT_H >> 5) & 3) == 3) {
         dma0Dest = DM0DAD_L | (DM0DAD_H << 16);
       }
-      
+
       if(!(DM0CNT_H & 0x0200) || (reason == 0)) {
         DM0CNT_H &= 0x7FFF;
         UPDATE_REG(0xBA, DM0CNT_H);
       }
     }
   }
-  
+
   // DMA 1
   if((DM1CNT_H & 0x8000) && (dmamask & 2)) {
     if(((DM1CNT_H >> 12) & 3) == reason) {
@@ -2389,19 +2171,19 @@ void CPUCheckDMA(int reason, int dmamask)
       case 2:
         destIncrement = 0;
         break;
-      }      
+      }
       if(reason == 3) {
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA1) {
           log("DMA1: s=%08x d=%08x c=%04x count=%08x\n", dma1Source, dma1Dest,
               DM1CNT_H,
               16);
         }
-#endif  
+#endif
         doDMA(dma1Source, dma1Dest, sourceIncrement, 0, 4,
               0x0400);
       } else {
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA1) {
           int count = (DM1CNT_L ? DM1CNT_L : 0x4000) << 1;
           if(DM1CNT_H & 0x0400)
@@ -2410,7 +2192,7 @@ void CPUCheckDMA(int reason, int dmamask)
               DM1CNT_H,
               count);
         }
-#endif          
+#endif
         doDMA(dma1Source, dma1Dest, sourceIncrement, destIncrement,
               DM1CNT_L ? DM1CNT_L : 0x4000,
               DM1CNT_H & 0x0400);
@@ -2422,18 +2204,18 @@ void CPUCheckDMA(int reason, int dmamask)
         UPDATE_REG(0x202, IF);
         cpuNextEvent = cpuTotalTicks;
       }
-      
+
       if(((DM1CNT_H >> 5) & 3) == 3) {
         dma1Dest = DM1DAD_L | (DM1DAD_H << 16);
       }
-      
+
       if(!(DM1CNT_H & 0x0200) || (reason == 0)) {
         DM1CNT_H &= 0x7FFF;
         UPDATE_REG(0xC6, DM1CNT_H);
       }
     }
   }
-  
+
   // DMA 2
   if((DM2CNT_H & 0x8000) && (dmamask & 4)) {
     if(((DM2CNT_H >> 12) & 3) == reason) {
@@ -2458,20 +2240,20 @@ void CPUCheckDMA(int reason, int dmamask)
       case 2:
         destIncrement = 0;
         break;
-      }      
+      }
       if(reason == 3) {
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA2) {
           int count = (4) << 2;
           log("DMA2: s=%08x d=%08x c=%04x count=%08x\n", dma2Source, dma2Dest,
               DM2CNT_H,
               count);
         }
-#endif                  
+#endif
         doDMA(dma2Source, dma2Dest, sourceIncrement, 0, 4,
               0x0400);
       } else {
-#ifdef DEV_VERSION
+#ifdef GBA_LOGGING
         if(systemVerbose & VERBOSE_DMA2) {
           int count = (DM2CNT_L ? DM2CNT_L : 0x4000) << 1;
           if(DM2CNT_H & 0x0400)
@@ -2480,7 +2262,7 @@ void CPUCheckDMA(int reason, int dmamask)
               DM2CNT_H,
               count);
         }
-#endif                  
+#endif
         doDMA(dma2Source, dma2Dest, sourceIncrement, destIncrement,
               DM2CNT_L ? DM2CNT_L : 0x4000,
               DM2CNT_H & 0x0400);
@@ -2496,7 +2278,7 @@ void CPUCheckDMA(int reason, int dmamask)
       if(((DM2CNT_H >> 5) & 3) == 3) {
         dma2Dest = DM2DAD_L | (DM2DAD_H << 16);
       }
-      
+
       if(!(DM2CNT_H & 0x0200) || (reason == 0)) {
         DM2CNT_H &= 0x7FFF;
         UPDATE_REG(0xD2, DM2CNT_H);
@@ -2528,8 +2310,8 @@ void CPUCheckDMA(int reason, int dmamask)
       case 2:
         destIncrement = 0;
         break;
-      }      
-#ifdef DEV_VERSION
+      }
+#ifdef GBA_LOGGING
       if(systemVerbose & VERBOSE_DMA3) {
         int count = (DM3CNT_L ? DM3CNT_L : 0x10000) << 1;
         if(DM3CNT_H & 0x0400)
@@ -2538,7 +2320,7 @@ void CPUCheckDMA(int reason, int dmamask)
             DM3CNT_H,
             count);
       }
-#endif                
+#endif
       doDMA(dma3Source, dma3Dest, sourceIncrement, destIncrement,
             DM3CNT_L ? DM3CNT_L : 0x10000,
             DM3CNT_H & 0x0400);
@@ -2551,7 +2333,7 @@ void CPUCheckDMA(int reason, int dmamask)
       if(((DM3CNT_H >> 5) & 3) == 3) {
         dma3Dest = DM3DAD_L | (DM3DAD_H << 16);
       }
-      
+
       if(!(DM3CNT_H & 0x0200) || (reason == 0)) {
         DM3CNT_H &= 0x7FFF;
         UPDATE_REG(0xDE, DM3CNT_H);
@@ -2562,25 +2344,28 @@ void CPUCheckDMA(int reason, int dmamask)
 
 void CPUUpdateRegister(u32 address, u16 value)
 {
-  switch(address) {
+  switch(address)
+  {
   case 0x00:
-    {
-      if ((value & 7) >5)
-          DISPCNT = (value &7);
-      bool change = ((DISPCNT ^ value) & 0x80) ? true : false;
-      bool changeBG = ((DISPCNT ^ value) & 0x0F00) ? true : false;
-      u16 changeBGon = (((~DISPCNT) & value) & 0x0F00);
-      DISPCNT = (value & 0xFFF7);
+    { // we need to place the following code in { } because we declare & initialize variables in a case statement
+      if((value & 7) > 5) {
+        // display modes above 0-5 are prohibited
+        DISPCNT = (value & 7);
+      }
+      bool change = (0 != ((DISPCNT ^ value) & 0x80));
+      bool changeBG = (0 != ((DISPCNT ^ value) & 0x0F00));
+      u16 changeBGon = ((~DISPCNT) & value) & 0x0F00; // these layers are being activated
+
+      DISPCNT = (value & 0xFFF7); // bit 3 can only be accessed by the BIOS to enable GBC mode
       UPDATE_REG(0x00, DISPCNT);
 
-      if (changeBGon)
-      {
-         layerEnableDelay=4;
-         layerEnable = layerSettings & value & (~changeBGon);
+      if(changeBGon) {
+        layerEnableDelay = 4;
+        layerEnable = layerSettings & value & (~changeBGon);
+      } else {
+        layerEnable = layerSettings & value;
+        // CPUUpdateTicks();
       }
-       else
-         layerEnable = layerSettings & value;
-      //      CPUUpdateTicks();
 
       windowOn = (layerEnable & 0x6000) ? true : false;
       if(change && !((value & 0x80))) {
@@ -2596,10 +2381,11 @@ void CPUUpdateRegister(u32 address, u16 value)
       }
       CPUUpdateRender();
       // we only care about changes in BG0-BG3
-      if(changeBG)
+      if(changeBG) {
         CPUUpdateRenderBuffers(false);
+      }
+      break;
     }
-    break;
   case 0x04:
     DISPSTAT = (value & 0xFF38) | (DISPSTAT & 7);
     UPDATE_REG(0x04, DISPSTAT);
@@ -2638,7 +2424,7 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x16:
     BG1VOFS = value & 511;
     UPDATE_REG(0x16, BG1VOFS);
-    break;      
+    break;
   case 0x18:
     BG2HOFS = value & 511;
     UPDATE_REG(0x18, BG2HOFS);
@@ -2654,7 +2440,7 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x1E:
     BG3VOFS = value & 511;
     UPDATE_REG(0x1E, BG3VOFS);
-    break;      
+    break;
   case 0x20:
     BG2PA = value;
     UPDATE_REG(0x20, BG2PA);
@@ -2679,17 +2465,17 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x2A:
     BG2X_H = (value & 0xFFF);
     UPDATE_REG(0x2A, BG2X_H);
-    gfxBG2Changed |= 1;    
+    gfxBG2Changed |= 1;
     break;
   case 0x2C:
     BG2Y_L = value;
     UPDATE_REG(0x2C, BG2Y_L);
-    gfxBG2Changed |= 2;    
+    gfxBG2Changed |= 2;
     break;
   case 0x2E:
     BG2Y_H = value & 0xFFF;
     UPDATE_REG(0x2E, BG2Y_H);
-    gfxBG2Changed |= 2;    
+    gfxBG2Changed |= 2;
     break;
   case 0x30:
     BG3PA = value;
@@ -2715,17 +2501,17 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x3A:
     BG3X_H = value & 0xFFF;
     UPDATE_REG(0x3A, BG3X_H);
-    gfxBG3Changed |= 1;    
+    gfxBG3Changed |= 1;
     break;
   case 0x3C:
     BG3Y_L = value;
     UPDATE_REG(0x3C, BG3Y_L);
-    gfxBG3Changed |= 2;    
+    gfxBG3Changed |= 2;
     break;
   case 0x3E:
     BG3Y_H = value & 0xFFF;
     UPDATE_REG(0x3E, BG3Y_H);
-    gfxBG3Changed |= 2;    
+    gfxBG3Changed |= 2;
     break;
   case 0x40:
     WIN0H = value;
@@ -2735,8 +2521,8 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x42:
     WIN1H = value;
     UPDATE_REG(0x42, WIN1H);
-    CPUUpdateWindow1();    
-    break;      
+    CPUUpdateWindow1();
+    break;
   case 0x44:
     WIN0V = value;
     UPDATE_REG(0x44, WIN0V);
@@ -2799,7 +2585,7 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x98:
   case 0x9a:
   case 0x9c:
-  case 0x9e:    
+  case 0x9e:
     soundEvent(address&0xFF, value);
     break;
   case 0xB0:
@@ -2828,15 +2614,15 @@ void CPUUpdateRegister(u32 address, u16 value)
       value &= 0xF7E0;
 
       DM0CNT_H = value;
-      UPDATE_REG(0xBA, DM0CNT_H);    
-    
+      UPDATE_REG(0xBA, DM0CNT_H);
+
       if(start && (value & 0x8000)) {
         dma0Source = DM0SAD_L | (DM0SAD_H << 16);
         dma0Dest = DM0DAD_L | (DM0DAD_H << 16);
         CPUCheckDMA(0, 1);
       }
     }
-    break;      
+    break;
   case 0xBC:
     DM1SAD_L = value;
     UPDATE_REG(0xBC, DM1SAD_L);
@@ -2861,10 +2647,10 @@ void CPUUpdateRegister(u32 address, u16 value)
     {
       bool start = ((DM1CNT_H ^ value) & 0x8000) ? true : false;
       value &= 0xF7E0;
-      
+
       DM1CNT_H = value;
       UPDATE_REG(0xC6, DM1CNT_H);
-      
+
       if(start && (value & 0x8000)) {
         dma1Source = DM1SAD_L | (DM1SAD_H << 16);
         dma1Dest = DM1DAD_L | (DM1DAD_H << 16);
@@ -2895,18 +2681,18 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0xD2:
     {
       bool start = ((DM2CNT_H ^ value) & 0x8000) ? true : false;
-      
+
       value &= 0xF7E0;
-      
+
       DM2CNT_H = value;
       UPDATE_REG(0xD2, DM2CNT_H);
-      
+
       if(start && (value & 0x8000)) {
         dma2Source = DM2SAD_L | (DM2SAD_H << 16);
         dma2Dest = DM2DAD_L | (DM2DAD_H << 16);
 
         CPUCheckDMA(0, 4);
-      }            
+      }
     }
     break;
   case 0xD4:
@@ -2937,7 +2723,7 @@ void CPUUpdateRegister(u32 address, u16 value)
 
       DM3CNT_H = value;
       UPDATE_REG(0xDE, DM3CNT_H);
-    
+
       if(start && (value & 0x8000)) {
         dma3Source = DM3SAD_L | (DM3SAD_H << 16);
         dma3Dest = DM3DAD_L | (DM3DAD_H << 16);
@@ -2945,8 +2731,9 @@ void CPUUpdateRegister(u32 address, u16 value)
       }
     }
     break;
- case 0x100:
+  case 0x100:
     timer0Reload = value;
+    interp_rate();
     break;
   case 0x102:
     timer0Value = value;
@@ -2955,6 +2742,7 @@ void CPUUpdateRegister(u32 address, u16 value)
     break;
   case 0x104:
     timer1Reload = value;
+    interp_rate();
     break;
   case 0x106:
     timer1Value = value;
@@ -2978,16 +2766,34 @@ void CPUUpdateRegister(u32 address, u16 value)
     cpuNextEvent = cpuTotalTicks;
     break;
   case 0x128:
-    if(value & 0x80) {
-      value &= 0xff7f;
-      if(value & 1 && (value & 0x4000)) {
-        UPDATE_REG(0x12a, 0xFF);
-        IF |= 0x80;
-        UPDATE_REG(0x202, IF);
-        value &= 0x7f7f;
-      }
+#ifdef LINK_EMULATION
+    if (linkenable)
+    {
+      StartLink(value);
     }
-    UPDATE_REG(0x128, value);
+    else
+#endif
+    {
+      if(value & 0x80) {
+        value &= 0xff7f;
+        if(value & 1 && (value & 0x4000)) {
+          UPDATE_REG(0x12a, 0xFF);
+          IF |= 0x80;
+          UPDATE_REG(0x202, IF);
+          value &= 0x7f7f;
+        }
+      }
+      UPDATE_REG(0x128, value);
+    }
+    break;
+  case 0x12a:
+#ifdef LINK_EMULATION
+    if(linkenable && lspeed)
+      LinkSSend(value);
+#endif
+    {
+      UPDATE_REG(0x134, value);
+    }
     break;
   case 0x130:
     P1 |= (value & 0x3FF);
@@ -2995,6 +2801,24 @@ void CPUUpdateRegister(u32 address, u16 value)
     break;
   case 0x132:
     UPDATE_REG(0x132, value & 0xC3FF);
+    break;
+  case 0x134:
+#ifdef LINK_EMULATION
+    if (linkenable)
+      StartGPLink(value);
+    else
+#endif
+      UPDATE_REG(0x134, value);
+
+    break;
+  case 0x140:
+#ifdef LINK_EMULATION
+    if (linkenable)
+      StartJOYLink(value);
+    else
+#endif
+      UPDATE_REG(0x140, value);
+
     break;
   case 0x200:
     IE = value & 0x3FFF;
@@ -3009,30 +2833,30 @@ void CPUUpdateRegister(u32 address, u16 value)
   case 0x204:
     {
       memoryWait[0x0e] = memoryWaitSeq[0x0e] = gamepakRamWaitState[value & 3];
-      
+
       if(!speedHack) {
         memoryWait[0x08] = memoryWait[0x09] = gamepakWaitState[(value >> 2) & 3];
         memoryWaitSeq[0x08] = memoryWaitSeq[0x09] =
           gamepakWaitState0[(value >> 4) & 1];
-        
+
         memoryWait[0x0a] = memoryWait[0x0b] = gamepakWaitState[(value >> 5) & 3];
         memoryWaitSeq[0x0a] = memoryWaitSeq[0x0b] =
           gamepakWaitState1[(value >> 7) & 1];
-        
+
         memoryWait[0x0c] = memoryWait[0x0d] = gamepakWaitState[(value >> 8) & 3];
         memoryWaitSeq[0x0c] = memoryWaitSeq[0x0d] =
           gamepakWaitState2[(value >> 10) & 1];
       } else {
         memoryWait[0x08] = memoryWait[0x09] = 3;
         memoryWaitSeq[0x08] = memoryWaitSeq[0x09] = 1;
-        
+
         memoryWait[0x0a] = memoryWait[0x0b] = 3;
         memoryWaitSeq[0x0a] = memoryWaitSeq[0x0b] = 1;
-        
+
         memoryWait[0x0c] = memoryWait[0x0d] = 3;
         memoryWaitSeq[0x0c] = memoryWaitSeq[0x0d] = 1;
       }
-         
+
       for(int i = 8; i < 15; i++) {
         memoryWait32[i] = memoryWait[i] + memoryWaitSeq[i] + 1;
         memoryWaitSeq32[i] = memoryWaitSeq[i]*2 + 1;
@@ -3072,37 +2896,39 @@ void applyTimer ()
 {
   if (timerOnOffDelay & 1)
   {
-    timer0ClockReload = TIMER_TICKS[timer0Value & 3];        
+    timer0ClockReload = TIMER_TICKS[timer0Value & 3];
     if(!timer0On && (timer0Value & 0x80)) {
       // reload the counter
-      TM0D = timer0Reload;      
+      TM0D = timer0Reload;
       timer0Ticks = (0x10000 - TM0D) << timer0ClockReload;
       UPDATE_REG(0x100, TM0D);
     }
     timer0On = timer0Value & 0x80 ? true : false;
     TM0CNT = timer0Value & 0xC7;
+    interp_rate();
     UPDATE_REG(0x102, TM0CNT);
     //    CPUUpdateTicks();
   }
   if (timerOnOffDelay & 2)
   {
-    timer1ClockReload = TIMER_TICKS[timer1Value & 3];        
+    timer1ClockReload = TIMER_TICKS[timer1Value & 3];
     if(!timer1On && (timer1Value & 0x80)) {
       // reload the counter
-      TM1D = timer1Reload;      
+      TM1D = timer1Reload;
       timer1Ticks = (0x10000 - TM1D) << timer1ClockReload;
       UPDATE_REG(0x104, TM1D);
     }
     timer1On = timer1Value & 0x80 ? true : false;
     TM1CNT = timer1Value & 0xC7;
+    interp_rate();
     UPDATE_REG(0x106, TM1CNT);
   }
   if (timerOnOffDelay & 4)
   {
-    timer2ClockReload = TIMER_TICKS[timer2Value & 3];        
+    timer2ClockReload = TIMER_TICKS[timer2Value & 3];
     if(!timer2On && (timer2Value & 0x80)) {
       // reload the counter
-      TM2D = timer2Reload;      
+      TM2D = timer2Reload;
       timer2Ticks = (0x10000 - TM2D) << timer2ClockReload;
       UPDATE_REG(0x108, TM2D);
     }
@@ -3112,10 +2938,10 @@ void applyTimer ()
   }
   if (timerOnOffDelay & 8)
   {
-    timer3ClockReload = TIMER_TICKS[timer3Value & 3];        
+    timer3ClockReload = TIMER_TICKS[timer3Value & 3];
     if(!timer3On && (timer3Value & 0x80)) {
       // reload the counter
-      TM3D = timer3Reload;      
+      TM3D = timer3Reload;
       timer3Ticks = (0x10000 - TM3D) << timer3ClockReload;
       UPDATE_REG(0x10C, TM3D);
     }
@@ -3125,249 +2951,6 @@ void applyTimer ()
   }
   cpuNextEvent = CPUUpdateTicks();
   timerOnOffDelay = 0;
-}
-
-void CPUWriteHalfWord(u32 address, u16 value)
-{
-#ifdef DEV_VERSION
-  if(address & 1) {
-    if(systemVerbose & VERBOSE_UNALIGNED_MEMORY) {
-      log("Unaligned halfword write: %04x to %08x from %08x\n",
-          value,
-          address,
-          armMode ? armNextPC - 4 : armNextPC - 2);
-    }
-  }
-#endif
-  
-  switch(address >> 24) {
-  case 2:
-#ifdef BKPT_SUPPORT
-    if(*((u16 *)&freezeWorkRAM[address & 0x3FFFE]))
-      cheatsWriteHalfWord(address & 0x203FFFE,
-                          value);
-    else
-#endif
-      WRITE16LE(((u16 *)&workRAM[address & 0x3FFFE]),value);
-    break;
-  case 3:
-#ifdef BKPT_SUPPORT
-    if(*((u16 *)&freezeInternalRAM[address & 0x7ffe]))
-      cheatsWriteHalfWord(address & 0x3007ffe,
-                          value);
-    else
-#endif
-      WRITE16LE(((u16 *)&internalRAM[address & 0x7ffe]), value);
-    break;    
-  case 4:
-    if(address < 0x4000400)
-      CPUUpdateRegister(address & 0x3fe, value);
-    else goto unwritable;
-    break;
-  case 5:
-#ifdef BKPT_SUPPORT
-    if(*((u16 *)&freezePRAM[address & 0x03fe]))
-      cheatsWriteHalfWord(address & 0x70003fe,
-                          value);
-    else
-#endif
-    WRITE16LE(((u16 *)&paletteRAM[address & 0x3fe]), value);
-    break;
-  case 6:
-    address = (address & 0x1fffe);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
-        return;
-    if ((address & 0x18000) == 0x18000)
-      address &= 0x17fff;
-#ifdef BKPT_SUPPORT
-    if(*((u16 *)&freezeVRAM[address]))
-      cheatsWriteHalfWord(address + 0x06000000,
-                          value);
-    else
-#endif
-    WRITE16LE(((u16 *)&vram[address]), value); 
-    break;
-  case 7:
-#ifdef BKPT_SUPPORT
-    if(*((u16 *)&freezeOAM[address & 0x03fe]))
-      cheatsWriteHalfWord(address & 0x70003fe,
-                          value);
-    else
-#endif
-    WRITE16LE(((u16 *)&oam[address & 0x3fe]), value);
-    break;
-  case 8:
-  case 9:
-    if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8) {
-      if(!rtcWrite(address, value))
-        goto unwritable;
-    } else if(!agbPrintWrite(address, value)) goto unwritable;
-    break;
-  case 13:
-    if(cpuEEPROMEnabled) {
-      eepromWrite(address, (u8)value);
-      break;
-    }
-    goto unwritable;
-  case 14:
-    if(!eepromInUse | cpuSramEnabled | cpuFlashEnabled) {
-      (*cpuSaveGameFunc)(address, (u8)value);
-      break;
-    }
-    goto unwritable;
-  default:
-  unwritable:
-#ifdef DEV_VERSION
-    if(systemVerbose & VERBOSE_ILLEGAL_WRITE) {
-      log("Illegal halfword write: %04x to %08x from %08x\n",
-          value,
-          address,
-          armMode ? armNextPC - 4 : armNextPC - 2);
-    }
-#endif
-    break;
-  }
-}
-
-void CPUWriteByte(u32 address, u8 b)
-{
-  switch(address >> 24) {
-  case 2:
-#ifdef BKPT_SUPPORT
-      if(freezeWorkRAM[address & 0x3FFFF])
-        cheatsWriteByte(address & 0x203FFFF, b);
-      else
-#endif  
-        workRAM[address & 0x3FFFF] = b;
-    break;
-  case 3:
-#ifdef BKPT_SUPPORT
-    if(freezeInternalRAM[address & 0x7fff])
-      cheatsWriteByte(address & 0x3007fff, b);
-    else
-#endif
-      internalRAM[address & 0x7fff] = b;
-    break;
-  case 4:
-    if(address < 0x4000400) {
-      switch(address & 0x3FF) {
-      case 0x301:
-	if(b == 0x80)
-	  stopState = true;
-	holdState = 1;
-	holdType = -1;
-  cpuNextEvent = cpuTotalTicks;
-	break;
-      case 0x60:
-      case 0x61:
-      case 0x62:
-      case 0x63:
-      case 0x64:
-      case 0x65:
-      case 0x68:
-      case 0x69:
-      case 0x6c:
-      case 0x6d:
-      case 0x70:
-      case 0x71:
-      case 0x72:
-      case 0x73:
-      case 0x74:
-      case 0x75:
-      case 0x78:
-      case 0x79:
-      case 0x7c:
-      case 0x7d:
-      case 0x80:
-      case 0x81:
-      case 0x84:
-      case 0x85:
-      case 0x90:
-      case 0x91:
-      case 0x92:
-      case 0x93:
-      case 0x94:
-      case 0x95:
-      case 0x96:
-      case 0x97:
-      case 0x98:
-      case 0x99:
-      case 0x9a:
-      case 0x9b:
-      case 0x9c:
-      case 0x9d:
-      case 0x9e:
-      case 0x9f:      
-	soundEvent(address&0xFF, b);
-	break;
-      default:
-	if(address & 1)
-	  CPUUpdateRegister(address & 0x3fe,
-			    ((READ16LE(((u16 *)&ioMem[address & 0x3fe])))
-			     & 0x00FF) |
-			    b<<8);
-	else
-	  CPUUpdateRegister(address & 0x3fe,
-			    ((READ16LE(((u16 *)&ioMem[address & 0x3fe])) & 0xFF00) | b));
-      }
-      break;
-    } else goto unwritable;
-    break;
-  case 5:
-    // no need to switch
-    *((u16 *)&paletteRAM[address & 0x3FE]) = (b << 8) | b;
-    break;
-  case 6:
-    address = (address & 0x1fffe);
-    if (((DISPCNT & 7) >2) && ((address & 0x1C000) == 0x18000))
-        return;
-    if ((address & 0x18000) == 0x18000)
-      address &= 0x17fff;
-
-    // no need to switch 
-    // byte writes to OBJ VRAM are ignored
-    if ((address) < objTilesAddress[((DISPCNT&7)+1)>>2])
-    {
-#ifdef BKPT_SUPPORT
-      if(freezeVRAM[address])
-        cheatsWriteByte(address + 0x06000000, b);
-      else
-#endif  
-            *((u16 *)&vram[address]) = (b << 8) | b;
-    }
-    break;
-  case 7:
-    // no need to switch
-    // byte writes to OAM are ignored
-    //    *((u16 *)&oam[address & 0x3FE]) = (b << 8) | b;
-    break;    
-  case 13:
-    if(cpuEEPROMEnabled) {
-      eepromWrite(address, b);
-      break;
-    }
-    goto unwritable;
-  case 14:
-      if (!(saveType == 5) && (!eepromInUse | cpuSramEnabled | cpuFlashEnabled)) {
-
-    //if(!cpuEEPROMEnabled && (cpuSramEnabled | cpuFlashEnabled)) { 
-
-        (*cpuSaveGameFunc)(address, b);
-      break;
-    }
-    // default
-  default:
-  unwritable:
-#ifdef DEV_VERSION
-    if(systemVerbose & VERBOSE_ILLEGAL_WRITE) {
-      log("Illegal byte write: %02x to %08x from %08x\n",
-          b,
-          address,
-          armMode ? armNextPC - 4 : armNextPC -2 );
-    }
-#endif
-    break;
-  }
 }
 
 u8 cpuBitsSet[256];
@@ -3387,7 +2970,7 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
   eepromInUse = 0;
   saveType = 0;
   useBios = false;
-  
+
   if(useBiosFile) {
     int size = 0x4000;
     if(utilLoad(biosFileName,
@@ -3400,7 +2983,7 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
         systemMessage(MSG_INVALID_BIOS_FILE_SIZE, N_("Invalid BIOS file size"));
     }
   }
-  
+
   if(!useBios) {
     memcpy(bios, myROM, sizeof(myROM));
   }
@@ -3419,7 +3002,7 @@ void CPUInit(const char *biosFileName, bool useBiosFile)
       if(i & (1 << j))
         count++;
     cpuBitsSet[i] = count;
-    
+
     for(j = 0; j < 8; j++)
       if(i & (1 << j))
         break;
@@ -3577,7 +3160,7 @@ void CPUReset()
   IME      = 0x0000;
 
   armMode = 0x1F;
-  
+
   if(cpuIsMultiBoot) {
     reg[13].I = 0x03007F00;
     reg[15].I = 0x02000000;
@@ -3589,15 +3172,15 @@ void CPUReset()
     if(useBios && !skipBios) {
       reg[15].I = 0x00000000;
       armMode = 0x13;
-      armIrqEnable = false;  
+      armIrqEnable = false;
     } else {
       reg[13].I = 0x03007F00;
       reg[15].I = 0x08000000;
       reg[16].I = 0x00000000;
       reg[R13_IRQ].I = 0x03007FA0;
       reg[R13_SVC].I = 0x03007FE0;
-      armIrqEnable = true;      
-    }    
+      armIrqEnable = true;
+    }
   }
   armState = true;
   C_FLAG = V_FLAG = N_FLAG = Z_FLAG = false;
@@ -3612,21 +3195,21 @@ void CPUReset()
 
   // disable FIQ
   reg[16].I |= 0x40;
-  
+
   CPUUpdateCPSR();
-  
+
   armNextPC = reg[15].I;
   reg[15].I += 4;
 
   // reset internal state
   holdState = false;
   holdType = 0;
-  
+
   biosProtected[0] = 0x00;
   biosProtected[1] = 0xf0;
   biosProtected[2] = 0x29;
   biosProtected[3] = 0xe1;
-  
+
   lcdTicks = (useBios && !skipBios) ? 1008 : 208;
   timer0On = false;
   timer0Ticks = 0;
@@ -3661,7 +3244,7 @@ void CPUReset()
   layerEnable = DISPCNT & layerSettings;
 
   CPUUpdateRenderBuffers(true);
-  
+
   for(int i = 0; i < 256; i++) {
     map[i].address = (u8 *)&dummyAddress;
     map[i].mask = 0;
@@ -3684,7 +3267,7 @@ void CPUReset()
   map[8].address = rom;
   map[8].mask = 0x1FFFFFF;
   map[9].address = rom;
-  map[9].mask = 0x1FFFFFF;  
+  map[9].mask = 0x1FFFFFF;
   map[10].address = rom;
   map[10].mask = 0x1FFFFFF;
   map[12].address = rom;
@@ -3694,7 +3277,7 @@ void CPUReset()
 
   eepromReset();
   flashReset();
-  
+
   soundReset();
 
   CPUUpdateWindow0();
@@ -3759,7 +3342,7 @@ void CPUReset()
     // no save at all
     saveType = gbaSaveType = 5;
     break;
-  } 
+  }
 
   ARM_PREFETCH;
 
@@ -3800,7 +3383,7 @@ void log(const char *defaultMsg, ...)
 {
   char buffer[2048];
   va_list valist;
-  
+
   va_start(valist, defaultMsg);
   vsprintf(buffer, defaultMsg, valist);
 
@@ -3809,7 +3392,7 @@ void log(const char *defaultMsg, ...)
   }
 
   fputs(buffer, out);
-  
+
   va_end(valist);
 }
 #else
@@ -3817,11 +3400,15 @@ extern void winlog(const char *, ...);
 #endif
 
 void CPULoop(int ticks)
-{  
+{
   int clockTicks;
   int timerOverflow = 0;
   // variable used by the CPU core
   cpuTotalTicks = 0;
+#ifdef LINK_EMULATION
+  if(linkenable)
+    cpuNextEvent = 1;
+#endif
   cpuBreakLoop = false;
   cpuNextEvent = CPUUpdateTicks();
   if(cpuNextEvent > ticks)
@@ -3865,25 +3452,14 @@ void CPULoop(int ticks)
 #endif /* FINAL_VERSION */
 
     if(!holdState && !SWITicks) {
-
-      // Emulates the Cheat System (m) code
-      if((cheatsEnabled) && (mastercode) && (mastercode == armNextPC))
-      {
-        u32 joy = 0;
-        if(systemReadJoypads())
-          joy = systemReadJoypad(-1);
-        u32 ext = (joy >> 10);
-        cpuTotalTicks += cheatsCheckKeys(P1^0x3FF, ext);
-      }
-
-      if ((armNextPC & 0x0803FFFF) == 0x08020000)
-        busPrefetchCount=0x100;
-
       if(armState) {
-#include "arm-new.h"
+        if (!armExecute())
+          return;
       } else {
-#include "thumb.h"
+        if (!thumbExecute())
+          return;
       }
+      clockTicks = 0;
     } else
       clockTicks = CPUUpdateTicks();
 
@@ -3903,7 +3479,7 @@ void CPULoop(int ticks)
       clockTicks = cpuNextEvent;
       cpuTotalTicks = 0;
       cpuDmaHack = false;
-    
+
     updateLoop:
 
       if (IRQTicks)
@@ -3915,7 +3491,7 @@ void CPULoop(int ticks)
 
       lcdTicks -= clockTicks;
 
-      
+
       if(lcdTicks <= 0) {
         if(DISPSTAT & 1) { // V-BLANK
           // if in V-Blank mode, keep computing...
@@ -3935,7 +3511,7 @@ void CPULoop(int ticks)
               UPDATE_REG(0x202, IF);
             }
           }
-          
+
           if(VCOUNT >= 228) { //Reaching last line
             DISPSTAT &= 0xFFFC;
             UPDATE_REG(0x04, DISPSTAT);
@@ -3947,7 +3523,7 @@ void CPULoop(int ticks)
           int framesToSkip = systemFrameSkip;
           if(speedup)
             framesToSkip = 9; // try 6 FPS during speedup
-          
+
           if(DISPSTAT & 2) {
             // if in H-Blank, leave it and move to drawing mode
             VCOUNT++;
@@ -3958,7 +3534,7 @@ void CPULoop(int ticks)
             if(VCOUNT == 160) {
               count++;
               systemFrame();
-              
+
               if((count % 10) == 0) {
                 system10Frames(60);
               }
@@ -3979,7 +3555,7 @@ void CPULoop(int ticks)
                 joy = systemReadJoypad(-1);
               P1 = 0x03FF ^ (joy & 0x3FF);
               if(cpuEEPROMSensorEnabled)
-                systemUpdateMotionSensor();              
+                systemUpdateMotionSensor();
               UPDATE_REG(0x130, P1);
               u16 P1CNT = READ16LE(((u16 *)&ioMem[0x132]));
               // this seems wrong, but there are cases where the game
@@ -3999,14 +3575,14 @@ void CPULoop(int ticks)
                   }
                 }
               }
-              
+
               u32 ext = (joy >> 10);
               // If no (m) code is enabled, apply the cheats at each LCDline
               if((cheatsEnabled) && (mastercode==0))
                 remainingTicks += cheatsCheckKeys(P1^0x3FF, ext);
               speedup = (ext & 1) ? true : false;
               capture = (ext & 2) ? true : false;
-              
+
               if(capture && !capturePrevious) {
                 captureNumber++;
                 systemScreenCapture(captureNumber);
@@ -4024,39 +3600,39 @@ void CPULoop(int ticks)
               if(frameCount >= framesToSkip) {
                 systemDrawScreen();
                 frameCount = 0;
-              } else 
+              } else
                 frameCount++;
               if(systemPauseOnFrame())
                 ticks = 0;
             }
-            
+
             UPDATE_REG(0x04, DISPSTAT);
             CPUCompareVCOUNT();
 
           } else {
-            if(frameCount >= framesToSkip) 
+            if(frameCount >= framesToSkip)
             {
-              (*renderLine)(); 
+              (*renderLine)();
               switch(systemColorDepth) {
                 case 16:
                 {
-                  u16 *dest = (u16 *)pix + 240 * (VCOUNT);
+                  u16 *dest = (u16 *)pix + 242 * (VCOUNT+1);
                   for(int x = 0; x < 240;) {
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
-                    
+
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
-                    
+
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
-                    
+
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
                     *dest++ = systemColorMap16[lineMix[x++]&0xFFFF];
@@ -4104,7 +3680,7 @@ void CPULoop(int ticks)
                     *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
                     dest += 3;
                     *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;              
+                    dest += 3;
                   }
                 }
                 break;
@@ -4116,17 +3692,17 @@ void CPULoop(int ticks)
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                 
+
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    
+
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    
+
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
                     *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
@@ -4146,7 +3722,17 @@ void CPULoop(int ticks)
               UPDATE_REG(0x202, IF);
             }
           }
-        }       
+        }
+      }
+
+	    // we shouldn't be doing sound in stop state, but we loose synchronization
+      // if sound is disabled, so in stop state, soundTick will just produce
+      // mute sound
+      soundTicks -= clockTicks;
+      if(soundTicks <= 0) {
+        //psoundTickfn();
+        soundTick();
+        soundTicks += SOUND_CLOCK_TICKS;
       }
 
       if(!stopState) {
@@ -4162,9 +3748,9 @@ void CPULoop(int ticks)
             }
           }
           TM0D = 0xFFFF - (timer0Ticks >> timer0ClockReload);
-          UPDATE_REG(0x100, TM0D);            
+          UPDATE_REG(0x100, TM0D);
         }
-        
+
         if(timer1On) {
           if(TM1CNT & 4) {
             if(timerOverflow & 1) {
@@ -4184,7 +3770,7 @@ void CPULoop(int ticks)
             timer1Ticks -= clockTicks;
             if(timer1Ticks <= 0) {
               timer1Ticks += (0x10000 - timer1Reload) << timer1ClockReload;
-              timerOverflow |= 2;           
+              timerOverflow |= 2;
               soundTimerOverflow(1);
               if(TM1CNT & 0x40) {
                 IF |= 0x10;
@@ -4192,10 +3778,10 @@ void CPULoop(int ticks)
               }
             }
             TM1D = 0xFFFF - (timer1Ticks >> timer1ClockReload);
-            UPDATE_REG(0x104, TM1D); 
+            UPDATE_REG(0x104, TM1D);
           }
         }
-        
+
         if(timer2On) {
           if(TM2CNT & 4) {
             if(timerOverflow & 2) {
@@ -4214,17 +3800,17 @@ void CPULoop(int ticks)
             timer2Ticks -= clockTicks;
             if(timer2Ticks <= 0) {
               timer2Ticks += (0x10000 - timer2Reload) << timer2ClockReload;
-              timerOverflow |= 4;           
+              timerOverflow |= 4;
               if(TM2CNT & 0x40) {
                 IF |= 0x20;
                 UPDATE_REG(0x202, IF);
               }
             }
             TM2D = 0xFFFF - (timer2Ticks >> timer2ClockReload);
-            UPDATE_REG(0x108, TM2D); 
+            UPDATE_REG(0x108, TM2D);
           }
         }
-        
+
         if(timer3On) {
           if(TM3CNT & 4) {
             if(timerOverflow & 4) {
@@ -4241,28 +3827,21 @@ void CPULoop(int ticks)
           } else {
               timer3Ticks -= clockTicks;
             if(timer3Ticks <= 0) {
-              timer3Ticks += (0x10000 - timer3Reload) << timer3ClockReload;         
+              timer3Ticks += (0x10000 - timer3Reload) << timer3ClockReload;
               if(TM3CNT & 0x40) {
                 IF |= 0x40;
                 UPDATE_REG(0x202, IF);
               }
             }
             TM3D = 0xFFFF - (timer3Ticks >> timer3ClockReload);
-            UPDATE_REG(0x10C, TM3D); 
+            UPDATE_REG(0x10C, TM3D);
           }
         }
       }
 
       timerOverflow = 0;
 
-      // we shouldn't be doing sound in stop state, but we loose synchronization
-      // if sound is disabled, so in stop state, soundTick will just produce
-      // mute sound
-      soundTicks -= clockTicks;
-      if(soundTicks <= 0) {
-        soundTick();
-        soundTicks += SOUND_CLOCK_TICKS;
-      }
+
 
 #ifdef PROFILING
       profilingTicks -= clockTicks;
@@ -4285,9 +3864,12 @@ void CPULoop(int ticks)
 #endif
 
       ticks -= clockTicks;
-
+#ifdef LINK_EMULATION
+	  if (linkenable)
+		  LinkUpdate(clockTicks);
+#endif
       cpuNextEvent = CPUUpdateTicks();
-      
+
       if(cpuDmaTicksToUpdate > 0) {
         if(cpuDmaTicksToUpdate > cpuNextEvent)
           clockTicks = cpuNextEvent;
@@ -4299,7 +3881,10 @@ void CPULoop(int ticks)
         cpuDmaHack = true;
         goto updateLoop;
       }
-
+#ifdef LINK_EMULATION
+	  if(linkenable)
+  	       cpuNextEvent = 1;
+#endif
       if(IF && (IME & 1) && armIrqEnable) {
         int res = IF & IE;
         if(stopState)
@@ -4380,7 +3965,7 @@ struct EmulatedSystem GBASystem = {
   CPUWriteBatteryFile,
   // emuReadState
   CPUReadState,
-  // emuWriteState 
+  // emuWriteState
   CPUWriteState,
   // emuReadMemState
   CPUReadMemState,

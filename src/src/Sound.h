@@ -66,6 +66,9 @@ void soundEvent(u32, u16);
 void soundTimerOverflow(int);
 void soundSetQuality(int);
 
+//IMPLEMENT ME
+void interp_rate() {};
+
 extern int SOUND_CLOCK_TICKS;
 extern int soundTicks;
 extern int soundPaused;
