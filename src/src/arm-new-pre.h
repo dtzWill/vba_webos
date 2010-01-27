@@ -400,11 +400,12 @@
 //                 : "r" (value), "r" (reg[base].I));
 //=============================================================================
 #define LOGICAL_LSL_REG \
-    asm( "lsl %0, %2, %3;" \
+    asm( "lsls %0, %2, %3;" \
      "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
+     "ubfx %1, r3, #29, #1;" \
      : "=r" (value), "=r" (C_OUT) \
-     : "r" (reg[opcode & 0x0f].I), "r" (shift) );
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) \
+     : "r3" );
 //#define LOGICAL_LSL_REG \
 //   {\
 //     u32 v = reg[opcode & 0x0f].I;\
@@ -419,11 +420,18 @@
 //
 //=============================================================================
 #define LOGICAL_LSR_REG \
-   {\
-     u32 v = reg[opcode & 0x0f].I;\
-     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
-     value = v >> shift;\
-   }
+    asm( "lsrs %0, %2, %3;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #29, #1;" \
+     : "=r" (value), "=r" (C_OUT) \
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) \
+     : "r3" );
+//#define LOGICAL_LSR_REG \
+//   {\
+//     u32 v = reg[opcode & 0x0f].I;\
+//     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
+//     value = v >> shift;\
+//   }
 //#define LOGICAL_LSR_REG \
 //       asm("shr %%cl, %%eax;"\
 //           "setcb %%cl;"\
@@ -432,11 +440,18 @@
 //
 //=============================================================================
 #define LOGICAL_ASR_REG \
-   {\
-     u32 v = reg[opcode & 0x0f].I;\
-     C_OUT = ((s32)v >> (int)(shift - 1)) & 1 ? true : false;\
-     value = (s32)v >> (int)shift;\
-   }
+    asm( "asrs %0, %2, %3;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #29, #1;" \
+     : "=r" (value), "=r" (C_OUT) \
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) \
+     : "r3" );
+//#define LOGICAL_ASR_REG \
+//   {\
+//     u32 v = reg[opcode & 0x0f].I;\
+//     C_OUT = ((s32)v >> (int)(shift - 1)) & 1 ? true : false;\
+//     value = (s32)v >> (int)shift;\
+//   }
 //#define LOGICAL_ASR_REG \
 //       asm("sar %%cl, %%eax;"\
 //           "setcb %%cl;"\
@@ -445,12 +460,19 @@
 //
 //=============================================================================
 #define LOGICAL_ROR_REG \
-   {\
-     u32 v = reg[opcode & 0x0f].I;\
-     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
-     value = ((v << (32 - shift)) |\
-              (v >> shift));\
-   }
+    asm( "rors %0, %2, %3;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #29, #1;" \
+     : "=r" (value), "=r" (C_OUT) \
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) \
+     : "r3" );
+//#define LOGICAL_ROR_REG \
+//   {\
+//     u32 v = reg[opcode & 0x0f].I;\
+//     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
+//     value = ((v << (32 - shift)) |\
+//              (v >> shift));\
+//   }
 //#define LOGICAL_ROR_REG \
 //       asm("ror %%cl, %%eax;"\
 //           "setcb %%cl;"\
@@ -458,6 +480,13 @@
 //           : "a" (reg[opcode & 0x0f].I), "c" (shift));       
 //
 //=============================================================================
+//#define LOGICAL_RRX_REG \
+//    asm( "rrx %0, %2;" \
+//     "mrs r3, cpsr;" \
+//     "ubfx %1, r3, #29, #1;" \
+//     : "=r" (value), "=r" (C_OUT) \
+//     : "r" (reg[opcode & 0x0f].I) \
+//     : "r3" );
 #define LOGICAL_RRX_REG \
    {\
      u32 v = reg[opcode & 0x0f].I;\
@@ -475,12 +504,19 @@
 //
 //=============================================================================
 #define LOGICAL_ROR_IMM \
-   {\
-     u32 v = opcode & 0xff;\
-     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
-     value = ((v << (32 - shift)) |\
-              (v >> shift));\
-   }
+    asm( "rors %0, %2, %3;" \
+     "mrs r3, cpsr;" \
+     "ubfx %1, r3, #29, #1;" \
+     : "=r" (value), "=r" (C_OUT) \
+     : "r" (opcode & 0xff), "r" (shift) \
+     : "r3" );
+//#define LOGICAL_ROR_IMM \
+//   {\
+//     u32 v = opcode & 0xff;\
+//     C_OUT = (v >> (shift - 1)) & 1 ? true : false;\
+//     value = ((v << (32 - shift)) |\
+//              (v >> shift));\
+//   }
 //#define LOGICAL_ROR_IMM \
 //       asm("ror %%cl, %%eax;"\
 //           "setcb %%cl;"\
@@ -524,11 +560,15 @@
 //
 //=============================================================================
 #define ARITHMETIC_ROR_REG \
-   {\
-     u32 v = reg[opcode & 0x0f].I;\
-     value = ((v << (32 - shift)) |\
-              (v >> shift));\
-   }
+    asm( "ror %0, %1, %2;" \
+     : "=r" (value) \
+     : "r" (reg[opcode & 0x0f].I), "r" (shift) );
+//#define ARITHMETIC_ROR_REG \
+//   {\
+//     u32 v = reg[opcode & 0x0f].I;\
+//     value = ((v << (32 - shift)) |\
+//              (v >> shift));\
+//   }
 //#define ARITHMETIC_ROR_REG \
 //       asm("\
 //             ror %%cl, %%eax;"\
@@ -552,11 +592,15 @@
 //
 //=============================================================================
 #define ARITHMETIC_ROR_IMM \
-   {\
-     u32 v = opcode & 0xff;\
-     value = ((v << (32 - shift)) |\
-              (v >> shift));\
-   }
+    asm( "ror %0, %1, %2;" \
+     : "=r" (value) \
+     : "r" (opcode & 0xff), "r" (shift) );
+//#define ARITHMETIC_ROR_IMM \
+//   {\
+//     u32 v = opcode & 0xff;\
+//     value = ((v << (32 - shift)) |\
+//              (v >> shift));\
+//   }
 //#define ARITHMETIC_ROR_IMM \
 //       asm("\
 //             ror %%cl, %%eax;"\
@@ -564,21 +608,29 @@
 //           : "a" (opcode & 0xff), "c" (shift));
 //=============================================================================
 #define ROR_IMM_MSR \
-   {\
-     u32 v = opcode & 0xff;\
-     value = ((v << (32 - shift)) |\
-              (v >> shift));\
-   }
+    asm( "ror %0, %1, %2;" \
+     : "=r" (value) \
+     : "r" (opcode & 0xff), "r" (shift) );
+//#define ROR_IMM_MSR \
+//   {\
+//     u32 v = opcode & 0xff;\
+//     value = ((v << (32 - shift)) |\
+//              (v >> shift));\
+//   }
 //#define ROR_IMM_MSR \
 //      asm ("ror %%cl, %%eax;"\
 //           : "=a" (value)\
 //           : "a" (opcode & 0xFF), "c" (shift));
 //=============================================================================
 #define ROR_VALUE \
-   {\
-     value = ((value << (32 - shift)) |\
-              (value >> shift));\
-   }
+    asm( "ror %0, %1, %2;" \
+     : "=r" (value) \
+     : "r" (value), "r" (shift) );
+//#define ROR_VALUE \
+//   {\
+//     value = ((value << (32 - shift)) |\
+//              (value >> shift));\
+//   }
 //#define ROR_VALUE \
 //      asm("ror %%cl, %0"\
 //          : "=r" (value)\

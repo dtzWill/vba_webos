@@ -39,18 +39,25 @@
 #include "../Util.h"
 #include "../gb/GB.h"
 #include "../gb/gbGlobals.h"
+#include "controller.h"
+#include "options.h"
+#include "pdl.h"
 
 #include <SDL_opengles.h>
 #include <SDL_video.h>
+#include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <assert.h>
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.0.6"
+#define VERSION "1.1.2"
 
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
+#define SKIN_PATH VBA_HOME "/skins/"
+#define SKIN_CFG_NAME "controller.cfg"
+#define SKIN_IMG_NAME "controller.png"
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
@@ -61,7 +68,10 @@
 #define NO_ROMS5 "For more information, see the wiki"
 #define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
 
+#define OPTIONS_CFG VBA_HOME "/options.cfg"
+
 #define SCROLL_FACTOR 20
+#define AUTOSAVE_STATE 100
 
 //#define DEBUG_GL
 
@@ -156,7 +166,8 @@ SDL_Rect overlay_rect;
 /*-----------------------------------------------------------------------------
  *  GL variables
  *-----------------------------------------------------------------------------*/
-GLuint texture;
+GLuint texture = 0;
+GLuint controller_tex = 0;
 
 // Handle to a program object
 GLuint programObject;
@@ -179,11 +190,20 @@ enum orientation
     ORIENTATION_LANDSCAPE_L  // landscape, keyboard on left
 };
 
-int orientation = ORIENTATION_PORTRAIT;
+int orientation = ORIENTATION_LANDSCAPE_R;
 
 int gl_filter = GL_LINEAR;
 
 int combo_down = false;
+
+int use_on_screen = true;
+
+int autosave = false;
+
+//current skin
+controller_skin * skin = NULL;
+int skin_index = 0;
+int skin_count;
 
 /*-----------------------------------------------------------------------------
  *  Vertex coordinates for various orientations.
@@ -217,6 +237,18 @@ float portrait_vertexCoords[] =
     1, 1,
     1, -1
 };
+
+float * controller_coords = land_r_vertexCoords;
+
+float texCoords[] =
+{
+    0.0, 0.0,
+    0.0, 1.0,
+    1.0, 0.0,
+    1.0, 1.0
+};
+
+GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
 
 int systemSpeed = 0;
 int systemRedShift = 0;
@@ -285,6 +317,8 @@ char * bindingNames[]=
     "Press key for Select",
     "Press key for L",
     "Press key for R",
+    "Press key for turbo",
+    "Press key for capture",
     "Done binding keys"
 };
 //Config-file names
@@ -299,12 +333,15 @@ char * bindingCfgNames [] =
     "Joy0_Start",
     "Joy0_Select",
     "Joy0_L",
-    "Joy0_R"
+    "Joy0_R",
+    "Joy0_Speed",
+    "Joy0_Capture"
 };
 #define NOT_BINDING -1
-#define BINDING_DONE ( KEY_BUTTON_R + 1 )
+#define BINDING_DONE ( KEY_BUTTON_CAPTURE + 1 )
 static int keyBindingMode = NOT_BINDING;
 u16 bindingJoypad[12];
+
 
 #define REWIND_SIZE 400000
 #define SYSMSG_BUFFER_SIZE 1024
@@ -345,6 +382,7 @@ bool pauseNextFrame = false;
 bool debugger = false;
 bool debuggerStub = false;
 int fullscreen = 0;
+int soundMute = false;
 bool systemSoundOn = false;
 bool yuv = false;
 int yuvType = 0;
@@ -354,6 +392,17 @@ int sdlAutoIPS = 1;
 int sdlRtcEnable = 0;
 int sdlAgbPrint = 0;
 int sdlMirroringEnable = 0;
+
+vba_option state_options[] =
+{
+    { "orientation", &orientation },
+    { "sound", &soundMute },
+    { "filter", &gl_filter },
+    { "speed", &showSpeed },
+    { "onscreen", &use_on_screen },
+    { "autosave", &autosave },
+    { "skin", &skin_index }
+};
 
 int sdlDefaultJoypad = 0;
 
@@ -492,6 +541,118 @@ struct option sdlOptions[] = {
 extern bool CPUIsGBAImage(char *);
 extern bool gbIsGameboyRom(char *);
 
+typedef struct
+{
+    int button1;
+    int button2;
+    char valid;
+} controllerEvent;
+
+/* ===========================================================================
+ * controllerHitCheck
+ *   
+ *  Description:  Determines which on-screen controls were hit for the given x,y
+ * =========================================================================*/
+controllerEvent controllerHitCheck( int x, int y )
+{
+    controllerEvent event;
+    event.valid = false;
+    event.button1 = -1;
+    event.button2 = -1;
+
+    if ( !skin )
+    {
+        return event;
+    }
+
+    if ( hit_a( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_A;
+    }
+    else if ( hit_b( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_B;
+    }
+    else if ( hit_ab( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_A;
+        event.button2 = KEY_BUTTON_B;
+    }
+    else if ( hit_l( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_L;
+    }
+    else if ( hit_r( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_R;
+    }
+    else if ( hit_start( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_START;
+    }
+    else if ( hit_select( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_SELECT;
+    }
+    else if ( hit_turbo( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_SPEED;
+    }
+    else if ( hit_capture( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_BUTTON_CAPTURE;
+    }
+    //We assign up/down to button '1', and
+    //left/right to button '2'.
+    //(You can't hit u/d or l/r at same time
+    if ( hit_up( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_UP;
+    }
+    if ( hit_down( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button1 = KEY_DOWN;
+    }
+    if ( hit_left( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button2 = KEY_LEFT;
+    }
+    if ( hit_right( skin, x, y ) )
+    {
+        event.valid = true;
+        event.button2 = KEY_RIGHT;
+    }
+
+    return event;
+}
+
+void applyControllerEvent( controllerEvent ev, char state )
+{
+    if ( ev.valid )
+    {
+        if ( ev.button1 != -1 )
+        {
+            sdlButtons[0][ev.button1] = state;
+        }
+        if ( ev.button2 != -1 )
+        {
+            sdlButtons[0][ev.button2] = state;
+        }
+    }
+}
+
 u32 sdlFromHex(char *s)
 {
   u32 value;
@@ -605,8 +766,8 @@ FILE *sdlFindFile(const char *name)
     f = fopen(path, "r");
     if(f != NULL)
       return f;
-#endif // ! _WIN32
-    fprintf( stderr, "Searching %s", VBA_HOME );
+#endif // ! WIN32
+    fprintf( stderr, "Searching %s\n", VBA_HOME );
     sprintf(path, "%s%c%s", VBA_HOME, FILE_SEP, name);
     f = fopen(path, "r");
     if( f != NULL)
@@ -652,6 +813,24 @@ FILE *sdlFindFile(const char *name)
     }
   }
   return NULL;
+}
+
+void writeOptions()
+{
+    writeOptions(
+            OPTIONS_CFG,
+            state_options,
+            sizeof( state_options ) / sizeof( vba_option ),
+            true );
+}
+
+void readOptions()
+{
+    readOptions(
+            OPTIONS_CFG,
+            state_options,
+            sizeof( state_options ) / sizeof( vba_option ),
+            true );
 }
 
 void sdlReadPreferences(FILE *f)
@@ -1059,10 +1238,15 @@ void sdlWriteState(int num)
   if(emulator.emuWriteState)
     emulator.emuWriteState(stateName);
 
-  sprintf(stateName, "Wrote state %d", num+1);
-  systemScreenMessage(stateName);
-
-  systemDrawScreen();
+  if ( autosave && num == AUTOSAVE_STATE )
+  {
+      //Nothing
+  }
+  else
+  {
+      sprintf(stateName, "Wrote state %d", num+1);
+      systemScreenMessage(stateName);
+  }
 }
 
 void sdlReadState(int num)
@@ -1078,10 +1262,15 @@ void sdlReadState(int num)
   if(emulator.emuReadState)
     emulator.emuReadState(stateName);
 
-  sprintf(stateName, "Loaded state %d", num+1);
-  systemScreenMessage(stateName);
-
-  systemDrawScreen();
+  if ( autosave && num == AUTOSAVE_STATE )
+  {
+      systemScreenMessage( "Resuming auto state save...\n" );
+  }
+  else
+  {
+      sprintf(stateName, "Loaded state %d", num+1);
+      systemScreenMessage(stateName);
+  }
 }
 
 void sdlWriteBattery()
@@ -1097,6 +1286,15 @@ void sdlWriteBattery()
 
   //No one wants to see this; they assume it saves.
   //systemScreenMessage("Wrote battery");
+
+  //Write the current options.
+  writeOptions();
+
+  //Write the autosave!
+  if ( autosave )
+  {
+      sdlWriteState( AUTOSAVE_STATE );
+  }
 }
 
 void sdlReadBattery()
@@ -1405,14 +1603,48 @@ void sdlPollEvents()
         }
       }
       break;
-    case SDL_MOUSEMOTION:
     case SDL_MOUSEBUTTONUP:
     case SDL_MOUSEBUTTONDOWN:
-      if(fullscreen) {
-        SDL_ShowCursor(SDL_ENABLE);
-        mouseCounter = 120;
+    {
+      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
+      {
+          return;
       }
+      //These are switched and transformed because we're in landscape
+      int x = event.button.y;
+      int y = destWidth -event.button.x;
+      int state = event.button.state;
+
+      controllerEvent ev = controllerHitCheck( x, y );
+      applyControllerEvent( ev, state );
+
       break;
+    }
+    case SDL_MOUSEMOTION:
+    {
+      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
+      {
+          return;
+      }
+      //These are switched and transformed because we're in landscape
+      int x = event.motion.y;
+      int y = destWidth - event.motion.x;
+      int xrel = event.motion.yrel;
+      int yrel = -event.motion.xrel;
+
+      //We make this work by considering a motion event
+      //as releasing where we came FROM
+      //and a down event where it is now.
+      //XXX: Note that if from==now no harm, it'll end up down still
+      controllerEvent ev = controllerHitCheck( x, y );
+      controllerEvent old_ev = controllerHitCheck( x - xrel, y - yrel );
+
+      //Where the mouse is now
+      applyControllerEvent( old_ev, false );
+      applyControllerEvent( ev, true );
+
+      break;
+    }
     case SDL_JOYHATMOTION:
       sdlUpdateJoyHat(event.jhat.which,
                       event.jhat.hat,
@@ -1483,7 +1715,7 @@ void sdlPollEvents()
               fclose( f );
 
               //make this the current joy
-              memcpy( &joypad[0][0], bindingJoypad, 10*sizeof( u16 ) );
+              memcpy( &joypad[0][0], bindingJoypad, 12*sizeof( u16 ) );
               
               //we're done here!
               keyBindingMode = NOT_BINDING;
@@ -1590,7 +1822,12 @@ void sdlPollEvents()
         break;
       case SDLK_ASTERISK:
         //Toggle sound
-        systemSoundOn = !systemSoundOn;
+        soundMute = !soundMute;
+        break;
+      case SDLK_PLUS:
+        //toggle on-screen controls...
+        use_on_screen = !use_on_screen;
+        updateOrientation();
         break;
       case SDLK_QUOTE:
         //toggle filters...
@@ -1608,6 +1845,18 @@ void sdlPollEvents()
       case SDLK_MINUS:
         //toggle show speed
         showSpeed = !showSpeed;
+        break;
+      case SDLK_SLASH:
+        //toggle skins..
+        if ( skin_count > 0 )
+        {
+            skin = skin->next;
+            //So next time we know which one
+            skin_index = ( skin_index + 1 ) % skin_count;
+        }
+
+        GL_InitTexture();
+        updateOrientation();
         break;
       case SDLK_1:
       case SDLK_2:
@@ -1627,11 +1876,17 @@ void sdlPollEvents()
             sdlReadState( state );
             break;
         }
-        //This seems to only skip rendering frames on our end...
-        //has no speed benefit afaict and makes things choppier :/.
-      //case SDLK_AMPERSAND:
-      //  autoFrameSkip = !autoFrameSkip;
-      //  break;
+      case SDLK_AMPERSAND:
+        autosave = !autosave;
+        if ( autosave )
+        {
+            systemScreenMessage( "Auto save enabled" );
+        }
+        else
+        {
+            systemScreenMessage( "Auto save disabled" );
+        }
+        break;
       case SDLK_EQUALS:
         //Enter key-binding mode.
         keyBindingMode = NOT_BINDING;
@@ -1739,6 +1994,12 @@ int romFilter( const struct dirent * file )
 {
     const char * curPtr = file->d_name;
     const char * extPtr = NULL;
+    //Don't show 'hidden' files (that start with a '.')
+    if ( *curPtr == '.' )
+    {
+        return false;
+    }
+
     //Find the last period
     while ( *curPtr )
     {
@@ -1759,29 +2020,53 @@ int romFilter( const struct dirent * file )
     return !(
             strcasecmp( extPtr, "gb" ) &&
             strcasecmp( extPtr, "gbc" ) &&
-            strcasecmp( extPtr, "gba" ) );
+            strcasecmp( extPtr, "gba" ) &&
+            strcasecmp( extPtr, "zip" ) );
 }
 
-void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
+void apply_surface( int x, int y, int w, SDL_Surface* source, SDL_Surface* destination )
 {
     //Holds offsets
     SDL_Rect offset;
+    
+    //Source rect
+    SDL_Rect src;
 
     //Get offsets
     offset.x = x;
     offset.y = y;
 
+    src.x = 0;
+    src.y = 0;
+    src.w = w;
+    src.h = source->h;
+
     //Blit
-    SDL_BlitSurface( source, NULL, destination, &offset );
+    SDL_BlitSurface( source, &src, destination, &offset );
 }
 
-int sortCompar( const struct dirent ** a, const struct dirent ** b )
+void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
+{
+    apply_surface( x, y, source->w, source, destination );
+}
+
+//XXX: Figure out if there isn't something we can #ifdef for these
+//autoconf maybe?
+int sortComparD( const struct dirent ** a, const struct dirent ** b )
 {
     return strcasecmp( (*a)->d_name, (*b)->d_name );
 }
 
+int sortCompar( const void * a, const void * b )
+{
+    return sortComparD( (const struct dirent **)a, (const struct dirent**)b );
+}
+
 char * romSelector()
 {
+    //Put notifications on the 'bottom' of the screen with respect to our orientation
+    PDL_SetOrientation( PDL_ORIENTATION_LEFT );
+
     //Init SDL for non-gl interaction...
     surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
     if (!surface )
@@ -1798,7 +2083,7 @@ char * romSelector()
     }
 
     TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
-    TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
+    TTF_Font * font_normal = TTF_OpenFont( FONT, 22 );
     if ( !font_small || !font_normal )
     {
         fprintf( stderr, "Failed to open font: %s\n", FONT );
@@ -1834,7 +2119,7 @@ char * romSelector()
     top = 10+title->h+10;
 
     SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    bottom = surface->h - author->h - 20;
+    bottom = surface->h - author->h - 10;
 
     //Draw border/text
     SDL_FillRect( surface, NULL, borderColor );
@@ -1876,7 +2161,50 @@ char * romSelector()
     SDL_Surface * roms_surface[filecount];
     for ( int i = 0; i < filecount; i++ )
     {
-        roms_surface[i] = TTF_RenderText_Blended( font_normal, roms[i]->d_name, textColor );
+        //Here we remove everything in '()'s or '[]'s
+        //which is usually annoying release information, etc
+        char buffer[100];
+        char * src = roms[i]->d_name;
+        char * dst = buffer;
+        int inParen = 0;
+        while ( *src && dst < buffer+sizeof(buffer) - 1 )
+        {
+            char c = *src;
+            if ( c == '(' || c == '[' )
+            {
+                inParen++;
+            }
+            if ( !inParen )
+            {
+                *dst++ = *src;
+            }
+            if ( c == ')' || c == ']' )
+            {
+                inParen--;
+            }
+
+            src++;
+        }
+        *dst = '\0';
+
+        //now remove the extension..
+        char * extPtr = NULL;
+        dst = buffer;
+        while ( *dst )
+        {
+            if( *dst == '.' )
+            {
+                extPtr = dst;
+            }
+            dst++;
+        }
+        //If we found an extension, end the string at that period
+        if ( extPtr )
+        {
+            *extPtr = '\0';
+        }
+
+        roms_surface[i] = TTF_RenderText_Blended( font_normal, buffer, textColor );
     }
 
     int scroll_offset = 0;
@@ -1888,7 +2216,7 @@ char * romSelector()
     while( romSelected == -1 )
     {
         //Calculate scroll, etc
-        int num_roms_display = ( bottom - top ) / ( roms_surface[0]->h + 10 );
+        int num_roms_display = ( bottom - top + 10 ) / ( roms_surface[0]->h + 10 );
         //Get key input, process.
         while ( SDL_PollEvent( &event ) )
         {
@@ -1986,7 +2314,7 @@ char * romSelector()
                hiRect.w = surface->w - 20;
                SDL_FillRect( surface, &hiRect, hiColor );
            }
-           apply_surface( 20, top + (10+roms_surface[0]->h)*i, roms_surface[index], surface );
+           apply_surface( 20, top + (10+roms_surface[0]->h)*i, surface->w - 40, roms_surface[index], surface );
         }
 
         //Update screen.
@@ -2005,6 +2333,73 @@ char * romSelector()
     rom_full_path[strlen(ROM_PATH)] = '/';
     strcpy( rom_full_path + strlen( ROM_PATH ) + 1, rom_base );
     return rom_full_path;
+}
+
+void loadSkins()
+{
+    skin = NULL;
+
+    DIR * d = opendir( SKIN_PATH );
+    if ( !d )
+    {
+        perror( "Failed to open skin path!\n" );
+        return;
+    }
+    //Note: this code isn't super portable, mostly because I don't care right now :).
+    //Should work on most/all linux boxes...
+    //(including of course the pre :))
+
+    struct dirent * dp;
+    //For each entry in this directory..
+    while ( dp = readdir( d ) )
+    {
+        //If this is a directory
+        if ( dp->d_type == DT_DIR && dp->d_name[0] != '.' )
+        {
+            char * skin_name = dp->d_name;
+            int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
+
+            //build full path
+            char skin_folder[folderlen];
+            strcpy( skin_folder, SKIN_PATH );
+            strcpy( skin_folder + strlen( SKIN_PATH ), "/" );
+            strcpy( skin_folder + strlen( SKIN_PATH ) + 1, skin_name );
+
+            load_skin( SKIN_CFG_NAME, SKIN_IMG_NAME, skin_name, skin_folder, &skin );
+        }
+    }
+
+    closedir( d );
+
+    //As we build the list, the 'skin' always point to the last one in the list.
+    //Here we just wrap around to the first (circule ll) so we default to the 'first' one.
+    //XXX: Remember which one the user was using
+    //and go to it.
+    if ( skin )
+    {
+        skin = skin->next;
+
+        controller_skin * first = skin;
+        skin_count = 1;
+        while ( skin->next != first )
+        {
+            skin_count++;
+            skin = skin->next;
+        }
+        skin = first;
+    }
+    else
+    {
+        skin_count = 0;
+    }
+
+    //count 'skin_index' skins, this is the one we used last time.
+    //Nope, not very robust to adding/removing skins, but whatcha gonna do.
+    //Not sure it's worth implementing string support for in the cfg files.
+    for ( int i = 0; i < skin_index; i++ )
+    {
+        skin = skin->next;
+    }
 }
 
 void GL_Init()
@@ -2063,6 +2458,11 @@ void GL_InitTexture()
         glDeleteTextures( 1, &texture );
         texture = 0;
     }
+    if ( controller_tex )
+    {
+        glDeleteTextures( 1, &controller_tex );
+        controller_tex = 0;
+    }
 
     glGenTextures(1, &texture);
     checkError();
@@ -2077,8 +2477,6 @@ void GL_InitTexture()
     assert( num == GL_TEXTURE0 );
     checkError();
 
-    //Eventually we'll probably want something like GL_NEAREST_MIPMAP_LINEAR
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
     checkError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
@@ -2092,10 +2490,49 @@ void GL_InitTexture()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
             GL_UNSIGNED_BYTE, NULL );
     checkError();
+
+    if( !skin )
+    {
+        printf( "No skins found! Running without one...\n" );
+        return;
+    }
+
+    //Load controller
+    SDL_Surface * initial_surface = IMG_Load( skin->image_path );
+    if ( !initial_surface )
+    {
+        printf( "No controller image found!  Running without one...\n" );
+        return;
+    }
+    //Create RGB surface and copy controller into it
+    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
+            0x0000ff, 0x00ff00, 0xff0000, 0);
+    SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
+
+    glGenTextures(1, &controller_tex );
+    glBindTexture( GL_TEXTURE_2D, controller_tex );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
+    checkError();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
+    checkError();
+
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    checkError();
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    checkError();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, controller_surface->w, controller_surface->h, 0, GL_RGB,
+            GL_UNSIGNED_BYTE, controller_surface->pixels );
+    checkError();
+
+    SDL_FreeSurface( initial_surface );
+    SDL_FreeSurface( controller_surface );
 }
 
 void updateOrientation()
 {
+    //XXX: This function is a beast, make it less crazy.
+    //
     float screenAspect = (float)destWidth/(float)destHeight;
     float emulatedAspect = (float)srcWidth/(float)srcHeight;
     
@@ -2127,38 +2564,66 @@ void updateOrientation()
     for ( int i = 0; i < 4; i++ )
     {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
-        //vertexCoords[2*i+1] *= xscale/yscale;
     }
-    
-    //re-set video mode so notifications appear correctly
 
-#if 0
-    //XXX: PDL_SetOrientation?
-    //This doesn't work presently for some reason; I don't think it likes
-    //changing video modes during opengles. Will look into more deeply later.
-    if ( orientation == ORIENTATION_PORTRAIT )
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
     {
-        SDL_SetVideoMode( 320, 480, 32, SDL_FULLSCREEN );
-        surface = SDL_SetVideoMode( 320, 480, 32,
-                SDL_OPENGLES|
-                (fullscreen ? SDL_FULLSCREEN : 0));
+        float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
+        float scale_factor;
+        if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
+        {
+            //width is limiting factor
+            scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
+        }
+        else
+        {
+            //height is limiting factor
+            //'effectiveWidth' b/c we already scaled previously
+            //and we don't fill the screen due to aspect ratio
+            float effectiveWidth = (float)destWidth / emulatedAspect;
+            scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
+        }
 
+        for ( int i = 0; i < 4; i++ )
+        {
+            //scale
+            vertexCoords[2*i] *= scale_factor;
+            vertexCoords[2*i+1] *= scale_factor;
+        }
+
+        float y_offset = 1.0 - vertexCoords[0];
+        float x_offset = 1.0 - vertexCoords[1];
+
+        //push the screen to the coordinates indicated
+        y_offset -= ( (float)skin->controller_screen_y_offset / (float)destWidth ) * 2;
+        x_offset -= ( (float)skin->controller_screen_x_offset / (float)destHeight ) * 2;
+
+        for ( int i = 0; i < 4; i++ )
+        {
+            //translate
+            vertexCoords[2*i] += y_offset;
+            vertexCoords[2*i+1] += x_offset;
+        }
     }
-    else
+
+    int notification_direction;
+    switch ( orientation )
     {
-        SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN );
-        surface = SDL_SetVideoMode( 480, 320, 32,
-                SDL_OPENGLES|
-                (fullscreen ? SDL_FULLSCREEN : 0));
-
+        case ORIENTATION_PORTRAIT:
+            notification_direction = PDL_ORIENTATION_BOTTOM;
+            break;
+        case ORIENTATION_LANDSCAPE_L:
+            notification_direction = PDL_ORIENTATION_RIGHT;
+            break;
+        case ORIENTATION_LANDSCAPE_R:
+            notification_direction = PDL_ORIENTATION_LEFT;
+            break;
+        default:
+            //o_O invalid orientation.
+            notification_direction = PDL_ORIENTATION_BOTTOM;
+            break;
     }
-#endif
-
-    if(surface == NULL) {
-        systemMessage(0, "Failed to set video mode");
-        SDL_Quit();
-        exit(-1);
-    }
+    PDL_SetOrientation( notification_direction );
 }
 
 int main(int argc, char **argv)
@@ -2180,6 +2645,8 @@ int main(int argc, char **argv)
   parseDebug = true;
 
   sdlReadPreferences();
+  readOptions();
+  loadSkins();
 
   sdlPrintUsage = 0;
   
@@ -2492,6 +2959,12 @@ int main(int argc, char **argv)
       exit(-1);
     }
   sdlReadBattery();
+
+  if ( autosave )
+  {
+    sdlReadState( AUTOSAVE_STATE );
+  }
+
   
   if(debuggerStub) 
     remoteInit();
@@ -2564,7 +3037,6 @@ int main(int argc, char **argv)
 
   GL_Init();
   GL_InitTexture();
-  orientation = ORIENTATION_PORTRAIT;
   updateOrientation();
   
   // Here we are forcing the bitdepth and format to use.
@@ -2647,11 +3119,6 @@ int main(int argc, char **argv)
         //make sure the message stays up until binding is over
         systemScreenMessage( bindingNames[keyBindingMode] );
     }
-    if(mouseCounter) {
-      mouseCounter--;
-      if(mouseCounter == 0)
-        SDL_ShowCursor(SDL_DISABLE);
-    }
   }
   
   emulating = 0;
@@ -2685,53 +3152,6 @@ void systemMessage(int num, const char *msg, ...)
   va_end(valist);
 }
 
-/*
- * Renders some known values to the screen
- * Used for debugging rendering issues
- * independent of getting the emu
- * to encode colors the way I want
- *
- * This function creates a checkered pattern
- * of size 'tileSize' into pix.
- */
-void testPattern()
-{
-    //This code creates a checkered pattern
-    //of size 'tileSize'
-    u8 * ptr = pix;
-
-    int tileSize = 40;
-    int Bpp = 2;
-    int tileLen = tileSize * Bpp;
-
-    int j, i;
-    //for each row vertically
-    for ( j = 0; j < srcHeight; j++ )
-    {
-        u8 * rowPtr = ptr;
-        //color a streak the same color
-        for ( i = 0; i < srcWidth; i+=tileSize )
-        {
-            int tileX = i / tileSize;
-            int tileY = j / tileSize;
-            bool tileDark = ( tileX + tileY ) % 2 == 1;
-
-            //I actually have no idea if 00 or FF is white/black :).
-            //Luckily that doesn't matter
-            u8 tileColor = tileDark ? 0x00 : 0xFF;
-
-            memset( rowPtr, tileColor, tileLen );
-
-            rowPtr += tileLen;
-
-        }
-
-        assert( ptr + srcWidth*Bpp == rowPtr );
-        //There's an extra row... for no good reason.
-        ptr = rowPtr + 4;
-    }
-}
-
 void drawScreenText()
 {
   if(screenMessage) {
@@ -2745,7 +3165,7 @@ void drawScreenText()
   }
 
   if(showSpeed) {
-    char buffer[50];
+    char buffer[40];
     if(showSpeed == 1)
       sprintf(buffer, "%d%%", systemSpeed);
     else
@@ -2771,18 +3191,45 @@ void systemDrawScreen()
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
 
+    /*-----------------------------------------------------------------------------
+     *  Overlay
+     *-----------------------------------------------------------------------------*/
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
+    {
+        // Use the program object
+        glUseProgram ( programObject );
+        checkError();
+
+        glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+        checkError();
+        glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+        checkError();
+
+        glEnableVertexAttribArray( positionLoc );
+        checkError();
+        glEnableVertexAttribArray( texCoordLoc );
+        checkError();
+
+        checkError();
+
+        //sampler texture unit to 0
+        glBindTexture(GL_TEXTURE_2D, controller_tex);
+        glUniform1i( samplerLoc, 0 );
+        checkError();
+
+        glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+        checkError();
+    }
+
+
+    /*-----------------------------------------------------------------------------
+     *  Draw the frame of the gb(c/a)
+     *-----------------------------------------------------------------------------*/
+
     // Use the program object
     glUseProgram ( programObject );
     checkError();
-
-
-    float texCoords[] =
-    {
-        0.0, 0.0,
-        0.0, 1.0,
-        1.0, 0.0,
-        1.0, 1.0
-    };
 
     glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
     checkError();
@@ -2795,14 +3242,9 @@ void systemDrawScreen()
     glEnableVertexAttribArray( texCoordLoc );
     checkError();
 
-    //Uncomment this to enable the testPattern instead of the rendered game.
-    //Useful to decouple pixel format issues from openGL rendering ones.
-    //testPattern();
-
     drawScreenText();
 
-    //XXX: Conveivably reloading the whole image is faster here.
-    //(reference: random forum post)
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D( GL_TEXTURE_2D,0,
             0,0, srcWidth,srcHeight,
             GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
@@ -2813,11 +3255,10 @@ void systemDrawScreen()
     glUniform1i( samplerLoc, 0 );
     checkError();
 
-    GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
     checkError();
 
-
+    
     //Push to screen
     SDL_GL_SwapBuffers();
     checkError();
@@ -3214,242 +3655,6 @@ bool systemPauseOnFrame()
   }
   return false;
 }
-
-// Code donated by Niels Wagenaar (BoycottAdvance)
-
-// GBA screensize.
-#define GBA_WIDTH   240
-#define GBA_HEIGHT  160
-
-// void Init_Overlay(SDL_Surface *gbascreen, int overlaytype)
-// {
-//   
-//   overlay = SDL_CreateYUVOverlay( GBA_WIDTH,
-//                                   GBA_HEIGHT,
-//                                   overlaytype, gbascreen);
-//   fprintf(stderr, "Created %dx%dx%d %s %s overlay\n",
-//           overlay->w,overlay->h,overlay->planes,
-//           overlay->hw_overlay?"hardware":"software",
-//           overlay->format==SDL_YV12_OVERLAY?"YV12":
-//           overlay->format==SDL_IYUV_OVERLAY?"IYUV":
-//           overlay->format==SDL_YUY2_OVERLAY?"YUY2":
-//           overlay->format==SDL_UYVY_OVERLAY?"UYVY":
-//           overlay->format==SDL_YVYU_OVERLAY?"YVYU":
-//           "Unknown");
-// }
-// 
-// void Quit_Overlay(void)
-// {
-//   
-//   SDL_FreeYUVOverlay(overlay);
-// }
-// 
-// /* NOTE: These RGB conversion functions are not intended for speed,
-//    only as examples.
-// */
-// inline void RGBtoYUV(Uint8 *rgb, int *yuv)
-// {
-//   yuv[0] = (int)((0.257 * rgb[0]) + (0.504 * rgb[1]) + (0.098 * rgb[2]) + 16);
-//   yuv[1] = (int)(128 - (0.148 * rgb[0]) - (0.291 * rgb[1]) + (0.439 * rgb[2]));
-//   yuv[2] = (int)(128 + (0.439 * rgb[0]) - (0.368 * rgb[1]) - (0.071 * rgb[2]));
-// }
-// 
-// inline void ConvertRGBtoYV12(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op[3];
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   /* Black initialization */
-//   /*
-//     memset(o->pixels[0],0,o->pitches[0]*o->h);
-//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-//   */
-//   
-//   /* Convert */
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op[0]=o->pixels[0]+o->pitches[0]*y;
-//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       *(op[0]++)=yuv[0];
-//       if(x%2==0 && y%2==0) {
-//         *(op[1]++)=yuv[2];
-//         *(op[2]++)=yuv[1];
-//       }
-//       p+=4;//s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoIYUV(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op[3];
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   /* Black initialization */
-//   /*
-//     memset(o->pixels[0],0,o->pitches[0]*o->h);
-//     memset(o->pixels[1],128,o->pitches[1]*((o->h+1)/2));
-//     memset(o->pixels[2],128,o->pitches[2]*((o->h+1)/2));
-//   */
-//   
-//   /* Convert */
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op[0]=o->pixels[0]+o->pitches[0]*y;
-//     op[1]=o->pixels[1]+o->pitches[1]*(y/2);
-//     op[2]=o->pixels[2]+o->pitches[2]*(y/2);
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       *(op[0]++)=yuv[0];
-//       if(x%2==0 && y%2==0) {
-//         *(op[1]++)=yuv[1];
-//         *(op[2]++)=yuv[2];
-//       }
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoUYVY(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[1];
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[2];
-//       } else
-//         *(op++)=yuv[0];
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoYVYU(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[2];
-//         op[1]=yuv[1];
-//       } else {
-//         *op=yuv[0];
-//         op+=2;
-//       }
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void ConvertRGBtoYUY2(SDL_Overlay *o)
-// {
-//   int x,y;
-//   int yuv[3];
-//   Uint8 *p,*op;
-//   
-//   SDL_LockYUVOverlay(o);
-//   
-//   for(y=0; y<160 && y<o->h; y++) {
-//     p=(Uint8 *)pix+srcPitch*y;
-//     op=o->pixels[0]+o->pitches[0]*y;
-//     for(x=0; x<240 && x<o->w; x++) {
-//       RGBtoYUV(p,yuv);
-//       if(x%2==0) {
-//         *(op++)=yuv[0];
-//         *(op++)=yuv[1];
-//         op[1]=yuv[2];
-//       } else {
-//         *op=yuv[0];
-//         op+=2;
-//       }
-//       
-//       p+=4; //s->format->BytesPerPixel;
-//     }
-//   }
-//   
-//   SDL_UnlockYUVOverlay(o);
-// }
-// 
-// inline void Convert32bit(SDL_Surface *display)
-// {
-//   switch(overlay->format) {
-//   case SDL_YV12_OVERLAY:
-//     ConvertRGBtoYV12(overlay);
-//     break;
-//   case SDL_UYVY_OVERLAY:
-//     ConvertRGBtoUYVY(overlay);
-//     break;
-//   case SDL_YVYU_OVERLAY:
-//     ConvertRGBtoYVYU(overlay);
-//     break;
-//   case SDL_YUY2_OVERLAY:
-//     ConvertRGBtoYUY2(overlay);
-//     break;
-//   case SDL_IYUV_OVERLAY:
-//     ConvertRGBtoIYUV(overlay);
-//     break;
-//   default:
-//     fprintf(stderr, "cannot convert RGB picture to obtained YUV format!\n");
-//     exit(1);
-//     break;
-//   }
-//   
-// }
-// 
-// 
-// inline void Draw_Overlay(SDL_Surface *display, int size)
-// {
-//   SDL_LockYUVOverlay(overlay);
-//   
-//   Convert32bit(display);
-//   
-//   overlay_rect.x = 0;
-//   overlay_rect.y = 0;
-//   overlay_rect.w = GBA_WIDTH  * size;
-//   overlay_rect.h = GBA_HEIGHT * size;
-// 
-//   SDL_DisplayYUVOverlay(overlay, &overlay_rect);
-//   SDL_UnlockYUVOverlay(overlay);
-// }
 
 void systemGbBorderOn()
 {

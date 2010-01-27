@@ -732,7 +732,7 @@ void gbSoundMix()
 
 void gbSoundTick()
 {
-  if(systemSoundOn) {
+  if(systemSoundOn && !soundMute ) {
     if(soundMasterOn) {
       gbSoundChannel1();
       gbSoundChannel2();
@@ -748,7 +748,7 @@ void gbSoundTick()
     soundIndex++;
     
     if(2*soundBufferIndex >= soundBufferLen) {
-      if(systemSoundOn) {
+      if(systemSoundOn && !soundMute ) {
         if(soundPaused) {
           soundResume();
         }      

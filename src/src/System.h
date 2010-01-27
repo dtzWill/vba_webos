@@ -111,7 +111,7 @@ extern bool Sm60FPS_CanSkipFrame();
 extern void Sm60FPS_Sleep();
 extern void DbgMsg(const char *msg, ...);
 extern void winlog(const char *,...);
-
+extern int soundMute;
 extern bool systemSoundOn;
 extern u16 systemColorMap16[0x10000];
 extern u32 systemColorMap32[0x10000];

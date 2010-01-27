@@ -1106,7 +1106,7 @@ void soundMix()
 
 void soundTick()
 {
-  if(systemSoundOn) {
+  if(systemSoundOn && !soundMute ) {
     if(soundMasterOn && !stopState) {
       soundChannel1();
       soundChannel2();
@@ -1123,7 +1123,7 @@ void soundTick()
     soundIndex++;
     
     if(2*soundBufferIndex >= soundBufferLen) {
-      if(systemSoundOn) {
+      if(systemSoundOn && !soundMute ) {
         if(soundPaused) {
           soundResume();
         }      

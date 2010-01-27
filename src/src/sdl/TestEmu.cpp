@@ -86,6 +86,7 @@ char batteryDir[2048];
 bool paused = false;
 bool debugger = true;
 bool debuggerStub = false;
+int  soundMute = false;
 bool systemSoundOn = false;
 bool removeIntros = false;
 
