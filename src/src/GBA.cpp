@@ -475,10 +475,10 @@ variable_desc saveGameStruct[] = {
   { &dma3Dest , sizeof(u32) },
   { &fxOn, sizeof(bool) },
   { &windowOn, sizeof(bool) },
-  { &N_FLAG , sizeof(bool) },
-  { &C_FLAG , sizeof(bool) },
-  { &Z_FLAG , sizeof(bool) },
-  { &V_FLAG , sizeof(bool) },
+  { &NN_FLAG , sizeof(bool) },
+  { &CC_FLAG , sizeof(bool) },
+  { &ZZ_FLAG , sizeof(bool) },
+  { &VV_FLAG , sizeof(bool) },
   { &armState , sizeof(bool) },
   { &armIrqEnable , sizeof(bool) },
   { &armNextPC , sizeof(u32) },
@@ -731,6 +731,7 @@ static bool CPUReadState(gzFile gzFile)
   utilGzRead(gzFile, &reg[0], sizeof(reg));
 
   utilReadData(gzFile, saveGameStruct);
+  update_flags_from_components();
 
   if(version < SAVE_GAME_VERSION_3)
     stopState = false;
@@ -1443,13 +1444,15 @@ void CPUUpdateRender()
 void CPUUpdateCPSR()
 {
   u32 CPSR = reg[16].I & 0x40;
-  if(N_FLAG)
+  //XXX: mask off the top 4 bits of CPU_FLAGS
+  update_components_from_flags();
+  if(NN_FLAG)
     CPSR |= 0x80000000;
-  if(Z_FLAG)
+  if(ZZ_FLAG)
     CPSR |= 0x40000000;
-  if(C_FLAG)
+  if(CC_FLAG)
     CPSR |= 0x20000000;
-  if(V_FLAG)
+  if(VV_FLAG)
     CPSR |= 0x10000000;
   if(!armState)
     CPSR |= 0x00000020;
@@ -1463,10 +1466,11 @@ void CPUUpdateFlags(bool breakLoop)
 {
   u32 CPSR = reg[16].I;
   
-  N_FLAG = (CPSR & 0x80000000) ? true: false;
-  Z_FLAG = (CPSR & 0x40000000) ? true: false;
-  C_FLAG = (CPSR & 0x20000000) ? true: false;
-  V_FLAG = (CPSR & 0x10000000) ? true: false;
+  NN_FLAG = (CPSR & 0x80000000) ? true: false;
+  ZZ_FLAG = (CPSR & 0x40000000) ? true: false;
+  CC_FLAG = (CPSR & 0x20000000) ? true: false;
+  VV_FLAG = (CPSR & 0x10000000) ? true: false;
+  update_flags_from_components();
   armState = (CPSR & 0x20) ? false : true;
   armIrqEnable = (CPSR & 0x80) ? false : true;
   if(breakLoop) {
@@ -3143,7 +3147,8 @@ void CPUReset()
     }    
   }
   armState = true;
-  C_FLAG = V_FLAG = N_FLAG = Z_FLAG = false;
+  CC_FLAG = VV_FLAG = NN_FLAG = ZZ_FLAG = false;
+  update_flags_from_components();
   UPDATE_REG(0x00, DISPCNT);
   UPDATE_REG(0x20, BG2PA);
   UPDATE_REG(0x26, BG2PD);

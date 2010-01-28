@@ -42,18 +42,18 @@
 #define NEG(i) ((i) >> 31)
 #define POS(i) ((~(i)) >> 31)
 #define ADDCARRY(a, b, c) \
-  C_FLAG = ((NEG(a) & NEG(b)) |\
+  CC_FLAG = ((NEG(a) & NEG(b)) |\
             (NEG(a) & POS(c)) |\
             (NEG(b) & POS(c))) ? true : false;
 #define ADDOVERFLOW(a, b, c) \
-  V_FLAG = ((NEG(a) & NEG(b) & POS(c)) |\
+  VV_FLAG = ((NEG(a) & NEG(b) & POS(c)) |\
             (POS(a) & POS(b) & NEG(c))) ? true : false;
 #define SUBCARRY(a, b, c) \
-  C_FLAG = ((NEG(a) & POS(b)) |\
+  CC_FLAG = ((NEG(a) & POS(b)) |\
             (NEG(a) & POS(c)) |\
             (POS(b) & POS(c))) ? true : false;
 #define SUBOVERFLOW(a, b, c)\
-  V_FLAG = ((NEG(a) & POS(b) & POS(c)) |\
+  VV_FLAG = ((NEG(a) & POS(b) & POS(c)) |\
             (POS(a) & NEG(b) & NEG(c))) ? true : false;
 
 
@@ -76,16 +76,11 @@
 //
 //=============================================================================
 #define OP_SUBS \
-     asm( "subs %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
+     asm( "subs %0, %3, %2;" \
+     "mrs %1, cpsr;" \
        : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+        "=r" (CPU_FLAGS) \
+       : "r" (value), "r" (reg[base].I) );
 //#define OP_SUBS \
 //   {\
 //     u32 lhs = reg[base].I;\
@@ -122,16 +117,11 @@
 //
 //=============================================================================
 #define OP_RSBS \
-     asm( "rsbs %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
+     asm( "rsbs %0, %3, %2;" \
+     "mrs %1, cpsr;" \
        : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+        "=r" (CPU_FLAGS) \
+       : "r" (value), "r" (reg[base].I) );
 //#define OP_RSBS \
 //   {\
 //     u32 lhs = reg[base].I;\
@@ -168,16 +158,11 @@
 //
 //=============================================================================
 #define OP_ADDS \
-     asm( "adds %0, %6, %5;" \
-     "mrs r3, cpsr;" \
-     "ubfx %1, r3, #31, #1;" \
-     "ubfx %2, r3, #30, #1;" \
-     "ubfx %3, r3, #29, #1;" \
-     "ubfx %4, r3, #28, #1;" \
+     asm( "adds %0, %3, %2;" \
+     "mrs %1, cpsr;" \
        : "=r" (reg[dest].I), \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+        "=r" (CPU_FLAGS) \
+       : "r" (value), "r" (reg[base].I) );
 //#define OP_ADDS \
 //   {\
 //     u32 lhs = reg[base].I;\
@@ -202,7 +187,8 @@
 //XXX: Need to 'load' carry flag in to use native adc
 #define OP_ADC \
     {\
-      reg[dest].I = reg[base].I + value + (u32)C_FLAG;\
+      update_components_from_flags(); \
+      reg[dest].I = reg[base].I + value + (u32)CC_FLAG;\
     }
 //#define OP_ADC \
 //            asm  ("bt $0, C_FLAG;"\
@@ -225,14 +211,16 @@
 //       : "r3" );
 #define OP_ADCS \
    {\
+     update_components_from_flags(); \
      u32 lhs = reg[base].I;\
      u32 rhs = value;\
-     u32 res = lhs + rhs + (u32)C_FLAG;\
+     u32 res = lhs + rhs + (u32)CC_FLAG;\
      reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
+     ZZ_FLAG = (res == 0) ? true : false;\
+     NN_FLAG = NEG(res) ? true : false;\
      ADDCARRY(lhs, rhs, res);\
      ADDOVERFLOW(lhs, rhs, res);\
+     update_flags_from_components(); \
    }
 //#define OP_ADCS \
 //            asm  ("bt $0, C_FLAG;"\
@@ -247,7 +235,8 @@
 //=============================================================================
 #define OP_SBC \
     {\
-      reg[dest].I = reg[base].I - value - !((u32)C_FLAG);\
+      update_components_from_flags(); \
+      reg[dest].I = reg[base].I - value - !((u32)CC_FLAG);\
     }
 //#define OP_SBC \
 //            asm  ("bt $0, C_FLAG;"\
@@ -271,14 +260,16 @@
 //       : "r3" );
 #define OP_SBCS \
    {\
+     update_components_from_flags(); \
      u32 lhs = reg[base].I;\
      u32 rhs = value;\
-     u32 res = lhs - rhs - !((u32)C_FLAG);\
+     u32 res = lhs - rhs - !((u32)CC_FLAG);\
      reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
+     ZZ_FLAG = (res == 0) ? true : false;\
+     NN_FLAG = NEG(res) ? true : false;\
      SUBCARRY(lhs, rhs, res);\
      SUBOVERFLOW(lhs, rhs, res);\
+     update_flags_from_components(); \
    }
 //#define OP_SBCS \
 //            asm  ("bt $0, C_FLAG;"\
@@ -293,7 +284,8 @@
 //=============================================================================
 #define OP_RSC \
     {\
-      reg[dest].I = value - reg[base].I - !((u32)C_FLAG);\
+      update_components_from_flags(); \
+      reg[dest].I = value - reg[base].I - !((u32)CC_FLAG);\
     }
 //#define OP_RSC \
 //            asm  ("bt $0, C_FLAG;"\
@@ -317,14 +309,16 @@
 //       : "r3" );
 #define OP_RSCS \
    {\
+     update_components_from_flags(); \
      u32 lhs = reg[base].I;\
      u32 rhs = value;\
-     u32 res = rhs - lhs - !((u32)C_FLAG);\
+     u32 res = rhs - lhs - !((u32)CC_FLAG);\
      reg[dest].I = res;\
-     Z_FLAG = (res == 0) ? true : false;\
-     N_FLAG = NEG(res) ? true : false;\
+     ZZ_FLAG = (res == 0) ? true : false;\
+     NN_FLAG = NEG(res) ? true : false;\
      SUBCARRY(rhs, lhs, res);\
      SUBOVERFLOW(rhs, lhs, res);\
+     update_flags_from_components(); \
    }
 //#define OP_RSCS \
 //            asm  ("bt $0, C_FLAG;"\
@@ -338,16 +332,11 @@
 //                 : "r" (reg[base].I), "b" (value));
 //=============================================================================
 #define OP_CMP \
-    asm ( "cmp %5, %4;" \
-     "mrs r3, cpsr;" \
-     "ubfx %0, r3, #31, #1;" \
-     "ubfx %1, r3, #30, #1;" \
-     "ubfx %2, r3, #29, #1;" \
-     "ubfx %3, r3, #28, #1;" \
+    asm ( "cmp %2, %1;" \
+     "mrs %0, cpsr;" \
        : \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+        "=r" (CPU_FLAGS) \
+       : "r" (value), "r" (reg[base].I) );
 
 //#define OP_CMP \
 //   {\
@@ -370,16 +359,11 @@
 //
 //=============================================================================
 #define OP_CMN \
-    asm ( "cmn %5, %4;" \
-     "mrs r3, cpsr;" \
-     "ubfx %0, r3, #31, #1;" \
-     "ubfx %1, r3, #30, #1;" \
-     "ubfx %2, r3, #29, #1;" \
-     "ubfx %3, r3, #28, #1;" \
+    asm ( "cmn %2, %1;" \
+     "mrs %0, cpsr;" \
        : \
-        "=r" (N_FLAG), "=r" (Z_FLAG), "=r" (C_FLAG), "=r" (V_FLAG) \
-       : "r" (value), "r" (reg[base].I) \
-       : "r3" );
+        "=r" (CPU_FLAGS) \
+       : "r" (value), "r" (reg[base].I) );
 //#define OP_CMN \
 //   {\
 //     u32 lhs = reg[base].I;\
@@ -489,8 +473,9 @@
 //     : "r3" );
 #define LOGICAL_RRX_REG \
    {\
+     update_components_from_flags(); \
      u32 v = reg[opcode & 0x0f].I;\
-     shift = (int)C_FLAG;\
+     shift = (int)CC_FLAG;\
      C_OUT = (v  & 1) ? true : false;\
      value = ((v >> 1) |\
               (shift << 31));\
@@ -578,8 +563,9 @@
 //=============================================================================
 #define ARITHMETIC_RRX_REG \
    {\
+     update_components_from_flags(); \
      u32 v = reg[opcode & 0x0f].I;\
-     shift = (int)C_FLAG;\
+     shift = (int)CC_FLAG;\
      value = ((v >> 1) |\
               (shift << 31));\
    }
@@ -638,7 +624,8 @@
 //=============================================================================
 #define RCR_VALUE \
    {\
-     shift = (int)C_FLAG;\
+     update_components_from_flags(); \
+     shift = (int)CC_FLAG;\
      value = ((value >> 1) |\
               (shift << 31));\
    }

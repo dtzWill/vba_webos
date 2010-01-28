@@ -74,10 +74,17 @@ extern memoryMap map[256];
 extern reg_pair reg[45];
 extern u8 biosProtected[4];
 
-extern bool N_FLAG;
-extern bool Z_FLAG;
-extern bool C_FLAG;
-extern bool V_FLAG;
+//Note we cannot merge this with the appropriate emulated CPSR
+//since we only can count the *_FLAG components, not cpu mode
+//or the other 20-some bits
+extern u32 CPU_FLAGS;
+//I renamed these to make it super clear wherever they were used.
+//Search-replace works, but this makes super sure :)
+//Also makes sure I don't much with the GB versions of these
+extern bool NN_FLAG;
+extern bool ZZ_FLAG;
+extern bool CC_FLAG;
+extern bool VV_FLAG;
 extern bool armIrqEnable;
 extern bool armState;
 extern int armMode;
@@ -143,5 +150,30 @@ extern struct EmulatedSystem GBASystem;
 #include "Globals.h"
 #include "EEprom.h"
 #include "Flash.h"
+
+//Takes ZZ_FLAG, etc and puts them back into the cpsr
+inline void update_flags_from_components()
+{
+  u32 CPSR = 0;
+  if(NN_FLAG)
+    CPSR |= 0x80000000;
+  if(ZZ_FLAG)
+    CPSR |= 0x40000000;
+  if(CC_FLAG)
+    CPSR |= 0x20000000;
+  if(VV_FLAG)
+    CPSR |= 0x10000000;
+
+  CPU_FLAGS = CPSR;
+
+}
+
+inline void update_components_from_flags()
+{
+  NN_FLAG = CPU_FLAGS & 0x80000000;
+  ZZ_FLAG = CPU_FLAGS & 0x40000000;
+  CC_FLAG = CPU_FLAGS & 0x20000000;
+  VV_FLAG = CPU_FLAGS & 0x10000000;
+}
 
 #endif //VBA_GBA_H

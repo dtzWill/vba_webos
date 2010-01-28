@@ -1078,7 +1078,8 @@ void BIOS_SoftReset()
   armState = true;
   armMode = 0x1F;
   armIrqEnable = false;
-  C_FLAG = V_FLAG = N_FLAG = Z_FLAG = false;
+  CC_FLAG = VV_FLAG = NN_FLAG = ZZ_FLAG = false;
+  update_flags_from_components();
   reg[13].I = 0x03007F00;
   reg[14].I = 0x00000000;
   reg[16].I = 0x00000000;

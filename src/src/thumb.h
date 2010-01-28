@@ -794,15 +794,16 @@ switch(opcode >> 8) {
      int shift = (opcode >> 6) & 0x1f;
      u32 value;
      
-     if(shift) {
+     //if(shift) {
        LSL_RD_RM_I5;
-     } else {
-       value = reg[source].I;
-     }
+     //} else {
+     //  value = reg[source].I;
+     //}
      reg[dest].I = value;
      // C_FLAG set above
-     N_FLAG = (value & 0x80000000 ? true : false);
-     Z_FLAG = (value ? false : true);
+     //XXX: Arm implementation should set this already
+     //N_FLAG = (value & 0x80000000 ? true : false);
+     //Z_FLAG = (value ? false : true);
    }
    break;
  case 0x08:
@@ -820,16 +821,17 @@ switch(opcode >> 8) {
      int shift = (opcode >> 6) & 0x1f;
      u32 value;
      
-     if(shift) {
+     //if(shift) {
        LSR_RD_RM_I5;
-     } else {
-       C_FLAG = reg[source].I & 0x80000000 ? true : false;
-       value = 0;
-     }
+     //} else {
+     //  C_FLAG = reg[source].I & 0x80000000 ? true : false;
+     //  value = 0;
+     //}
      reg[dest].I = value;
      // C_FLAG set above
-     N_FLAG = (value & 0x80000000 ? true : false);
-     Z_FLAG = (value ? false : true);
+     //XXX: Arm implementation should set this already
+     //N_FLAG = (value & 0x80000000 ? true : false);
+     //Z_FLAG = (value ? false : true);
    }
    break;
  case 0x10:
@@ -847,21 +849,24 @@ switch(opcode >> 8) {
      int shift = (opcode >> 6) & 0x1f;
      u32 value;
      
-     if(shift) {
+     //if(shift) {
        ASR_RD_RM_I5;
-     } else {
-       if(reg[source].I & 0x80000000) {
-         value = 0xFFFFFFFF;
-         C_FLAG = true;
-       } else {
-         value = 0;
-         C_FLAG = false;
-       }
-     }
+     //} else {
+     //  update_components_from_flags();
+     //  if(reg[source].I & 0x80000000) {
+     //    value = 0xFFFFFFFF;
+     //    C_FLAG = true;
+     //  } else {
+     //    value = 0;
+     //    C_FLAG = false;
+     //  }
+     //  N_FLAG = (value & 0x80000000 ? true : false);
+     //  Z_FLAG = (value ? false :true);
+     //  update_flags_from_components();
+     //}
      reg[dest].I = value;
      // C_FLAG set above
-     N_FLAG = (value & 0x80000000 ? true : false);
-     Z_FLAG = (value ? false :true);
+     //XXX: Arm implementation should set this already
    }
    break;
  case 0x18:
@@ -907,50 +912,66 @@ switch(opcode >> 8) {
  case 0x20:
    // MOV R0, #Offset8
    reg[0].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[0].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[0].I ? false : true);
+   update_flags_from_components();
    break;
  case 0x21:
    // MOV R1, #Offset8
    reg[1].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[1].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[1].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x22:
    // MOV R2, #Offset8
    reg[2].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[2].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[2].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x23:
    // MOV R3, #Offset8
    reg[3].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[3].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[3].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x24:
    // MOV R4, #Offset8
    reg[4].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[4].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[4].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x25:
    // MOV R5, #Offset8
    reg[5].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[5].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[5].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x26:
    // MOV R6, #Offset8
    reg[6].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[6].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[6].I ? false : true);
+   update_flags_from_components();
    break;   
  case 0x27:
    // MOV R7, #Offset8
    reg[7].I = opcode & 255;
-   N_FLAG = false;
-   Z_FLAG = (reg[7].I ? false : true);
+   update_components_from_flags();
+   NN_FLAG = false;
+   ZZ_FLAG = (reg[7].I ? false : true);
+   update_flags_from_components();
    break;
  case 0x28:
    // CMP R0, #Offset8
@@ -1055,8 +1076,10 @@ switch(opcode >> 8) {
        // AND Rd, Rs
        int dest = opcode & 7;
        reg[dest].I &= reg[(opcode >> 3)&7].I;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+       update_components_from_flags();
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       ZZ_FLAG = reg[dest].I ? false : true;
+       update_flags_from_components();
 #ifdef BKPT_SUPPORT     
 #define THUMB_CONSOLE_OUTPUT(a,b) \
   if((opcode == 0x4000) && (reg[0].I == 0xC0DED00D)) {\
@@ -1074,8 +1097,10 @@ switch(opcode >> 8) {
      {
        int dest = opcode & 7;
        reg[dest].I ^= reg[(opcode >> 3)&7].I;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+       update_components_from_flags();
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       ZZ_FLAG = reg[dest].I ? false : true;
+       update_flags_from_components();
      }
      break;
    case 0x02:
@@ -1083,20 +1108,20 @@ switch(opcode >> 8) {
      {
        int dest = opcode & 7;
        u32 value = reg[(opcode >> 3)&7].B.B0;
-       if(value) {
-         if(value == 32) {
-           value = 0;
-           C_FLAG = (reg[dest].I & 1 ? true : false);
-         } else if(value < 32) {
+       //if(value) {
+         //if(value == 32) {
+         //  value = 0;
+         //  C_FLAG = (reg[dest].I & 1 ? true : false);
+         //} else if(value < 32) {
            LSL_RD_RS;
-         } else {
-           value = 0;
-           C_FLAG = false;
-         }
+         //} else {
+         //  value = 0;
+         //  C_FLAG = false;
+         //}
          reg[dest].I = value;        
-       }
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+       //}
+       //N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       //Z_FLAG = reg[dest].I ? false : true;
        clockTicks++;
      }
      break;
@@ -1105,20 +1130,20 @@ switch(opcode >> 8) {
        // LSR Rd, Rs
        int dest = opcode & 7;
        u32 value = reg[(opcode >> 3)&7].B.B0;
-       if(value) {
-         if(value == 32) {
-           value = 0;
-           C_FLAG = (reg[dest].I & 0x80000000 ? true : false);
-         } else if(value < 32) {
+       //if(value) {
+         //if(value == 32) {
+         //  value = 0;
+         //  C_FLAG = (reg[dest].I & 0x80000000 ? true : false);
+         //} else if(value < 32) {
            LSR_RD_RS;
-         } else {
-           value = 0;
-           C_FLAG = false;
-         }
+         //} else {
+         //  value = 0;
+         //  C_FLAG = false;
+         //}
          reg[dest].I = value;        
-       }
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+       //}
+       //N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       //Z_FLAG = reg[dest].I ? false : true;
        clockTicks++;
      }
      break;
@@ -1132,22 +1157,22 @@ switch(opcode >> 8) {
        int dest = opcode & 7;
        u32 value = reg[(opcode >> 3)&7].B.B0;
        // ASR
-       if(value) {
-         if(value < 32) {
+       //if(value) {
+         //if(value < 32) {
            ASR_RD_RS;
            reg[dest].I = value;        
-         } else {
-           if(reg[dest].I & 0x80000000){
-             reg[dest].I = 0xFFFFFFFF;
-             C_FLAG = true;
-           } else {
-             reg[dest].I = 0x00000000;
-             C_FLAG = false;
-           }
-         }
-       }
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+         //} else {
+         //  if(reg[dest].I & 0x80000000){
+         //    reg[dest].I = 0xFFFFFFFF;
+         //    C_FLAG = true;
+         //  } else {
+         //    reg[dest].I = 0x00000000;
+         //    C_FLAG = false;
+         //  }
+         //}
+       //}
+       //N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       //Z_FLAG = reg[dest].I ? false : true;
        clockTicks++;
      }
      break;
@@ -1176,18 +1201,18 @@ switch(opcode >> 8) {
        int dest = opcode & 7;
        u32 value = reg[(opcode >> 3)&7].B.B0;
        
-       if(value) {
-         value = value & 0x1f;
-         if(value == 0) {
-           C_FLAG = (reg[dest].I & 0x80000000 ? true : false);
-         } else {
+       //if(value) {
+           value = value & 0x1f;
+       //  if(value == 0) {
+       //    C_FLAG = (reg[dest].I & 0x80000000 ? true : false);
+       //  } else {
            ROR_RD_RS;
            reg[dest].I = value;
-         }
-       }
+       //  }
+       //}
        clockTicks++;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
-       Z_FLAG = reg[dest].I ? false : true;
+       //N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       //Z_FLAG = reg[dest].I ? false : true;
      }
      break;
    }
@@ -1198,8 +1223,10 @@ switch(opcode >> 8) {
      {
        // TST Rd, Rs
        u32 value = reg[opcode & 7].I & reg[(opcode >> 3) & 7].I;
-       N_FLAG = value & 0x80000000 ? true : false;
-       Z_FLAG = value ? false : true;
+       update_components_from_flags();
+       NN_FLAG = value & 0x80000000 ? true : false;
+       ZZ_FLAG = value ? false : true;
+       update_flags_from_components();
      }
      break;
    case 0x01:
@@ -1236,8 +1263,10 @@ switch(opcode >> 8) {
        // ORR Rd, Rs       
        int dest = opcode & 7;
        reg[dest].I |= reg[(opcode >> 3) & 7].I;
-       Z_FLAG = reg[dest].I ? false : true;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_components_from_flags();
+       ZZ_FLAG = reg[dest].I ? false : true;
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_flags_from_components();
      }
      break;
    case 0x01:
@@ -1256,8 +1285,10 @@ switch(opcode >> 8) {
          clockTicks += 3;
        else
          clockTicks += 4;
-       Z_FLAG = reg[dest].I ? false : true;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_components_from_flags();
+       ZZ_FLAG = reg[dest].I ? false : true;
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_flags_from_components();
      }
      break;
    case 0x02:
@@ -1265,8 +1296,10 @@ switch(opcode >> 8) {
        // BIC Rd, Rs
        int dest = opcode & 7;
        reg[dest].I &= (~reg[(opcode >> 3) & 7].I);
-       Z_FLAG = reg[dest].I ? false : true;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_components_from_flags();
+       ZZ_FLAG = reg[dest].I ? false : true;
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_flags_from_components();
      }
      break;
    case 0x03:
@@ -1274,8 +1307,10 @@ switch(opcode >> 8) {
        // MVN Rd, Rs
        int dest = opcode & 7;
        reg[dest].I = ~reg[(opcode >> 3) & 7].I;
-       Z_FLAG = reg[dest].I ? false : true;
-       N_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_components_from_flags();
+       ZZ_FLAG = reg[dest].I ? false : true;
+       NN_FLAG = reg[dest].I & 0x80000000 ? true : false;
+       update_flags_from_components();
      }
      break;
    }
@@ -2260,7 +2295,8 @@ switch(opcode >> 8) {
    break;
  case 0xd0:
    // BEQ offset
-   if(Z_FLAG) {
+   update_components_from_flags();
+   if(ZZ_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2269,7 +2305,8 @@ switch(opcode >> 8) {
    break;      
  case 0xd1:
    // BNE offset
-   if(!Z_FLAG) {
+   update_components_from_flags();
+   if(!ZZ_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2278,7 +2315,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd2:
    // BCS offset
-   if(C_FLAG) {
+   update_components_from_flags();
+   if(CC_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2287,7 +2325,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd3:
    // BCC offset
-   if(!C_FLAG) {
+   update_components_from_flags();
+   if(!CC_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2296,7 +2335,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd4:
    // BMI offset
-   if(N_FLAG) {
+   update_components_from_flags();
+   if(NN_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2305,7 +2345,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd5:
    // BPL offset
-   if(!N_FLAG) {
+   update_components_from_flags();
+   if(!NN_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2314,7 +2355,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd6:
    // BVS offset
-   if(V_FLAG) {
+   update_components_from_flags();
+   if(VV_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2323,7 +2365,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd7:
    // BVC offset
-   if(!V_FLAG) {
+   update_components_from_flags();
+   if(!VV_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2332,7 +2375,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd8:
    // BHI offset
-   if(C_FLAG && !Z_FLAG) {
+   update_components_from_flags();
+   if(CC_FLAG && !ZZ_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2341,7 +2385,8 @@ switch(opcode >> 8) {
    break;   
  case 0xd9:
    // BLS offset
-   if(!C_FLAG || Z_FLAG) {
+   update_components_from_flags();
+   if(!CC_FLAG || ZZ_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2350,7 +2395,8 @@ switch(opcode >> 8) {
    break;   
  case 0xda:
    // BGE offset
-   if(N_FLAG == V_FLAG) {
+   update_components_from_flags();
+   if(NN_FLAG == VV_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2359,7 +2405,8 @@ switch(opcode >> 8) {
    break;   
  case 0xdb:
    // BLT offset
-   if(N_FLAG != V_FLAG) {
+   update_components_from_flags();
+   if(NN_FLAG != VV_FLAG) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2368,7 +2415,8 @@ switch(opcode >> 8) {
    break;   
  case 0xdc:
    // BGT offset
-   if(!Z_FLAG && (N_FLAG == V_FLAG)) {
+   update_components_from_flags();
+   if(!ZZ_FLAG && (NN_FLAG == VV_FLAG)) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;
@@ -2377,7 +2425,8 @@ switch(opcode >> 8) {
    break;   
  case 0xdd:
    // BLE offset
-   if(Z_FLAG || (N_FLAG != V_FLAG)) {
+   update_components_from_flags();
+   if(ZZ_FLAG || (NN_FLAG != VV_FLAG)) {
      reg[15].I += ((s8)(opcode & 0xFF)) << 1;       
      armNextPC = reg[15].I;
      reg[15].I += 2;

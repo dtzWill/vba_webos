@@ -33,10 +33,11 @@
 
 extern reg_pair reg[45];
 extern bool ioReadable[0x400];
-extern bool N_FLAG;
-extern bool C_FLAG;
-extern bool Z_FLAG;
-extern bool V_FLAG;
+extern u32 CPU_FLAGS;
+extern bool NN_FLAG;
+extern bool CC_FLAG;
+extern bool ZZ_FLAG;
+extern bool VV_FLAG;
 extern bool armState;
 extern bool armIrqEnable;
 extern u32 armNextPC;

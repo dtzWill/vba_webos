@@ -21,10 +21,11 @@
 reg_pair reg[45];
 memoryMap map[256];
 bool ioReadable[0x400];
-bool N_FLAG = 0;
-bool C_FLAG = 0;
-bool Z_FLAG = 0;
-bool V_FLAG = 0;
+u32 CPU_FLAGS = 0;
+bool NN_FLAG = 0;
+bool CC_FLAG = 0;
+bool ZZ_FLAG = 0;
+bool VV_FLAG = 0;
 bool armState = true;
 bool armIrqEnable = true;
 u32 armNextPC = 0x00000000;

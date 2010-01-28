@@ -1103,6 +1103,7 @@ void debuggerRegisters(int, char **)
   char *command[3];
   char buffer[10];
 
+  update_components_from_flags();
   printf("R00=%08x R04=%08x R08=%08x R12=%08x\n",
          reg[0].I, reg[4].I, reg[8].I, reg[12].I);
   printf("R01=%08x R05=%08x R09=%08x R13=%08x\n",
@@ -1113,10 +1114,10 @@ void debuggerRegisters(int, char **)
          reg[3].I, reg[7].I, reg[11].I, reg[15].I);
   printf("CPSR=%08x (%c%c%c%c%c%c%c Mode: %02x)\n",
          reg[16].I,
-         (N_FLAG ? 'N' : '.'),
-         (Z_FLAG ? 'Z' : '.'),
-         (C_FLAG ? 'C' : '.'),
-         (V_FLAG ? 'V' : '.'),
+         (NN_FLAG ? 'N' : '.'),
+         (ZZ_FLAG ? 'Z' : '.'),
+         (CC_FLAG ? 'C' : '.'),
+         (VV_FLAG ? 'V' : '.'),
          (armIrqEnable ? '.' : 'I'),
          ((!(reg[16].I & 0x40)) ? '.' : 'F'),
          (armState ? '.' : 'T'),

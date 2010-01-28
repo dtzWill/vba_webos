@@ -34,9 +34,12 @@
 #define OP_ANDS \
       reg[dest].I = reg[(opcode>>16)&15].I & value;\
       \
-      N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-      Z_FLAG = (reg[dest].I) ? false : true;\
-      C_FLAG = C_OUT;
+      update_components_from_flags(); \
+      NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+      ZZ_FLAG = (reg[dest].I) ? false : true;\
+      CC_FLAG = C_OUT; \
+      update_flags_from_components(); 
+        
 
 #define OP_EOR \
       reg[dest].I = reg[(opcode>>16)&15].I ^ value;
@@ -44,9 +47,11 @@
 #define OP_EORS \
       reg[dest].I = reg[(opcode>>16)&15].I ^ value;\
       \
-      N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-      Z_FLAG = (reg[dest].I) ? false : true;\
-      C_FLAG = C_OUT;
+      update_components_from_flags(); \
+      NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+      ZZ_FLAG = (reg[dest].I) ? false : true;\
+      CC_FLAG = C_OUT; \
+      update_flags_from_components();
 #ifdef ARM_CORE
 #include "arm-new-pre.h"
 #else
@@ -1024,51 +1029,63 @@
 
 #define OP_TST \
       u32 res = reg[base].I & value;\
-      N_FLAG = (res & 0x80000000) ? true : false;\
-      Z_FLAG = (res) ? false : true;\
-      C_FLAG = C_OUT;
+      update_components_from_flags(); \
+      NN_FLAG = (res & 0x80000000) ? true : false;\
+      ZZ_FLAG = (res) ? false : true;\
+      CC_FLAG = C_OUT; \
+      update_flags_from_components();
 
 #define OP_TEQ \
       u32 res = reg[base].I ^ value;\
-      N_FLAG = (res & 0x80000000) ? true : false;\
-      Z_FLAG = (res) ? false : true;\
-      C_FLAG = C_OUT;
+      update_components_from_flags(); \
+      NN_FLAG = (res & 0x80000000) ? true : false;\
+      ZZ_FLAG = (res) ? false : true;\
+      CC_FLAG = C_OUT; \
+      update_flags_from_components();
 
 #define OP_ORR \
     reg[dest].I = reg[base].I | value;
 
 #define OP_ORRS \
     reg[dest].I = reg[base].I | value;\
-    N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-    Z_FLAG = (reg[dest].I) ? false : true;\
-    C_FLAG = C_OUT;
+    update_components_from_flags(); \
+    NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+    ZZ_FLAG = (reg[dest].I) ? false : true;\
+    CC_FLAG = C_OUT; \
+    update_flags_from_components();
 
 #define OP_MOV \
     reg[dest].I = value;
 
 #define OP_MOVS \
     reg[dest].I = value;\
-    N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-    Z_FLAG = (reg[dest].I) ? false : true;\
-    C_FLAG = C_OUT;
+    update_components_from_flags(); \
+    NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+    ZZ_FLAG = (reg[dest].I) ? false : true;\
+    CC_FLAG = C_OUT; \
+    update_flags_from_components();
 
 #define OP_BIC \
     reg[dest].I = reg[base].I & (~value);
 
 #define OP_BICS \
     reg[dest].I = reg[base].I & (~value);\
-    N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-    Z_FLAG = (reg[dest].I) ? false : true;\
-    C_FLAG = C_OUT;
+    update_components_from_flags(); \
+    NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+    ZZ_FLAG = (reg[dest].I) ? false : true;\
+    CC_FLAG = C_OUT; \
+    update_flags_from_components();
 
 #define OP_MVN \
     reg[dest].I = ~value;
 
 #define OP_MVNS \
     reg[dest].I = ~value; \
-    N_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
-    Z_FLAG = (reg[dest].I) ? false : true;\
-    C_FLAG = C_OUT;
+    update_components_from_flags(); \
+    NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;\
+    ZZ_FLAG = (reg[dest].I) ? false : true;\
+    CC_FLAG = C_OUT; \
+    update_flags_from_components();
 
 #define CASE_16(BASE) \
   case BASE:\
@@ -1114,7 +1131,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       \
       if(shift) {\
@@ -1150,7 +1168,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_LSR_REG\
@@ -1187,7 +1206,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ASR_REG\
@@ -1229,7 +1249,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ROR_REG\
@@ -1264,7 +1285,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         if(shift == 32) {\
@@ -1307,7 +1329,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         if(shift == 32) {\
@@ -1350,7 +1373,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift < 32) {\
         if(shift) {\
@@ -1395,7 +1419,8 @@
       int base = (opcode >> 16) & 0x0F;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         shift &= 0x1f;\
@@ -1450,7 +1475,8 @@
       int shift = (opcode & 0xF00) >> 7;\
       int base = (opcode >> 16) & 0x0F;\
       int dest = (opcode >> 12) & 0x0F;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ROR_IMM\
@@ -1486,7 +1512,8 @@
       /* OP Rd,Rb,Rm LSL # */ \
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       \
       if(shift) {\
@@ -1521,7 +1548,8 @@
        /* OP Rd,Rb,Rm LSR # */ \
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_LSR_REG\
@@ -1557,7 +1585,8 @@
        /* OP Rd,Rb,Rm ASR # */\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ASR_REG\
@@ -1598,7 +1627,8 @@
        /* OP Rd,Rb,Rm ROR # */\
       int shift = (opcode >> 7) & 0x1F;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ROR_REG\
@@ -1632,7 +1662,8 @@
       clockTicks++;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         if(shift == 32) {\
@@ -1674,7 +1705,8 @@
       clockTicks++;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         if(shift == 32) {\
@@ -1716,7 +1748,8 @@
       clockTicks++;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift < 32) {\
         if(shift) {\
@@ -1760,7 +1793,8 @@
       clockTicks++;\
       int shift = reg[(opcode >> 8)&15].B.B0;\
       int dest = (opcode>>12) & 15;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         shift &= 0x1f;\
@@ -1814,7 +1848,8 @@
     {\
       int shift = (opcode & 0xF00) >> 7;\
       int dest = (opcode >> 12) & 0x0F;\
-      bool C_OUT = C_FLAG;\
+      update_components_from_flags(); \
+      bool C_OUT = CC_FLAG;\
       u32 value;\
       if(shift) {\
         LOGICAL_ROR_IMM\
@@ -2201,48 +2236,49 @@
   if(cond == 0x0e) {
     cond_res = true;
   } else {
+    update_components_from_flags();
     switch(cond) { 
     case 0x00: // EQ 
-      cond_res = Z_FLAG;
+      cond_res = ZZ_FLAG;
       break;
     case 0x01: // NE
-      cond_res = !Z_FLAG;
+      cond_res = !ZZ_FLAG;
       break; 
     case 0x02: // CS
-      cond_res = C_FLAG;
+      cond_res = CC_FLAG;
       break;
     case 0x03: // CC
-      cond_res = !C_FLAG;
+      cond_res = !CC_FLAG;
       break;
     case 0x04: // MI
-      cond_res = N_FLAG;
+      cond_res = NN_FLAG;
       break;
     case 0x05: // PL
-      cond_res = !N_FLAG;
+      cond_res = !NN_FLAG;
       break;
     case 0x06: // VS
-      cond_res = V_FLAG;
+      cond_res = VV_FLAG;
       break;
     case 0x07: // VC
-      cond_res = !V_FLAG;
+      cond_res = !VV_FLAG;
       break;
     case 0x08: // HI
-      cond_res = C_FLAG && !Z_FLAG;
+      cond_res = CC_FLAG && !ZZ_FLAG;
       break;
     case 0x09: // LS
-      cond_res = !C_FLAG || Z_FLAG;
+      cond_res = !CC_FLAG || ZZ_FLAG;
       break;
     case 0x0A: // GE
-      cond_res = N_FLAG == V_FLAG;
+      cond_res = NN_FLAG == VV_FLAG;
       break;
     case 0x0B: // LT
-      cond_res = N_FLAG != V_FLAG;
+      cond_res = NN_FLAG != VV_FLAG;
       break;
     case 0x0C: // GT
-      cond_res = !Z_FLAG &&(N_FLAG == V_FLAG);
+      cond_res = !ZZ_FLAG &&(NN_FLAG == VV_FLAG);
       break;    
     case 0x0D: // LE
-      cond_res = Z_FLAG || (N_FLAG != V_FLAG);
+      cond_res = ZZ_FLAG || (NN_FLAG != VV_FLAG);
       break; 
     case 0x0E: 
       cond_res = true; 
@@ -2285,8 +2321,10 @@ if(cond_res) {
       int mult = (opcode & 0x0F);
       u32 rs = reg[(opcode >> 8) & 0x0F].I;
       reg[dest].I = reg[mult].I * rs;
-      N_FLAG = (reg[dest].I & 0x80000000) ? true : false;
-      Z_FLAG = (reg[dest].I) ? false : true;
+      update_components_from_flags();
+      NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;
+      ZZ_FLAG = (reg[dest].I) ? false : true;
+      update_flags_from_components();
       if(((s32)rs)<0)
         rs = ~rs;
       if((rs & 0xFFFFFF00) == 0)
@@ -2923,8 +2961,10 @@ if(cond_res) {
       int mult = (opcode & 0x0F);
       u32 rs = reg[(opcode >> 8) & 0x0F].I;
       reg[dest].I = reg[mult].I * rs + reg[(opcode>>12)&0x0f].I;
-      N_FLAG = (reg[dest].I & 0x80000000) ? true : false;
-      Z_FLAG = (reg[dest].I) ? false : true;
+      update_components_from_flags();
+      NN_FLAG = (reg[dest].I & 0x80000000) ? true : false;
+      ZZ_FLAG = (reg[dest].I) ? false : true;
+      update_flags_from_components();
       if(((s32)rs)<0)
         rs = ~rs;
       if((rs & 0xFFFFFF00) == 0)
@@ -2973,8 +3013,10 @@ if(cond_res) {
       u64 uTemp = ((u64)umult)*((u64)usource);
       reg[destLo].I = (u32)uTemp;
       reg[destHi].I = (u32)(uTemp >> 32);
-      Z_FLAG = (uTemp) ? false : true;
-      N_FLAG = (reg[destHi].I & 0x80000000) ? true : false;
+      update_components_from_flags();
+      ZZ_FLAG = (uTemp) ? false : true;
+      NN_FLAG = (reg[destHi].I & 0x80000000) ? true : false;
+      update_flags_from_components();
       if ((usource & 0xFFFFFF00) == 0)
         clockTicks += 2;
       else if ((usource & 0xFFFF0000) == 0)
@@ -3023,8 +3065,10 @@ if(cond_res) {
       uTemp += ((u64)umult)*((u64)usource);
       reg[destLo].I = (u32)uTemp;
       reg[destHi].I = (u32)(uTemp >> 32);
-      Z_FLAG = (uTemp) ? false : true;
-      N_FLAG = (reg[destHi].I & 0x80000000) ? true : false;
+      update_components_from_flags();
+      ZZ_FLAG = (uTemp) ? false : true;
+      NN_FLAG = (reg[destHi].I & 0x80000000) ? true : false;
+      update_flags_from_components();
       if ((usource & 0xFFFFFF00) == 0)
         clockTicks += 3;
       else if ((usource & 0xFFFF0000) == 0)
@@ -3071,8 +3115,10 @@ if(cond_res) {
       s64 sTemp = m*s;
       reg[destLo].I = (u32)sTemp;
       reg[destHi].I = (u32)(sTemp >> 32);
-      Z_FLAG = (sTemp) ? false : true;
-      N_FLAG = (sTemp < 0) ? true : false;
+      update_components_from_flags();
+      ZZ_FLAG = (sTemp) ? false : true;
+      NN_FLAG = (sTemp < 0) ? true : false;
+      update_flags_from_components();
       if(((s32)rs) < 0)
         rs = ~rs;
       if((rs & 0xFFFFFF00) == 0)
@@ -3127,8 +3173,10 @@ if(cond_res) {
       sTemp += m*s;
       reg[destLo].I = (u32)sTemp;
       reg[destHi].I = (u32)(sTemp >> 32);
-      Z_FLAG = (sTemp) ? false : true;
-      N_FLAG = (sTemp < 0) ? true : false;
+      update_components_from_flags();
+      ZZ_FLAG = (sTemp) ? false : true;
+      NN_FLAG = (sTemp < 0) ? true : false;
+      update_flags_from_components();
       if(((s32)rs) < 0)
         rs = ~rs;
       if((rs & 0xFFFFFF00) == 0)
