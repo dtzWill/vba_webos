@@ -1,26 +1,7 @@
-// -*- C++ -*-
-// VisualBoyAdvance - Nintendo Gameboy/GameboyAdvance (TM) emulator.
-// Copyright (C) 1999-2003 Forgotten
-// Copyright (C) 2005 Forgotten and the VBA development team
+#ifndef GBA_H
+#define GBA_H
 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or(at your option)
-// any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
-#ifndef VBA_GBA_H
-#define VBA_GBA_H
-
-#include "System.h"
+#include "../System.h"
 
 #define SAVE_GAME_VERSION_1 1
 #define SAVE_GAME_VERSION_2 2
@@ -31,7 +12,8 @@
 #define SAVE_GAME_VERSION_7 7
 #define SAVE_GAME_VERSION_8 8
 #define SAVE_GAME_VERSION_9 9
-#define SAVE_GAME_VERSION  SAVE_GAME_VERSION_9
+#define SAVE_GAME_VERSION_10 10
+#define SAVE_GAME_VERSION  SAVE_GAME_VERSION_10
 
 typedef struct {
   u8 *address;
@@ -105,6 +87,7 @@ extern bool CPUWritePNGFile(const char *);
 extern bool CPUWriteBMPFile(const char *);
 extern void CPUCleanUp();
 extern void CPUUpdateRender();
+extern void CPUUpdateRenderBuffers(bool);
 extern bool CPUReadMemState(char *, int);
 extern bool CPUReadState(const char *);
 extern bool CPUWriteMemState(char *, int);
@@ -113,8 +96,6 @@ extern int CPULoadRom(const char *);
 extern void doMirroring(bool);
 extern void CPUUpdateRegister(u32, u16);
 extern void applyTimer ();
-extern void CPUWriteHalfWord(u32, u16);
-extern void CPUWriteByte(u32, u8);
 extern void CPUInit(const char *,bool);
 extern void CPUReset();
 extern void CPULoop(int);
@@ -157,4 +138,4 @@ extern struct EmulatedSystem GBASystem;
 #include "EEprom.h"
 #include "Flash.h"
 
-#endif //VBA_GBA_H
+#endif // GBA_H

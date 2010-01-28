@@ -2916,15 +2916,15 @@ int main(int argc, char **argv)
         gbReset();
         cartridgeType = IMAGE_GB;
         emulator = GBSystem;
-        if(sdlAutoIPS) {
-          int size = gbRomSize;
-          utilApplyIPS(ipsname, &gbRom, &size);
-          if(size != gbRomSize) {
-            extern bool gbUpdateSizes();
-            gbUpdateSizes();
-            gbReset();
-          }
-        }
+        //if(sdlAutoIPS) {
+        //  int size = gbRomSize;
+        //  utilApplyIPS(ipsname, &gbRom, &size);
+        //  if(size != gbRomSize) {
+        //    extern bool gbUpdateSizes();
+        //    gbUpdateSizes();
+        //    gbReset();
+        //  }
+        //}
       }
     } else if(type == IMAGE_GBA) {
       int size = CPULoadRom(szFile);
@@ -2945,13 +2945,13 @@ int main(int argc, char **argv)
         
         CPUInit(biosFileName, useBios);
         CPUReset();
-        if(sdlAutoIPS) {
-          int size = 0x2000000;
-          utilApplyIPS(ipsname, &rom, &size);
-          if(size != 0x2000000) {
-            CPUReset();
-          }
-        }
+        //if(sdlAutoIPS) {
+        //  int size = 0x2000000;
+        //  utilApplyIPS(ipsname, &rom, &size);
+        //  if(size != 0x2000000) {
+        //    CPUReset();
+        //  }
+        //}
       }
     }
     

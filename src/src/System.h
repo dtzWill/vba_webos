@@ -113,6 +113,8 @@ extern void DbgMsg(const char *msg, ...);
 extern void winlog(const char *,...);
 extern int soundMute;
 extern bool systemSoundOn;
+extern void (*dbgOutput)(char *s, u32 addr);
+extern void (*dbgSignal)(int sig,int number);
 extern u16 systemColorMap16[0x10000];
 extern u32 systemColorMap32[0x10000];
 extern u16 systemGbPalette[24];

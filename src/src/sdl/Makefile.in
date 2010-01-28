@@ -173,8 +173,6 @@ VisualBoyAdvance_SOURCES = \
 	../GBA.cpp		\
 	../GBA.h		\
 	../GBAinline.h		\
-	../Gfx.cpp		\
-	../Gfx.h		\
 	../Globals.cpp		\
 	../Globals.h		\
 	../Mode0.cpp		\
@@ -238,8 +236,6 @@ VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 
 TestEmu_SOURCES = \
 	TestEmu.cpp		\
-	debugger.cpp		\
-	debugger.h		\
 	../2xSaI.cpp		\
 	../AutoBuild.h		\
 	../Cheats.cpp		\
@@ -251,8 +247,6 @@ TestEmu_SOURCES = \
 	../GBA.cpp		\
 	../GBA.h		\
 	../GBAinline.h		\
-	../Gfx.cpp		\
-	../Gfx.h		\
 	../Globals.cpp		\
 	../Globals.h		\
 	../Mode0.cpp		\
@@ -302,7 +296,15 @@ TestEmu_SOURCES = \
 	../simple2x.cpp		\
 	../thumb.h		\
 	../unzip.cpp		\
-	../unzip.h
+	../unzip.h \
+	../GBA-arm.cpp \
+	../GBA-thumb.cpp \
+	../GBAGfx.h \
+	../GBAGfx.cpp \
+	../GBAcpu.h \
+	../Types.h \
+	../fex_mini.cpp \
+	../fex.h
 
 
 TestEmu_LDADD = @VBA_LIBS@ @SDL_LIBS@
@@ -322,11 +324,11 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES =
 bin_PROGRAMS = VisualBoyAdvance$(EXEEXT)
 noinst_PROGRAMS = TestEmu$(EXEEXT)
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
+PROGRAMS = $(bin_PROGRAMS)
 
-am_TestEmu_OBJECTS = TestEmu.$(OBJEXT) debugger.$(OBJEXT) \
+am_TestEmu_OBJECTS = TestEmu.$(OBJEXT) \
 	2xSaI.$(OBJEXT) Cheats.$(OBJEXT) EEprom.$(OBJEXT) \
-	Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) Globals.$(OBJEXT) \
+	Flash.$(OBJEXT) GBA.$(OBJEXT) Globals.$(OBJEXT) \
 	Mode0.$(OBJEXT) Mode1.$(OBJEXT) Mode2.$(OBJEXT) Mode3.$(OBJEXT) \
 	Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) \
 	Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) \
@@ -339,7 +341,7 @@ TestEmu_OBJECTS = $(am_TestEmu_OBJECTS)
 TestEmu_LDFLAGS =
 am_VisualBoyAdvance_OBJECTS = SDL.$(OBJEXT) debugger.$(OBJEXT) \
 	2xSaI.$(OBJEXT) Cheats.$(OBJEXT) EEprom.$(OBJEXT) \
-	Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) Globals.$(OBJEXT) \
+	Flash.$(OBJEXT) GBA.$(OBJEXT) Globals.$(OBJEXT) \
 	Mode0.$(OBJEXT) Mode1.$(OBJEXT) Mode2.$(OBJEXT) Mode3.$(OBJEXT) \
 	Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) \
 	Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) \
@@ -348,7 +350,9 @@ am_VisualBoyAdvance_OBJECTS = SDL.$(OBJEXT) debugger.$(OBJEXT) \
 	exprNode.$(OBJEXT) getopt.$(OBJEXT) getopt1.$(OBJEXT) \
 	hq2x.$(OBJEXT) interframe.$(OBJEXT) memgzio.$(OBJEXT) \
 	motionblur.$(OBJEXT) pixel.$(OBJEXT) remote.$(OBJEXT) \
-	scanline.$(OBJEXT) simple2x.$(OBJEXT) unzip.$(OBJEXT)
+	scanline.$(OBJEXT) simple2x.$(OBJEXT) unzip.$(OBJEXT) \
+	GBA-arm.$(OBJEXT) GBA-thumb.$(OBJEXT) GBAGfx.$(OBJEXT) \
+	fex_mini.$(OBJEXT)
 VisualBoyAdvance_OBJECTS = $(am_VisualBoyAdvance_OBJECTS)
 VisualBoyAdvance_LDFLAGS =
 
@@ -357,7 +361,6 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/2xSaI.Po ./$(DEPDIR)/Cheats.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/EEprom.Po ./$(DEPDIR)/Flash.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/GBA.Po ./$(DEPDIR)/Gfx.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/Globals.Po ./$(DEPDIR)/Mode0.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/Mode1.Po ./$(DEPDIR)/Mode2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/Mode3.Po ./$(DEPDIR)/Mode4.Po \
@@ -375,7 +378,10 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/memgzio.Po ./$(DEPDIR)/motionblur.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pixel.Po ./$(DEPDIR)/remote.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/scanline.Po ./$(DEPDIR)/simple2x.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/unzip.Po
+@AMDEP_TRUE@	./$(DEPDIR)/unzip.Po ./$(DEPDIR)/GBA-arm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/GBA-thumb.Po ./$(DEPDIR)/GBAGfx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fex_mini.Po 
+
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -443,7 +449,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EEprom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Flash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GBA.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Gfx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Globals.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Mode0.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Mode1.Po@am__quote@
@@ -479,6 +484,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scanline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/simple2x.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unzip.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GBA-arm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GBA-thumb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GBAGfx.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fex_mini.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
@@ -678,6 +687,97 @@ Flash.obj: ../Flash.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o Flash.obj `if test -f '../Flash.cpp'; then $(CYGPATH_W) '../Flash.cpp'; else $(CYGPATH_W) '$(srcdir)/../Flash.cpp'; fi`
 
+GBA-arm.o: ../GBA-arm.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBA-arm.o -MD -MP -MF "$(DEPDIR)/GBA-arm.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBA-arm.o `test -f '../GBA-arm.cpp' || echo '$(srcdir)/'`../GBA-arm.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBA-arm.Tpo" "$(DEPDIR)/GBA-arm.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBA-arm.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBA-arm.cpp' object='GBA-arm.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBA-arm.Po' tmpdepfile='$(DEPDIR)/GBA-arm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBA-arm.o `test -f '../GBA-arm.cpp' || echo '$(srcdir)/'`../GBA-arm.cpp
+
+GBA-arm.obj: ../GBA-arm.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBA-arm.obj -MD -MP -MF "$(DEPDIR)/GBA-arm.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBA-arm.obj `if test -f '../GBA-arm.cpp'; then $(CYGPATH_W) '../GBA-arm.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBA-arm.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBA-arm.Tpo" "$(DEPDIR)/GBA-arm.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBA-arm.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBA-arm.cpp' object='GBA-arm.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBA-arm.Po' tmpdepfile='$(DEPDIR)/GBA-arm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBA-arm.obj `if test -f '../GBA-arm.cpp'; then $(CYGPATH_W) '../GBA-arm.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBA-arm.cpp'; fi`
+
+GBA-thumb.o: ../GBA-thumb.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBA-thumb.o -MD -MP -MF "$(DEPDIR)/GBA-thumb.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBA-thumb.o `test -f '../GBA-thumb.cpp' || echo '$(srcdir)/'`../GBA-thumb.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBA-thumb.Tpo" "$(DEPDIR)/GBA-thumb.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBA-thumb.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBA-thumb.cpp' object='GBA-thumb.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBA-thumb.Po' tmpdepfile='$(DEPDIR)/GBA-thumb.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBA-thumb.o `test -f '../GBA-thumb.cpp' || echo '$(srcdir)/'`../GBA-thumb.cpp
+
+GBA-thumb.obj: ../GBA-thumb.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBA-thumb.obj -MD -MP -MF "$(DEPDIR)/GBA-thumb.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBA-thumb.obj `if test -f '../GBA-thumb.cpp'; then $(CYGPATH_W) '../GBA-thumb.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBA-thumb.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBA-thumb.Tpo" "$(DEPDIR)/GBA-thumb.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBA-thumb.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBA-thumb.cpp' object='GBA-thumb.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBA-thumb.Po' tmpdepfile='$(DEPDIR)/GBA-thumb.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBA-thumb.obj `if test -f '../GBA-thumb.cpp'; then $(CYGPATH_W) '../GBA-thumb.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBA-thumb.cpp'; fi`
+
+GBAGfx.o: ../GBAGfx.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBAGfx.o -MD -MP -MF "$(DEPDIR)/GBAGfx.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBAGfx.o `test -f '../GBAGfx.cpp' || echo '$(srcdir)/'`../GBAGfx.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBAGfx.Tpo" "$(DEPDIR)/GBAGfx.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBAGfx.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBAGfx.cpp' object='GBAGfx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBAGfx.Po' tmpdepfile='$(DEPDIR)/GBAGfx.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBAGfx.o `test -f '../GBAGfx.cpp' || echo '$(srcdir)/'`../GBAGfx.cpp
+
+GBAGfx.obj: ../GBAGfx.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBAGfx.obj -MD -MP -MF "$(DEPDIR)/GBAGfx.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o GBAGfx.obj `if test -f '../GBAGfx.cpp'; then $(CYGPATH_W) '../GBAGfx.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBAGfx.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/GBAGfx.Tpo" "$(DEPDIR)/GBAGfx.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/GBAGfx.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../GBAGfx.cpp' object='GBAGfx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/GBAGfx.Po' tmpdepfile='$(DEPDIR)/GBAGfx.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBAGfx.obj `if test -f '../GBAGfx.cpp'; then $(CYGPATH_W) '../GBAGfx.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBAGfx.cpp'; fi`
+
+fex_mini.o: ../fex_mini.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT fex_mini.o -MD -MP -MF "$(DEPDIR)/fex_mini.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o fex_mini.o `test -f '../fex_mini.cpp' || echo '$(srcdir)/'`../fex_mini.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/fex_mini.Tpo" "$(DEPDIR)/fex_mini.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/fex_mini.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../fex_mini.cpp' object='fex_mini.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/fex_mini.Po' tmpdepfile='$(DEPDIR)/fex_mini.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o fex_mini.o `test -f '../fex_mini.cpp' || echo '$(srcdir)/'`../fex_mini.cpp
+
+fex_mini.obj: ../fex_mini.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT fex_mini.obj -MD -MP -MF "$(DEPDIR)/fex_mini.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o fex_mini.obj `if test -f '../fex_mini.cpp'; then $(CYGPATH_W) '../fex_mini.cpp'; else $(CYGPATH_W) '$(srcdir)/../fex_mini.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/fex_mini.Tpo" "$(DEPDIR)/fex_mini.Po"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/fex_mini.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../fex_mini.cpp' object='fex_mini.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/fex_mini.Po' tmpdepfile='$(DEPDIR)/fex_mini.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o fex_mini.obj `if test -f '../fex_mini.cpp'; then $(CYGPATH_W) '../fex_mini.cpp'; else $(CYGPATH_W) '$(srcdir)/../fex_mini.cpp'; fi`
+
+
+
+
 GBA.o: ../GBA.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT GBA.o -MD -MP -MF "$(DEPDIR)/GBA.Tpo" \
 @am__fastdepCXX_TRUE@	  -c -o GBA.o `test -f '../GBA.cpp' || echo '$(srcdir)/'`../GBA.cpp; \
@@ -700,27 +800,6 @@ GBA.obj: ../GBA.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o GBA.obj `if test -f '../GBA.cpp'; then $(CYGPATH_W) '../GBA.cpp'; else $(CYGPATH_W) '$(srcdir)/../GBA.cpp'; fi`
 
-Gfx.o: ../Gfx.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT Gfx.o -MD -MP -MF "$(DEPDIR)/Gfx.Tpo" \
-@am__fastdepCXX_TRUE@	  -c -o Gfx.o `test -f '../Gfx.cpp' || echo '$(srcdir)/'`../Gfx.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/Gfx.Tpo" "$(DEPDIR)/Gfx.Po"; \
-@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/Gfx.Tpo"; exit 1; \
-@am__fastdepCXX_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../Gfx.cpp' object='Gfx.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/Gfx.Po' tmpdepfile='$(DEPDIR)/Gfx.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o Gfx.o `test -f '../Gfx.cpp' || echo '$(srcdir)/'`../Gfx.cpp
-
-Gfx.obj: ../Gfx.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT Gfx.obj -MD -MP -MF "$(DEPDIR)/Gfx.Tpo" \
-@am__fastdepCXX_TRUE@	  -c -o Gfx.obj `if test -f '../Gfx.cpp'; then $(CYGPATH_W) '../Gfx.cpp'; else $(CYGPATH_W) '$(srcdir)/../Gfx.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/Gfx.Tpo" "$(DEPDIR)/Gfx.Po"; \
-@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/Gfx.Tpo"; exit 1; \
-@am__fastdepCXX_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../Gfx.cpp' object='Gfx.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/Gfx.Po' tmpdepfile='$(DEPDIR)/Gfx.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o Gfx.obj `if test -f '../Gfx.cpp'; then $(CYGPATH_W) '../Gfx.cpp'; else $(CYGPATH_W) '$(srcdir)/../Gfx.cpp'; fi`
 
 Globals.o: ../Globals.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT Globals.o -MD -MP -MF "$(DEPDIR)/Globals.Tpo" \
