@@ -767,6 +767,10 @@
 #endif
 #endif
 
+
+//THUMB_EMULATE
+bool thumbEmulate()
+{
 u32 opcode = CPUReadHalfWordQuick(armNextPC);
 clockTicks = thumbCycles[opcode >> 8] + memoryWaitFetch[(armNextPC >> 24) & 15];
 #ifndef FINAL_VERSION
@@ -2451,7 +2455,7 @@ switch(opcode >> 8) {
    reg[15].I -= 2;
    armNextPC -= 2;   
    dbgSignal(5, opcode & 255);
-   return;
+   return false;
 #endif
  case 0xb1:
  case 0xb2:
@@ -2475,4 +2479,8 @@ switch(opcode >> 8) {
 #endif
    CPUUndefinedException();
    break;
+}
+
+//THUMB_EMULATE
+return true;
 }

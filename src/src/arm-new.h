@@ -2183,6 +2183,10 @@
     }\
     break;
 
+//ARM_EMULATE
+bool armEmulate()
+{
+
   u32 opcode = CPUReadMemoryQuick(armNextPC);
 
   clockTicks = memoryWaitFetch32[(armNextPC >> 24) & 15];
@@ -3245,7 +3249,7 @@ if(cond_res) {
     reg[15].I -= 4;
     armNextPC -= 4;
     dbgSignal(5, (opcode & 0x0f)|((opcode>>4) & 0xfff0));
-    return;
+    return false;
 #endif
   case 0x320:
   case 0x321:
@@ -7165,4 +7169,8 @@ if(cond_res) {
     break;
     // END
   }
+}
+
+//ARM_EMULATE
+  return true;
 }

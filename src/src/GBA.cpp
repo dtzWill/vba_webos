@@ -57,6 +57,9 @@
   *extCpuLoopTicks = *extClockTicks;\
   *extTicks = *extClockTicks;
 
+bool armEmulate();
+bool thumbEmulate();
+
 extern int emulating;
 
 int cpuDmaTicksToUpdate = 0;
@@ -3342,9 +3345,10 @@ void log(const char *defaultMsg, ...)
 extern void winlog(const char *, ...);
 #endif
 
+static int clockTicks;
+
 void CPULoop(int ticks)
 {  
-  int clockTicks;
   int cpuLoopTicks = 0;
   int timerOverflow = 0;
   // variables used by the CPU core
@@ -3392,9 +3396,15 @@ void CPULoop(int ticks)
 
     if(!holdState) {
       if(armState) {
-#include "arm-new.h"
+          if ( !armEmulate() )
+          {
+              return;
+          }
       } else {
-#include "thumb.h"
+          if ( !thumbEmulate() )
+          {
+              return;
+          }
       }
     } else {
       clockTicks = lcdTicks;
@@ -3952,3 +3962,8 @@ struct EmulatedSystem GBASystem = {
   5000
 #endif
 };
+
+
+#include "arm-new.h"
+#include "thumb.h"
+
