@@ -149,10 +149,9 @@ static bool hit_joy( controller_skin * skin, int x, int y )
 {
     //We hit the joy if we're within the larger radius,
     //but outside the dead zone circle
-    return hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius );
-    //return
-    //    hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius ) &&
-    //    ! hit( x, y, skin->joy_x, skin->joy_y, skin->joy_dead );
+    return
+        hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius ) &&
+        ! hit( x, y, skin->joy_x, skin->joy_y, skin->joy_dead );
 }
 
 //Landscape_r mode...
