@@ -2368,8 +2368,11 @@ void loadSkins()
     //For each entry in this directory..
     while ( dp = readdir( d ) )
     {
-        //If this is a directory
-        if ( dp->d_type == DT_DIR && dp->d_name[0] != '.' )
+        //If this is a directory (and not "." or ".." )
+        if ( dp->d_type == DT_DIR &&
+                strcmp( dp->d_name, "." ) &&
+                strcmp( dp->d_name, ".." ) )
+
         {
             char * skin_name = dp->d_name;
             int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
