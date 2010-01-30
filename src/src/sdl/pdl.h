@@ -14,9 +14,13 @@
  * ===========================================================================
  */
 
+//XXX due to work elsewhere there are better headers to be using, and I should use them.
+
 #define PDL_ORIENTATION_BOTTOM 0
 #define PDL_ORIENTATION_RIGHT 1
 #define PDL_ORIENTATION_TOP 2
 #define PDL_ORIENTATION_LEFT 3
 
 extern "C" void PDL_SetOrientation( int direction );
+
+extern "C" void PDL_LaunchBrowser( char * url );
