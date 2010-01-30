@@ -19,6 +19,12 @@
 
 #include "options.h"
 
+//No need to pull in a math library for this...
+#define SIN_30 ( 0.5f )
+#define SIN_60 ( 0.866025404f )
+#define COS_30 SIN_60
+#define COS_60 SIN_30
+
 struct controller_skin;
 typedef struct controller_skin controller_skin;
 
@@ -138,42 +144,49 @@ static bool hit_capture( controller_skin * skin, int x, int y )
     return hit( x, y, skin->capture_x, skin->capture_y, skin->capture_radius );
 }
 
-//d-pad is more complicated...
-//XXX: The way this is defined in conjunction with the 'hit_$dir' functions
-//makes THIS deadzone worthless
+//D-pad
 static bool hit_joy( controller_skin * skin, int x, int y )
 {
     //We hit the joy if we're within the larger radius,
     //but outside the dead zone circle
-    return
-        hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius ) &&
-        ! hit( x, y, skin->joy_x, skin->joy_y, skin->joy_dead );
+    return hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius );
+    //return
+    //    hit( x, y, skin->joy_x, skin->joy_y, skin->joy_radius ) &&
+    //    ! hit( x, y, skin->joy_x, skin->joy_y, skin->joy_dead );
 }
 
 //Landscape_r mode...
 static bool hit_up( controller_skin * skin, int x, int y )
 {
+    int relx = ( x - skin->joy_x );
+    if ( relx < 0 ) relx = -relx;
     return
         hit_joy( skin, x, y ) &&
-        ( y < skin->joy_y - skin->joy_dead );
+        ( y < skin->joy_y - relx * SIN_30 );
 }
 static bool hit_down( controller_skin * skin, int x, int y )
 {
+    int relx = ( x - skin->joy_x );
+    if ( relx < 0 ) relx = -relx;
     return
         hit_joy( skin, x, y ) &&
-        ( y > skin->joy_y + skin->joy_dead );
+        ( y > skin->joy_y + relx * SIN_30 );
 }
 static bool hit_left( controller_skin * skin, int x, int y )
 {
+    int rely = ( y - skin->joy_y );
+    if ( rely < 0 ) rely = -rely;
     return
         hit_joy( skin, x, y ) &&
-        ( x < skin->joy_x - skin->joy_dead );
+        ( x < skin->joy_x - rely * COS_30 );
 }
 static bool hit_right( controller_skin * skin, int x, int y )
 {
+    int rely = ( y - skin->joy_y );
+    if ( rely < 0 ) rely = -rely;
     return
         hit_joy( skin, x, y ) &&
-        ( x > skin->joy_x + skin->joy_dead );
+        ( x > skin->joy_x + rely * COS_30 );
 }
 
 controller_skin tmp_skin;
