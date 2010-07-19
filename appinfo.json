@@ -1,15 +1,14 @@
 {
        "title": "VisualBoy Advance",
        "id": "org.webosinternals.visualboyadvance",
-       "version": "1.1.2",
+       "version": "1.2.0",
        "release_date": "30-Jan-2010",
        "vendor": "WebOS Internals",
        "vendor_email": "support@webos-internals.org",
        "vendor_url": "http://www.webos-internals.org/wiki/Application:VBA",
        "type": "game",
-       "main": "bin/vba",
+       "main": "vba",
        "icon": "icon.png",
        "removable": "true",
-       "noWindow": true,
-       "noDeprecatedStyles": true
+       "requiredMemory" : 55
 }
