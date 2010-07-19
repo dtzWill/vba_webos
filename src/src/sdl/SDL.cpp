@@ -51,7 +51,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.1.2"
+#define VERSION "1.2.0"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
@@ -2990,7 +2990,7 @@ int main(int argc, char **argv)
     SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
 
   if(soundOffFlag)
-    flags ^= SDL_INIT_AUDIO;
+    flags &= ~SDL_INIT_AUDIO;
   
   if(SDL_Init(flags)) {
     systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
@@ -3034,12 +3034,12 @@ int main(int argc, char **argv)
   assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
+  //FIXME: Do we need a depth buffer? Stencil?
+  //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 16 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 ) );
- //assert( !SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, -1 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
 
   SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
   surface = SDL_SetVideoMode( 320, 480, 32,
