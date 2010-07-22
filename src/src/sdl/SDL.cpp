@@ -2424,11 +2424,17 @@ void GL_Init()
 {
     // setup 2D gl environment
     checkError();
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );//black background
+    // Disable Alpha
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); 
+    checkError();
+    // Black background
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
     checkError();
 
+    // Remove unnecessary operations..
+    glDepthFunc(GL_ALWAYS);
+    checkError();
     glDisable(GL_DEPTH_TEST);
-    glDepthFunc( GL_ALWAYS );
     checkError();
     glDisable(GL_CULL_FACE);
     checkError();
