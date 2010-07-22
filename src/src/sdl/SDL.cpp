@@ -51,8 +51,9 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.1.2"
+#define VERSION "1.2.0"
 
+#define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
 #define SKIN_PATH VBA_HOME "/skins/"
@@ -66,7 +67,7 @@
 #define NO_ROMS3 "/vba/roms"
 #define NO_ROMS4 "using USB mode, and then launch VBA again"
 #define NO_ROMS5 "For more information, see the wiki"
-#define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
+#define NO_ROMS6 "(click here to launch wiki)"
 
 #define OPTIONS_CFG VBA_HOME "/options.cfg"
 
@@ -2083,8 +2084,9 @@ char * romSelector()
     }
 
     TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
-    TTF_Font * font_normal = TTF_OpenFont( FONT, 22 );
-    if ( !font_small || !font_normal )
+    TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
+    TTF_Font * font_large = TTF_OpenFont( FONT, 22 );
+    if ( !font_small || !font_normal || !font_large )
     {
         fprintf( stderr, "Failed to open font: %s\n", FONT );
         exit( 1 );
@@ -2108,7 +2110,7 @@ char * romSelector()
 
 
     struct dirent ** roms;
-    int filecount = scandir( ROM_PATH, &roms, romFilter, sortCompar );
+    int filecount = scandir( ROM_PATH, &roms, romFilter, sortComparD );
     printf( "Rom count: %d\n", filecount );
 
     //Display general information
@@ -2140,13 +2142,14 @@ char * romSelector()
         //No roms found! Tell the user with a nice screen.
         //(Note this is where first-time users most likely end up);
         SDL_Color hiColor = { 255, 200, 200 };
+        SDL_Color linkColor = { 200, 200, 255 };
         //XXX: This code has gone too far--really should make use of some engine or loop or something :(
         SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
         SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
         SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
         SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
         SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
-        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, textColor );
+        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, linkColor );
         apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, surface );
         apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, surface );
         apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, surface );
@@ -2154,7 +2157,22 @@ char * romSelector()
         apply_surface( surface->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, surface );
         apply_surface( surface->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, surface );
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
-        while( 1 );
+        SDL_Event event;
+        while (1)
+        {
+            while ( SDL_PollEvent( &event ) )
+            {
+                if ( event.type == SDL_MOUSEBUTTONDOWN )
+                {
+                    if ( event.button.y > ( top+bottom)/2 + nr3->h + nr4->h + nr5->h )
+                    {
+                        PDL_LaunchBrowser( VBA_WIKI );
+                    }
+                }
+
+            }
+            SDL_Delay( 20 );
+        }
     }
 
     //Generate text for each rom...
@@ -2204,7 +2222,7 @@ char * romSelector()
             *extPtr = '\0';
         }
 
-        roms_surface[i] = TTF_RenderText_Blended( font_normal, buffer, textColor );
+        roms_surface[i] = TTF_RenderText_Blended( font_large, buffer, textColor );
     }
 
     int scroll_offset = 0;
@@ -2353,8 +2371,11 @@ void loadSkins()
     //For each entry in this directory..
     while ( dp = readdir( d ) )
     {
-        //If this is a directory
-        if ( dp->d_type == DT_DIR && dp->d_name[0] != '.' )
+        //If this is a directory (and not "." or ".." )
+        if ( dp->d_type == DT_DIR &&
+                strcmp( dp->d_name, "." ) &&
+                strcmp( dp->d_name, ".." ) )
+
         {
             char * skin_name = dp->d_name;
             int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
@@ -2406,11 +2427,17 @@ void GL_Init()
 {
     // setup 2D gl environment
     checkError();
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );//black background
+    checkError();
+    // Black background
+    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
     checkError();
 
+    // Remove unnecessary operations..
+    glDepthFunc(GL_ALWAYS);
+    checkError();
     glDisable(GL_DEPTH_TEST);
-    glDepthFunc( GL_ALWAYS );
+    checkError();
+    glDisable(GL_STENCIL_TEST);
     checkError();
     glDisable(GL_CULL_FACE);
     checkError();
@@ -2973,7 +3000,7 @@ int main(int argc, char **argv)
     SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
 
   if(soundOffFlag)
-    flags ^= SDL_INIT_AUDIO;
+    flags &= ~SDL_INIT_AUDIO;
   
   if(SDL_Init(flags)) {
     systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
@@ -3017,12 +3044,11 @@ int main(int argc, char **argv)
   assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 ) );
- //assert( !SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, -1 ) );
+  assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
 
   SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
   surface = SDL_SetVideoMode( 320, 480, 32,

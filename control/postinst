@@ -12,6 +12,9 @@ fi
 mkdir -p $VBA_HOME
 #while we're at it...
 mkdir -p $VBA_HOME/roms
+#remove old skins directory...
+rm -rf $SKINS
+#create it again
 mkdir -p $SKINS
 
 #extract the skins tar
