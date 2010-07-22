@@ -2434,6 +2434,8 @@ void GL_Init()
     checkError();
     glDisable(GL_DEPTH_TEST);
     checkError();
+    glDisable(GL_STENCIL_TEST);
+    checkError();
     glDisable(GL_CULL_FACE);
     checkError();
 
