@@ -2424,8 +2424,6 @@ void GL_Init()
 {
     // setup 2D gl environment
     checkError();
-    // Disable Alpha
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); 
     checkError();
     // Black background
     glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -3040,9 +3038,8 @@ int main(int argc, char **argv)
   assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
-  //FIXME: Do we need a depth buffer? Stencil?
-  //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 16 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 ) );
+  //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
   assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
