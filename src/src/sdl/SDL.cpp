@@ -2066,8 +2066,8 @@ char * romSelector()
     //Put notifications on the 'bottom' of the screen with respect to our orientation
     PDL_SetOrientation( PDL_ORIENTATION_LEFT );
 
-    // Create buffer we render selector into
-    SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
+    // Create buffer we render selector into (backwards h/w due to orientation)
+    SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->h, surface->w, 24, 
       0x0000ff, 0x00ff00, 0xff0000, 0);
 
     if (!surface )
@@ -3383,7 +3383,6 @@ void systemDrawScreen()
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
     checkError();
 
-    
     //Push to screen
     SDL_GL_SwapBuffers();
     checkError();
