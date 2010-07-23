@@ -1588,15 +1588,20 @@ void sdlPollEvents()
         active = event.active.gain;
         if(active) {
           if(!paused) {
-            if(emulating)
+            if(emulating) {
+              SDL_SemWait (sdlBufferLock);
               soundResume();
+              SDL_SemPost (sdlBufferLock);
+            }
           }
         } else {
           wasPaused = true;
           if(pauseWhenInactive) {
             if(emulating)
             {
+              SDL_SemWait (sdlBufferLock);
               soundPause();
+              SDL_SemPost (sdlBufferLock);
               //write battery when pausing.
               //Doesn't hurt, and guarantees we get a good save in.
               sdlWriteBattery();
@@ -3557,8 +3562,8 @@ void systemScreenCapture(int a)
 
 void soundCallback(void *,u8 *stream,int len)
 {
-  if(!emulating)
-    return;
+  //if(!emulating)
+  //  return;
 
   // Patch #1382692 by deathpudding.
   // (ported from vba 1.8.0)
