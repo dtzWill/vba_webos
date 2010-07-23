@@ -2248,7 +2248,8 @@ char * romSelector()
                     if ( tap )
                     {
                         int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
-                        if ( rom_index >= 0 && rom_index < num_roms_display )
+                        if ( rom_index >= 0 && rom_index < num_roms_display &&
+                            rom_index + scroll_offset < filecount )
                         {
                             romSelected = rom_index+scroll_offset;
                         }
