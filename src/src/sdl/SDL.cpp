@@ -104,6 +104,8 @@ void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s );
 void GL_Init();
 void GL_InitTexture();
 void updateOrientation();
+void pickRom();
+void runRom();
 
 char * romSelector();
 
@@ -200,6 +202,8 @@ int combo_down = false;
 int use_on_screen = true;
 
 int autosave = false;
+
+int running = true;
 
 //current skin
 controller_skin * skin = NULL;
@@ -1576,7 +1580,8 @@ void sdlPollEvents()
           //FIRST thing we do when request to save--make sure we write the battery!
           sdlWriteBattery();
       }
-      emulating = 0;
+      emulating = false;
+      running = false;
       break;
     case SDL_ACTIVEEVENT:
       if(pauseWhenInactive && (event.active.state & SDL_APPINPUTFOCUS)) {
@@ -1758,9 +1763,9 @@ void sdlPollEvents()
 //            wasPaused = true;
 //        }
 //        break;
-//      case SDLK_ESCAPE:
-//        emulating = 0;
-//        break;
+      case SDLK_ESCAPE:
+        emulating = 0;
+        break;
 //      case SDLK_1:
 //      case SDLK_2:
 //      case SDLK_3:
@@ -2070,17 +2075,10 @@ char * romSelector()
     SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->h, surface->w, 24, 
       0x0000ff, 0x00ff00, 0xff0000, 0);
 
-    if (!surface )
+    if (!selector )
     {
-        fprintf( stderr, "Error setting video mode!\n" );
+        fprintf( stderr, "Error creating rom selector buffer!\n" );
         exit( 1 );
-    }
-
-    //Init SDL_TTF to print text to the screen...
-    if ( TTF_Init() )
-    {
-        fprintf( stderr, "Error initializing SDL_ttf!\n" );
-        exit ( 1 );
     }
 
     TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
@@ -2527,6 +2525,12 @@ void GL_Init()
     surface = SDL_SetVideoMode( 320, 480, 32,
         SDL_OPENGL|
         (fullscreen ? SDL_FULLSCREEN : 0));
+
+    if(surface == NULL) {
+      systemMessage(0, "Failed to set video mode");
+      SDL_Quit();
+      exit(-1);
+    }
 
     // setup 2D gl environment
     checkError();
@@ -3010,8 +3014,37 @@ int main(int argc, char **argv)
   if(SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
     systemMessage(0, "Failed to init joystick support: %s", SDL_GetError());
   }
+  
+  sdlCheckKeys();
+
+  if(!soundOffFlag)
+      soundInit();
+
   GL_Init();
 
+  //Init SDL_TTF to print text to the screen...
+  if ( TTF_Init() )
+  {
+    fprintf( stderr, "Error initializing SDL_ttf!\n" );
+    exit ( 1 );
+  }
+
+  running = true;
+  // keep going until the user says quit.
+  // This lets you return to the rom selection :)
+  while(running)
+  {
+    pickRom();
+    runRom();
+  }
+
+  SDL_Quit();
+  return 0;
+}
+
+
+void pickRom()
+{
   printf( "Selecting rom...\n" );
   char * szFile = romSelector();
 
@@ -3084,24 +3117,6 @@ int main(int argc, char **argv)
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
   }
-//} else {
-//    cartridgeType = 0;
-//    strcpy(filename, "gnu_stub");
-//    rom = (u8 *)malloc(0x2000000);
-//    workRAM = (u8 *)calloc(1, 0x40000);
-//    bios = (u8 *)calloc(1,0x4000);
-//    internalRAM = (u8 *)calloc(1,0x8000);
-//    paletteRAM = (u8 *)calloc(1,0x400);
-//    vram = (u8 *)calloc(1, 0x20000);
-//    oam = (u8 *)calloc(1, 0x400);
-//    pix = (u8 *)calloc(1, 4 * 240 * 160);
-//    ioMem = (u8 *)calloc(1, 0x400);
-//
-//    emulator = GBASystem;
-//
-//    CPUInit(biosFileName, useBios);
-//    CPUReset();    
-//}
 
   sdlReadBattery();
 
@@ -3109,12 +3124,6 @@ int main(int argc, char **argv)
   {
     sdlReadState( AUTOSAVE_STATE );
   }
-
-  
-  if(debuggerStub) 
-    remoteInit();
-  
-  sdlCheckKeys();
   
   if(cartridgeType == 0) {
     srcWidth = 240;
@@ -3142,13 +3151,6 @@ int main(int argc, char **argv)
   
   destWidth = 320;
   destHeight = 480;
-  
-  
-  if(surface == NULL) {
-    systemMessage(0, "Failed to set video mode");
-    SDL_Quit();
-    exit(-1);
-  }
 
   GL_InitTexture();
   updateOrientation();
@@ -3208,34 +3210,31 @@ int main(int argc, char **argv)
   emulating = 1;
   renderedFrames = 0;
 
-  if(!soundOffFlag)
-      soundInit();
+}
 
+void runRom()
+{
   autoFrameSkipLastTime = throttleLastTime = systemGetClock();
 
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
   while(emulating) {
     if(!paused && active) {
-      if(debugger && emulator.emuHasDebugger)
-        dbgMain();
-      else {
-        emulator.emuMain(emulator.emuCount);
-        if(rewindSaveNeeded && rewindMemory && emulator.emuWriteMemState) {
-          rewindCount++;
-          if(rewindCount > 8)
-            rewindCount = 8;
-          if(emulator.emuWriteMemState &&
-             emulator.emuWriteMemState(&rewindMemory[rewindPos*REWIND_SIZE], 
-                                       REWIND_SIZE)) {
-            rewindPos = ++rewindPos & 7;
-            if(rewindCount == 8)
-              rewindTopPos = ++rewindTopPos & 7;
-          }
+      emulator.emuMain(emulator.emuCount);
+      if(rewindSaveNeeded && rewindMemory && emulator.emuWriteMemState) {
+        rewindCount++;
+        if(rewindCount > 8)
+          rewindCount = 8;
+        if(emulator.emuWriteMemState &&
+            emulator.emuWriteMemState(&rewindMemory[rewindPos*REWIND_SIZE], 
+              REWIND_SIZE)) {
+          rewindPos = ++rewindPos & 7;
+          if(rewindCount == 8)
+            rewindTopPos = ++rewindTopPos & 7;
         }
-
-        rewindSaveNeeded = false;
       }
+
+      rewindSaveNeeded = false;
     } else {
       SDL_Delay(500);
     }
@@ -3250,7 +3249,7 @@ int main(int argc, char **argv)
   emulating = 0;
   fprintf(stderr,"Shutting down\n");
   remoteCleanUp();
-  soundShutdown();
+  //soundShutdown();
 
   if(gbRom != NULL || rom != NULL) {
     sdlWriteBattery();
@@ -3262,8 +3261,6 @@ int main(int argc, char **argv)
     delta = NULL;
   }
   
-  SDL_Quit();
-  return 0;
 }
 
 void systemMessage(int num, const char *msg, ...)
