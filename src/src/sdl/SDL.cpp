@@ -74,7 +74,7 @@
 #define SCROLL_FACTOR 20
 #define AUTOSAVE_STATE 100
 
-//#define DEBUG_GL
+#define DEBUG_GL
 
 #ifdef DEBUG_GL
 void checkError()
@@ -100,6 +100,7 @@ void checkError()
 #define checkError()
 #endif
 
+void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s );
 void GL_Init();
 void GL_InitTexture();
 void updateOrientation();
@@ -2065,8 +2066,10 @@ char * romSelector()
     //Put notifications on the 'bottom' of the screen with respect to our orientation
     PDL_SetOrientation( PDL_ORIENTATION_LEFT );
 
-    //Init SDL for non-gl interaction...
-    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
+    // Create buffer we render selector into
+    SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
+      0x0000ff, 0x00ff00, 0xff0000, 0);
+
     if (!surface )
     {
         fprintf( stderr, "Error setting video mode!\n" );
@@ -2113,26 +2116,26 @@ char * romSelector()
     //Display general information
     int top, bottom;
     SDL_Color textColor = { 255, 255, 255 };
-    int borderColor = SDL_MapRGB( surface->format, 0, 0, 50 );
+    int borderColor = SDL_MapRGB( selector->format, 0, 0, 50 );
     SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
     top = 10+title->h+10;
 
     SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    bottom = surface->h - author->h - 10;
+    bottom = selector->h - author->h - 10;
 
     //Draw border/text
-    SDL_FillRect( surface, NULL, borderColor );
-    apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
-    apply_surface( 10, 10, title, surface );
+    SDL_FillRect( selector, NULL, borderColor );
+    apply_surface( selector->w - author->w - 10, selector->h - author->h - 10, author, selector );
+    apply_surface( 10, 10, title, selector );
 
-    SDL_UpdateRect( surface, 0, 0, 0, 0 );
+    SDL_DrawSurfaceAsGLTexture( selector );
     SDL_Rect drawRect;
     drawRect.x = 10;
     drawRect.y = top;
     drawRect.h = bottom-top;
-    drawRect.w = surface->w-20;
-    int black = SDL_MapRGB(surface->format, 0, 0, 0);
-    SDL_FillRect(surface, &drawRect, black);
+    drawRect.w = selector->w-20;
+    int black = SDL_MapRGB(selector->format, 0, 0, 0);
+    SDL_FillRect(selector, &drawRect, black);
 
     if ( filecount < 1 )
     {
@@ -2147,12 +2150,12 @@ char * romSelector()
         SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
         SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
         SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, linkColor );
-        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, surface );
-        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, surface );
-        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, surface );
-        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, surface );
-        apply_surface( surface->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, surface );
-        apply_surface( surface->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, surface );
+        apply_surface( selector->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, selector );
+        apply_surface( selector->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, selector );
+        apply_surface( selector->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, selector );
+        apply_surface( selector->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, selector );
+        apply_surface( selector->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, selector );
+        apply_surface( selector->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, selector );
         SDL_UpdateRect( surface, 0, 0, 0, 0 );
         SDL_Event event;
         while (1)
@@ -2307,12 +2310,12 @@ char * romSelector()
         }
 
         //Draw border/text
-        SDL_FillRect( surface, NULL, borderColor );
-        apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
-        apply_surface( 10, 10, title, surface );
+        SDL_FillRect( selector, NULL, borderColor );
+        apply_surface( selector->w - author->w - 10, selector->h - author->h - 10, author, selector );
+        apply_surface( 10, 10, title, selector );
 
         //Clear middle
-        SDL_FillRect(surface, &drawRect, black);
+        SDL_FillRect(selector, &drawRect, black);
 
         //Draw roms...
 
@@ -2321,19 +2324,19 @@ char * romSelector()
            int index = scroll_offset + i;
            if ( index == romSelected )
            {
-               int hiColor = SDL_MapRGB( surface->format, 128, 128, 0 );
+               int hiColor = SDL_MapRGB( selector->format, 128, 128, 0 );
                SDL_Rect hiRect;
                hiRect.x = 10;
                hiRect.y = top+(10+roms_surface[0]->h)*i - 5;
                hiRect.h = roms_surface[index]->h+5;
-               hiRect.w = surface->w - 20;
-               SDL_FillRect( surface, &hiRect, hiColor );
+               hiRect.w = selector->w - 20;
+               SDL_FillRect( selector, &hiRect, hiColor );
            }
-           apply_surface( 20, top + (10+roms_surface[0]->h)*i, surface->w - 40, roms_surface[index], surface );
+           apply_surface( 20, top + (10+roms_surface[0]->h)*i, selector->w - 40, roms_surface[index], selector );
         }
 
         //Update screen.
-        SDL_UpdateRect( surface, 0, 0, 0, 0 );
+        SDL_DrawSurfaceAsGLTexture( selector );
         if ( romSelected != -1 )
         {
             SDL_Delay( 20 );
@@ -2341,6 +2344,7 @@ char * romSelector()
     }
     SDL_FreeSurface( title );
     SDL_FreeSurface( author );
+    SDL_FreeSurface( selector );
 
     char * rom_base = roms[romSelected]->d_name;
     char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );
@@ -2350,11 +2354,83 @@ char * romSelector()
     return rom_full_path;
 }
 
-void loadSkins()
+void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s )
 {
-    skin = NULL;
 
-    DIR * d = opendir( SKIN_PATH );
+  /*-----------------------------------------------------------------------------
+   *  Convert the surface to a texture, and upload it
+   *-----------------------------------------------------------------------------*/
+  static GLuint surface_tex;
+  glGenTextures( 1, &surface_tex );
+  checkError();
+  glBindTexture( GL_TEXTURE_2D, surface_tex );
+  checkError();
+
+  int num;
+  glGetIntegerv( GL_ACTIVE_TEXTURE, &num );
+  assert( num == GL_TEXTURE0 );
+  checkError();
+
+
+  // XXX: We assume things about the surface's format that could be incorrect.
+  // Add some kinda assertion
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
+  checkError();
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
+  checkError();
+
+  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+  checkError();
+  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+  checkError();
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, s->w, s->h, 0, GL_RGB,
+      GL_UNSIGNED_BYTE, s->pixels );
+  checkError();
+
+
+  /*-----------------------------------------------------------------------------
+   *  Now actually render it
+   *-----------------------------------------------------------------------------*/
+  
+  glUseProgram ( programObject );
+  checkError();
+
+  glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+  checkError();
+  glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+  checkError();
+
+  glEnableVertexAttribArray( positionLoc );
+  checkError();
+  glEnableVertexAttribArray( texCoordLoc );
+  checkError();
+
+  checkError();
+
+  //sampler texture unit to 0
+  glBindTexture(GL_TEXTURE_2D, surface_tex);
+  glUniform1i( samplerLoc, 0 );
+  checkError();
+
+  glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+  checkError();
+
+  //Push to screen
+  SDL_GL_SwapBuffers();
+  checkError();
+
+  // Remove the texture
+  glDeleteTextures( 1, &surface_tex );
+}
+
+
+void scanForSkins( char * folder )
+{
+    fprintf( stderr, "Scanning \"%s\" for skins...\n", folder );
+    DIR * d = opendir( folder );
     if ( !d )
     {
         perror( "Failed to open skin path!\n" );
@@ -2375,19 +2451,34 @@ void loadSkins()
 
         {
             char * skin_name = dp->d_name;
-            int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
+            int folderlen = strlen( skin_name ) + strlen( folder ) + 2;
 
             //build full path
             char skin_folder[folderlen];
-            strcpy( skin_folder, SKIN_PATH );
-            strcpy( skin_folder + strlen( SKIN_PATH ), "/" );
-            strcpy( skin_folder + strlen( SKIN_PATH ) + 1, skin_name );
+            strcpy( skin_folder, folder );
+            strcpy( skin_folder + strlen( folder ), "/" );
+            strcpy( skin_folder + strlen( folder ) + 1, skin_name );
 
             load_skin( SKIN_CFG_NAME, SKIN_IMG_NAME, skin_name, skin_folder, &skin );
         }
     }
 
     closedir( d );
+}
+
+void loadSkins()
+{
+    skin = NULL;
+
+    // XXX: I *want* to use the appropriate PDK_get* method, but seems like
+    // 1.4.5 bug prevents that.  So, for now, just look for skins relative to us.
+
+    scanForSkins( "./skins" );
+
+
+    // Look for skins on the /media/internal path for user-loaded skins
+    scanForSkins( SKIN_PATH );
+
 
     //As we build the list, the 'skin' always point to the last one in the list.
     //Here we just wrap around to the first (circule ll) so we default to the 'first' one.
@@ -2422,6 +2513,20 @@ void loadSkins()
 
 void GL_Init()
 {
+    assert( !SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
+    //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 ) );
+    //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
+    assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
+
+    surface = SDL_SetVideoMode( 320, 480, 32,
+        SDL_OPENGL|
+        (fullscreen ? SDL_FULLSCREEN : 0));
+
     // setup 2D gl environment
     checkError();
     checkError();
@@ -2890,6 +2995,22 @@ int main(int argc, char **argv)
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
+  int flags = SDL_INIT_VIDEO|SDL_INIT_AUDIO|
+    SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
+
+  if(soundOffFlag)
+    flags &= ~SDL_INIT_AUDIO;
+  
+  if(SDL_Init(flags)) {
+    systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
+    exit(-1);
+  }
+
+  if(SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
+    systemMessage(0, "Failed to init joystick support: %s", SDL_GetError());
+  }
+  GL_Init();
+
   printf( "Selecting rom...\n" );
   char * szFile = romSelector();
 
@@ -2992,21 +3113,6 @@ int main(int argc, char **argv)
   if(debuggerStub) 
     remoteInit();
   
-  int flags = SDL_INIT_VIDEO|SDL_INIT_AUDIO|
-    SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
-
-  if(soundOffFlag)
-    flags &= ~SDL_INIT_AUDIO;
-  
-  if(SDL_Init(flags)) {
-    systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
-    exit(-1);
-  }
-
-  if(SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
-    systemMessage(0, "Failed to init joystick support: %s", SDL_GetError());
-  }
-  
   sdlCheckKeys();
   
   if(cartridgeType == 0) {
@@ -3036,20 +3142,6 @@ int main(int argc, char **argv)
   destWidth = 320;
   destHeight = 480;
   
-  assert( !SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
-
-  SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
-  surface = SDL_SetVideoMode( 320, 480, 32,
-                             SDL_OPENGLES|
-                             (fullscreen ? SDL_FULLSCREEN : 0));
   
   if(surface == NULL) {
     systemMessage(0, "Failed to set video mode");
@@ -3057,7 +3149,6 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  GL_Init();
   GL_InitTexture();
   updateOrientation();
   
