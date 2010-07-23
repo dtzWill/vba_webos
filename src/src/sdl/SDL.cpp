@@ -74,7 +74,7 @@
 #define SCROLL_FACTOR 20
 #define AUTOSAVE_STATE 100
 
-#define DEBUG_GL
+//#define DEBUG_GL
 
 #ifdef DEBUG_GL
 void checkError()
@@ -100,7 +100,7 @@ void checkError()
 #define checkError()
 #endif
 
-void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s );
+void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s, float * coords );
 void GL_Init();
 void GL_InitTexture();
 void updateOrientation();
@@ -244,6 +244,7 @@ float portrait_vertexCoords[] =
 };
 
 float * controller_coords = land_r_vertexCoords;
+float * rom_selector_coords = portrait_vertexCoords;
 
 float texCoords[] =
 {
@@ -2068,11 +2069,15 @@ int sortCompar( const void * a, const void * b )
 
 char * romSelector()
 {
-    //Put notifications on the 'bottom' of the screen with respect to our orientation
-    PDL_SetOrientation( PDL_ORIENTATION_LEFT );
+    // save the old orientation
+    int oldOrientation = orientation;
 
-    // Create buffer we render selector into (backwards h/w due to orientation)
-    SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->h, surface->w, 24, 
+    // We have a portrait rom selector, but need to prentend landscape to get things to work right
+    orientation = ORIENTATION_PORTRAIT;
+    updateOrientation();
+
+    // Create buffer we render selector into
+    SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
       0x0000ff, 0x00ff00, 0xff0000, 0);
 
     if (!selector )
@@ -2126,7 +2131,7 @@ char * romSelector()
     apply_surface( selector->w - author->w - 10, selector->h - author->h - 10, author, selector );
     apply_surface( 10, 10, title, selector );
 
-    SDL_DrawSurfaceAsGLTexture( selector );
+    SDL_DrawSurfaceAsGLTexture( selector, rom_selector_coords );
     SDL_Rect drawRect;
     drawRect.x = 10;
     drawRect.y = top;
@@ -2154,7 +2159,7 @@ char * romSelector()
         apply_surface( selector->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, selector );
         apply_surface( selector->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, selector );
         apply_surface( selector->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, selector );
-        SDL_UpdateRect( surface, 0, 0, 0, 0 );
+        SDL_DrawSurfaceAsGLTexture( selector, rom_selector_coords );
         SDL_Event event;
         while (1)
         {
@@ -2335,7 +2340,7 @@ char * romSelector()
         }
 
         //Update screen.
-        SDL_DrawSurfaceAsGLTexture( selector );
+        SDL_DrawSurfaceAsGLTexture( selector, rom_selector_coords );
         if ( romSelected != -1 )
         {
             SDL_Delay( 20 );
@@ -2345,6 +2350,10 @@ char * romSelector()
     SDL_FreeSurface( author );
     SDL_FreeSurface( selector );
 
+    // restore the original orientation
+    orientation = oldOrientation;
+    updateOrientation();
+
     char * rom_base = roms[romSelected]->d_name;
     char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );
     strcpy( rom_full_path, ROM_PATH );
@@ -2353,7 +2362,7 @@ char * romSelector()
     return rom_full_path;
 }
 
-void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s )
+void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s, float * coords )
 {
 
   /*-----------------------------------------------------------------------------
@@ -2396,7 +2405,7 @@ void SDL_DrawSurfaceAsGLTexture( SDL_Surface * s )
   glUseProgram ( programObject );
   checkError();
 
-  glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+  glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), coords );
   checkError();
   glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
 
