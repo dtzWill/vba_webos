@@ -97,7 +97,7 @@ extern u32 line2[240];
 extern u32 line3[240];
 extern u32 lineOBJ[240];
 extern u32 lineOBJWin[240];
-extern u32 lineMix[240];
+extern u16 lineMix[240];
 extern bool gfxInWin0[240];
 extern bool gfxInWin1[240];
 

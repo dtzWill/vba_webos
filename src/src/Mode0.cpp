@@ -26,7 +26,7 @@ void mode0RenderLine()
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     return;
   }
@@ -123,7 +123,7 @@ void mode0RenderLine()
         }      
     }
 
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
 }
 
@@ -133,7 +133,7 @@ void mode0RenderLineNoWindow()
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     return;
   }
@@ -293,7 +293,7 @@ void mode0RenderLineNoWindow()
       }
     }
 
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
 }
 
@@ -303,7 +303,7 @@ void mode0RenderLineAll()
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     return;
   }
@@ -547,6 +547,6 @@ void mode0RenderLineAll()
       }
     }
     
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
 }

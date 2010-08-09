@@ -26,7 +26,7 @@ void mode1RenderLine()
   
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     gfxLastVCOUNT = VCOUNT;    
     return;
@@ -115,7 +115,7 @@ void mode1RenderLine()
       } 
     }
 
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
   gfxBG2Changed = 0;
   gfxLastVCOUNT = VCOUNT; 
@@ -127,7 +127,7 @@ void mode1RenderLineNoWindow()
   
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     gfxLastVCOUNT = VCOUNT;    
     return;
@@ -270,7 +270,7 @@ void mode1RenderLineNoWindow()
       }      
     }
     
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
   gfxBG2Changed = 0;
   gfxLastVCOUNT = VCOUNT;  
@@ -282,7 +282,7 @@ void mode1RenderLineAll()
   
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = systemColorMap16[0x7fff];
     }
     gfxLastVCOUNT = VCOUNT;    
     return;
@@ -506,7 +506,7 @@ void mode1RenderLineAll()
       } 
     }
     
-    lineMix[x] = color;
+    lineMix[x] = systemColorMap16[color&0xFFFF];
   }
   gfxBG2Changed = 0;
   gfxLastVCOUNT = VCOUNT;  
