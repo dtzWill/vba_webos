@@ -6745,8 +6745,9 @@ echo $ECHO_N "checking for SDL - version >= $min_sdl_version... $ECHO_C" >&6; }
   if test "$SDL_CONFIG" = "no" ; then
     no_sdl=yes
   else
-    SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
-    SDL_LIBS=`$SDL_CONFIG $sdlconf_args --libs`
+    #SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
+    SDL_CFLAGS="-I/usr/local/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT"
+    SDL_LIBS="-L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL -lpthread"
 
     sdl_major_version=`$SDL_CONFIG $sdl_args --version | \
            sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/'`

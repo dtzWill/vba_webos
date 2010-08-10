@@ -3,4 +3,4 @@ export CFLAGS='-O3 -mcpu=cortex-a8 -mfpu=neon -ftree-vectorize -mfloat-abi=softf
 export CPPFLAGS=$CFLAGS
 export CXXFLAGS=$CFLAGS
 export LIBS='-L/usr/local/lib -L/usr/lib -lGLESv2 -lSDL_ttf -lSDL_image -lpdl -Wl,-rpath,/usr/local/lib'
-./configure --disable-dev --disable-profiling
+./configure --disable-dev --disable-profiling 
