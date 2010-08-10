@@ -370,7 +370,7 @@ int sdlNumDevices = 0;
 SDL_Joystick **sdlDevices = NULL;
 
 bool wasPaused = false;
-int autoFrameSkip = 1;
+int autoFrameSkip = 0;
 int frameskipadjust = 0;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
