@@ -29,7 +29,6 @@ u32 line2[240];
 u32 line3[240];
 u32 lineOBJ[240];
 u32 lineOBJWin[240];
-u16 lineMix[240];
 bool gfxInWin0[240];
 bool gfxInWin1[240];
 

@@ -66,29 +66,29 @@ void gfxIncreaseBrightness(u32 *line, int coeff);
 void gfxDecreaseBrightness(u32 *line, int coeff);
 void gfxAlphaBlend(u32 *ta, u32 *tb, int ca, int cb);
 
-void mode0RenderLine();
-void mode0RenderLineNoWindow();
-void mode0RenderLineAll();
+void mode0RenderLine(u16* lineMix);
+void mode0RenderLineNoWindow(u16* lineMix);
+void mode0RenderLineAll(u16* lineMix);
 
-void mode1RenderLine();
-void mode1RenderLineNoWindow();
-void mode1RenderLineAll();
+void mode1RenderLine(u16* lineMix);
+void mode1RenderLineNoWindow(u16* lineMix);
+void mode1RenderLineAll(u16* lineMix);
 
-void mode2RenderLine();
-void mode2RenderLineNoWindow();
-void mode2RenderLineAll();
+void mode2RenderLine(u16* lineMix);
+void mode2RenderLineNoWindow(u16* lineMix);
+void mode2RenderLineAll(u16* lineMix);
 
-void mode3RenderLine();
-void mode3RenderLineNoWindow();
-void mode3RenderLineAll();
+void mode3RenderLine(u16* lineMix);
+void mode3RenderLineNoWindow(u16* lineMix);
+void mode3RenderLineAll(u16* lineMix);
 
-void mode4RenderLine();
-void mode4RenderLineNoWindow();
-void mode4RenderLineAll();
+void mode4RenderLine(u16* lineMix);
+void mode4RenderLineNoWindow(u16* lineMix);
+void mode4RenderLineAll(u16* lineMix);
 
-void mode5RenderLine();
-void mode5RenderLineNoWindow();
-void mode5RenderLineAll();
+void mode5RenderLine(u16* lineMix);
+void mode5RenderLineNoWindow(u16* lineMix);
+void mode5RenderLineAll(u16* lineMix);
 
 extern int coeff[32];
 extern u32 line0[240];
@@ -97,7 +97,6 @@ extern u32 line2[240];
 extern u32 line3[240];
 extern u32 lineOBJ[240];
 extern u32 lineOBJWin[240];
-extern u16 lineMix[240];
 extern bool gfxInWin0[240];
 extern bool gfxInWin1[240];
 

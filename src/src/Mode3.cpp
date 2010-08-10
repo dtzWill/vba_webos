@@ -20,7 +20,7 @@
 #include "Globals.h"
 #include "Gfx.h"
 
-void mode3RenderLine()
+void mode3RenderLine(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
   
@@ -97,7 +97,7 @@ void mode3RenderLine()
   gfxLastVCOUNT = VCOUNT;      
 }
 
-void mode3RenderLineNoWindow()
+void mode3RenderLineNoWindow(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
   
@@ -215,7 +215,7 @@ void mode3RenderLineNoWindow()
   gfxLastVCOUNT = VCOUNT;  
 }
 
-void mode3RenderLineAll()
+void mode3RenderLineAll(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
   

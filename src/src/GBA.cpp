@@ -115,7 +115,7 @@ u32 dma2Dest = 0;
 u32 dma3Source = 0;
 u32 dma3Dest = 0;
 void (*cpuSaveGameFunc)(u32,u8) = flashSaveDecide;
-void (*renderLine)() = mode0RenderLine;
+void (*renderLine)(u16*) = mode0RenderLine;
 bool fxOn = false;
 bool windowOn = false;
 int frameCount = 0;
@@ -3553,86 +3553,7 @@ void CPULoop(int ticks)
             CPUCompareVCOUNT(); 
           } else {
             if(frameCount >= framesToSkip) {
-              (*renderLine)();
-              
-              switch(systemColorDepth) {
-              case 16:
-                {
-                  u16 *dest = (u16 *)pix + 240 * (VCOUNT);
-                  memcpy(dest,lineMix,240*sizeof(u16));
-                  // for filters that read past the screen
-                  //*dest++ = 0;
-                }
-                break;
-              case 24:
-                {
-                  u8 *dest = (u8 *)pix + 240 * VCOUNT * 3;
-                  for(int x = 0; x < 240;) {
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;
-                    *((u32 *)dest) = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    dest += 3;              
-                  }
-                }
-                break;
-              case 32:
-                {
-                  u32 *dest = (u32 *)pix + 241 * (VCOUNT+1);
-                  for(int x = 0; x < 240; ) {
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                    *dest++ = systemColorMap32[lineMix[x++] & 0xFFFF];
-                  }
-                }
-                break;
-              }
+              (*renderLine)((u16*)pix + 240*(VCOUNT));
             }
             // entering H-Blank
             DISPSTAT |= 2;

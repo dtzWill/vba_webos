@@ -20,7 +20,7 @@
 #include "Globals.h"
 #include "Gfx.h"
 
-void mode5RenderLine()
+void mode5RenderLine(u16* lineMix)
 {
   if(DISPCNT & 0x0080) {
     for(int x = 0; x < 240; x++) {
@@ -97,7 +97,7 @@ void mode5RenderLine()
   gfxLastVCOUNT = VCOUNT;  
 }
 
-void mode5RenderLineNoWindow()
+void mode5RenderLineNoWindow(u16* lineMix)
 {
   if(DISPCNT & 0x0080) {
     for(int x = 0; x < 240; x++) {
@@ -215,7 +215,7 @@ void mode5RenderLineNoWindow()
   gfxLastVCOUNT = VCOUNT;  
 }
 
-void mode5RenderLineAll()
+void mode5RenderLineAll(u16* lineMix)
 {
   if(DISPCNT & 0x0080) {
     for(int x = 0; x < 240; x++) {
