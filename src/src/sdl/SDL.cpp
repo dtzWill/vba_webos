@@ -70,7 +70,7 @@
 #define NO_ROMS5 "For more information, see the wiki"
 #define NO_ROMS6 "(click here to launch wiki)"
 
-#define OPTIONS_CFG VBA_HOME "/options.cfg"
+#define OPTIONS_CFG "options.cfg"
 
 #define SCROLL_FACTOR 20
 #define AUTOSAVE_STATE 100
@@ -1698,7 +1698,7 @@ void sdlPollEvents()
           {
               //write to file.
               //XXX: Write to alternate file? Don't overwrite this existing one?
-              FILE * f  = fopen( VBA_HOME "/VisualBoyAdvance.cfg", "w" );
+              FILE * f  = fopen( "VisualBoyAdvance.cfg", "w" );
 
               for ( int i = 0; i < BINDING_DONE; i++ )
               {
@@ -2770,6 +2770,8 @@ void migration()
   //Move states and battery files over
   system("mv /media/internal/vba/roms/*.sgm ./sav");
   system("mv /media/internal/vba/roms/*.sav ./sav");
+  //Copy cfg files over
+  system("mv /media/internal/vba/*.cfg ./");
 }
 
 int main(int argc, char **argv)
