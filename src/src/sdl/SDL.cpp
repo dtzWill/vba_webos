@@ -3172,8 +3172,13 @@ void pickRom()
   
   systemColorDepth = 16;
 
-  //I'm not sure that this matters anymore. XXX Find out and remove.
   RGB_LOW_BITS_MASK = 0x842;
+
+  //FEDCBA9876543210
+  //BBBBBGGGGGRRRRRA
+  systemRedShift = 1;
+  systemGreenShift = 6;
+  systemBlueShift = 11;
 
   srcPitch = srcWidth * 2;
 
