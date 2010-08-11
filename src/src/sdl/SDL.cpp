@@ -63,17 +63,31 @@
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
-#define NO_ROMS1 "Welcome to VBA!  Looks like you don't have any ROMs yet."
-#define NO_ROMS2 "To play games, put the roms in "
-#define NO_ROMS3 "/vba/roms"
-#define NO_ROMS4 "using USB mode, and then launch VBA again"
-#define NO_ROMS5 "For more information, see the wiki"
-#define NO_ROMS6 "(click here to launch wiki)"
 
 #define OPTIONS_CFG "options.cfg"
 
 #define SCROLL_FACTOR 20
 #define AUTOSAVE_STATE 100
+
+//In 'BGR' format...
+SDL_Color textColor = { 255, 255, 255 };
+SDL_Color hiColor = { 200, 200, 255 };
+SDL_Color linkColor = { 255, 200, 200 };
+typedef struct
+{
+  char * msg;
+  SDL_Color color;
+} line;
+line no_roms[] {
+{ "Welcome to VBA!",                     textColor},
+{ "Looks like you don't have any ROMs.", textColor},
+{ "To play games, put the roms in ",     textColor},
+{ "/vba/roms",                           hiColor},
+{ "using USB mode, and ",                textColor},
+{ "then launch VBA again",               textColor},
+{ "For more information, see the wiki",  textColor},
+{ "(click here to launch wiki)",         linkColor}
+};
 
 //#define DEBUG_GL
 
@@ -2106,7 +2120,6 @@ char * romSelector()
 
     //Display general information
     int top, bottom;
-    SDL_Color textColor = { 255, 255, 255 };
     int borderColor = SDL_MapRGB( selector->format, 50, 0, 0 );//BGR
     SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
     top = 10+title->h+10;
@@ -2132,37 +2145,30 @@ char * romSelector()
     {
         //No roms found! Tell the user with a nice screen.
         //(Note this is where first-time users most likely end up);
-        SDL_Color hiColor = { 200, 200, 255 };//BGR
-        SDL_Color linkColor = { 255, 200, 200 };//BGR
-        //XXX: This code has gone too far--really should make use of some engine or loop or something :(
-        SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
-        SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
-        SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
-        SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
-        SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
-        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, linkColor );
-        apply_surface( selector->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, selector );
-        apply_surface( selector->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, selector );
-        apply_surface( selector->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, selector );
-        apply_surface( selector->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, selector );
-        apply_surface( selector->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, selector );
-        apply_surface( selector->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, selector );
-        SDL_DrawSurfaceAsGLTexture( selector, rom_selector_coords );
+        int lines = sizeof(no_roms)/sizeof(no_roms[0]);
+        SDL_Surface * nr[lines];
+        int offset = 100;//arbitrary offset, centering all this isn't worth it.
+        for ( int i = 0; i < lines; ++i )
+        {
+          nr[i] = TTF_RenderText_Blended( font_normal, no_roms[i].msg, no_roms[i].color );
+          apply_surface( selector->w/2-nr[i]->w/2, offset, nr[i], selector );
+          offset += nr[i]->h + 10;
+        }
+
         SDL_Event event;
         while (1)
         {
+            SDL_DrawSurfaceAsGLTexture( selector, rom_selector_coords );
             while ( SDL_PollEvent( &event ) )
             {
                 if ( event.type == SDL_MOUSEBUTTONDOWN )
                 {
-                    if ( event.button.y > ( top+bottom)/2 + nr3->h + nr4->h + nr5->h )
-                    {
-                        PDL_LaunchBrowser( VBA_WIKI );
-                    }
+                  //Regardless of what the text says, if the user clicks, launch the wiki...
+                  PDL_LaunchBrowser( VBA_WIKI );
                 }
 
             }
-            SDL_Delay( 20 );
+            SDL_Delay( 100 );
         }
     }
 
