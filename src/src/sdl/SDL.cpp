@@ -2117,7 +2117,7 @@ char * romSelector()
     //Display general information
     int top, bottom;
     SDL_Color textColor = { 255, 255, 255 };
-    int borderColor = SDL_MapRGB( selector->format, 0, 0, 50 );
+    int borderColor = SDL_MapRGB( selector->format, 50, 0, 0 );//BGR
     SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
     top = 10+title->h+10;
 
@@ -2142,8 +2142,8 @@ char * romSelector()
     {
         //No roms found! Tell the user with a nice screen.
         //(Note this is where first-time users most likely end up);
-        SDL_Color hiColor = { 255, 200, 200 };
-        SDL_Color linkColor = { 200, 200, 255 };
+        SDL_Color hiColor = { 200, 200, 255 };//BGR
+        SDL_Color linkColor = { 255, 200, 200 };//BGR
         //XXX: This code has gone too far--really should make use of some engine or loop or something :(
         SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
         SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
@@ -2326,7 +2326,7 @@ char * romSelector()
            int index = scroll_offset + i;
            if ( index == romSelected )
            {
-               int hiColor = SDL_MapRGB( selector->format, 128, 128, 0 );
+               int hiColor = SDL_MapRGB( selector->format, 0, 128, 128 );//BGR
                SDL_Rect hiRect;
                hiRect.x = 10;
                hiRect.y = top+(10+roms_surface[0]->h)*i - 5;
