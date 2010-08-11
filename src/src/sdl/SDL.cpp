@@ -2475,7 +2475,7 @@ void loadSkins()
     // XXX: I *want* to use the appropriate PDK_get* method, but seems like
     // 1.4.5 bug prevents that.  So, for now, just look for skins relative to us.
 
-    scanForSkins( "./skins" );
+    scanForSkins( "skins" );
 
 
     // Look for skins on the /media/internal path for user-loaded skins
@@ -2767,17 +2767,76 @@ void updateOrientation()
     PDL_SetOrientation( notification_direction );
 }
 
-//Do whatever upgrade/migration logic required.  Eventually should probably try to use versions
-//to make this more specific.
+//return true if upgrade needed
+bool version_check( char * old, char * check )
+{
+  if (!old) return true;
+  if (!*old) return true;
+  if (!check) return false;//?!
+  if (!*check) return false;//?!
+
+  while( *old && *check )
+  {
+    int v1 = atoi(old);
+    int v2 = atoi(check);
+
+    if ( v1 < v2 ) return true;
+    if ( v1 > v2 ) return false;
+
+    //Advance each string pointer past the next period
+    while( *old && *old != '.' ) ++old;
+    if ( *old == '.' ) ++old;
+    while( *check && *check != '.' ) ++check;
+    if ( *check == '.' ) ++check;
+  }
+
+  //If we exhausted both strings and got this far, they're the same.
+  if ( !*old && !*check )
+    return false;
+
+  //If old version has more to it, it's newer
+  //1.2.1 vs 1.2
+  if ( *old ) return false;
+
+  //If we get here, we were comparing something like
+  //1.2 vs 1.2.1
+  return true;
+}
+
+//Do whatever upgrade/migration logic required.
 void migration()
 {
-  //Create 'sav' folder in calling path
-  system("mkdir -p sav");
-  //Move states and battery files over
-  system("mv /media/internal/vba/roms/*.sgm ./sav");
-  system("mv /media/internal/vba/roms/*.sav ./sav");
-  //Copy cfg files over
-  system("mv /media/internal/vba/*.cfg ./");
+  // Read version from last run
+  FILE * f = fopen("version", "r");
+  char * old_version = NULL;
+  if (f)
+  {
+    if ( fscanf(f, "%as", old_version) != 1 )
+    {
+      old_version = NULL;
+    }
+    fclose(f);
+  }
+  printf( "old version: %s\n", old_version );
+
+  if ( version_check(old_version,"1.2.0") )
+  {
+    printf( "Upgrading to version 1.2.0...\n" );
+    //Create 'sav' folder in calling path
+    system("mkdir -p sav");
+    //Move states and battery files over
+    system("mv /media/internal/vba/roms/*.sgm ./sav");
+    system("mv /media/internal/vba/roms/*.sav ./sav");
+    //Copy cfg files over
+    system("mv /media/internal/vba/*.cfg ./");
+  }
+
+  free(old_version);
+
+  //Write updated version back
+  f = fopen("version", "w");
+  fprintf( f, "%s\n", VERSION );
+  fclose(f);
 }
 
 int main(int argc, char **argv)
