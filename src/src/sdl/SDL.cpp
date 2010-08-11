@@ -2811,7 +2811,7 @@ void migration()
   char * old_version = NULL;
   if (f)
   {
-    if ( fscanf(f, "%as", old_version) != 1 )
+    if ( fscanf(f, "%as", &old_version) != 1 )
     {
       old_version = NULL;
     }
@@ -2841,6 +2841,8 @@ void migration()
 
 int main(int argc, char **argv)
 {
+  freopen("vba.log", "w", stdout );
+  freopen("vba-err.log", "w", stderr );
   fprintf(stderr, "VisualBoyAdvance version %s [SDL]\n", VERSION);
 
   arg0 = argv[0];
