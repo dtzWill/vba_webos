@@ -289,8 +289,6 @@ int pauseWhenInactive = 1;
 int active = 1;
 int emulating = 0;
 int RGB_LOW_BITS_MASK=0x822;
-u32 systemColorMap32[0x10000];
-u16 systemColorMap16[0x10000];
 u16 systemGbPalette[24];
 void (*filterFunction)(u8*,u32,u8*,u8*,u32,int,int) = NULL;
 void (*ifbFunction)(u8*,u32,int,int) = NULL;
@@ -2574,7 +2572,11 @@ void GL_Init()
         "uniform sampler2D s_texture;                        \n"
         "void main()                                         \n"
         "{                                                   \n"
-        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
+        "  vec4 color = texture2D( s_texture, v_texCoord );  \n"
+        "  gl_FragColor.r = color.b;                         \n"
+        "  gl_FragColor.g = color.g;                         \n"
+        "  gl_FragColor.b = color.r;                         \n"
+        "  gl_FragColor.a = 1.0;                             \n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -3164,51 +3166,10 @@ void pickRom()
   GL_InitTexture();
   updateOrientation();
   
-  // Here we are forcing the bitdepth and format to use.
-  // I chose 16 instead of 32 because it will be faster to work with cpu-wise (and sending to gpu)
-  // and let the gpu up-convert it. Also GBA doesn't have 32-bit color anyway.
- 
-  // Furthermore I chose 5-6-5 RGB encoding because
-  // a)we have no use for alpha in the main texture.
-  // b)I like blue. :P
-  //
-  // But really, of the GL_SHORT pixel formats I don't know that it matters.
-  // Small note: since the alpha bit is 'inverted' ('1' means opaque),
-  // the colormaps would have to be changed accordingly.  This is entirely untested.
-
-  //See above for the format, these are the shifts for each component
-  //RGB format
-  //
-  //Note that 5-6-5 has green at offset '5' not '6', but
-  //we only have 2^5 blue values to represent, so we shift it.
-  systemRedShift = 11;
-  systemGreenShift = 6;
-  systemBlueShift = 1;
-
   systemColorDepth = 16;
 
   //I'm not sure that this matters anymore. XXX Find out and remove.
-  RGB_LOW_BITS_MASK = 0x821;
-
-  //Set the colormap using the shifts.
-  if(cartridgeType == 2) {
-      for(int i = 0; i < 0x10000; i++) {
-          //systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-          //    (((i & 0x7c0) >> 6) << systemGreenShift) |
-          //    (((i & 0xf800) >> 11) << systemRedShift);
-          systemColorMap16[i] = i | 1;
-      }      
-  } else {
-      for(int i = 0; i < 0x10000; i++) {
-          //systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-          //    (((i & 0x3e0) >> 5) << systemGreenShift) |
-          //    (((i & 0x7c00) >> 10) << systemBlueShift);  
-          systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-              (((i & 0x3e0) >> 5) << systemGreenShift) |
-              (((i & 0x7c00) >> 10) << systemBlueShift);  
-          systemColorMap16[i] |= 1;
-      }
-  }
+  RGB_LOW_BITS_MASK = 0x842;
 
   srcPitch = srcWidth * 2;
 

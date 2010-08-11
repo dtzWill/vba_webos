@@ -23,6 +23,7 @@
 #include "GBA.h"
 #include "Gfx.h"
 #include "Globals.h"
+#include "convertColor.h"
 
 #include "Port.h"
 

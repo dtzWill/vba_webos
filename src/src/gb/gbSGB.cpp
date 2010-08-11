@@ -24,6 +24,7 @@
 #include "../Util.h"
 #include "GB.h"
 #include "gbGlobals.h"
+#include "../convertColor.h"
 
 extern u8 *pix;
 extern bool speedup;
@@ -57,17 +58,19 @@ u8  gbSgbScreenBuffer[4160];
 
 inline void gbSgbDraw24Bit(u8 *p, u16 v)
 {
-  *((u32*) p) = systemColorMap32[v];
+  //XXX
+  //*((u32*) p) = systemColorMap32[v];
 }
 
 inline void gbSgbDraw32Bit(u32 *p, u16 v)
 {
-  *p = systemColorMap32[v];
+  //XXX
+  //*p = systemColorMap32[v];
 }
 
 inline void gbSgbDraw16Bit(u16 *p, u16 v)
 {
-  *p = systemColorMap16[v];
+  *p = convertColor(v);
 }
 
 void gbSgbReset()
