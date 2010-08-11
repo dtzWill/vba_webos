@@ -56,6 +56,7 @@
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
 #define ROM_PATH VBA_HOME "/roms/"
+#define SAV_PATH VBA_HOME "/sav/"
 #define SKIN_PATH VBA_HOME "/skins/"
 #define SKIN_CFG_NAME "controller.cfg"
 #define SKIN_IMG_NAME "controller.png"
@@ -1232,13 +1233,14 @@ void sdlWriteState(int num)
 {
   char stateName[2048];
 
-  if(saveDir[0])
-    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
-            num+1);
-  else
-    sprintf(stateName,"%s%d.sgm", filename, num+1);
-  if(emulator.emuWriteState)
-    emulator.emuWriteState(stateName);
+  //If no writeState functor, nothing to do
+  if(!emulator.emuWriteState)
+    return;
+
+  //Use the app path...
+  sprintf(stateName, "sav/%s%d.sgm", sdlGetFilename(filename),
+      num+1);
+  emulator.emuWriteState(stateName);
 
   if ( autosave && num == AUTOSAVE_STATE )
   {
@@ -1255,14 +1257,13 @@ void sdlReadState(int num)
 {
   char stateName[2048];
 
-  if(saveDir[0])
-    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
-            num+1);
-  else
-    sprintf(stateName,"%s%d.sgm", filename, num+1);
+  if(!emulator.emuReadState)
+    return;
 
-  if(emulator.emuReadState)
-    emulator.emuReadState(stateName);
+  //Try reading from app path.
+  sprintf(stateName, "sav/%s%d.sgm", sdlGetFilename(filename),
+          num+1);
+  emulator.emuReadState(stateName);
 
   if ( autosave && num == AUTOSAVE_STATE )
   {
@@ -1279,11 +1280,7 @@ void sdlWriteBattery()
 {
   char buffer[1048];
 
-  if(batteryDir[0])
-    sprintf(buffer, "%s/%s.sav", batteryDir, sdlGetFilename(filename));
-  else  
-    sprintf(buffer, "%s.sav", filename);
-
+  sprintf(buffer, "sav/%s.sav", sdlGetFilename(filename));
   emulator.emuWriteBattery(buffer);
 
   //No one wants to see this; they assume it saves.
@@ -1302,20 +1299,13 @@ void sdlWriteBattery()
 void sdlReadBattery()
 {
   char buffer[1048];
-  
-  if(batteryDir[0])
-    sprintf(buffer, "%s/%s.sav", batteryDir, sdlGetFilename(filename));
-  else 
-    sprintf(buffer, "%s.sav", filename);
-  
-  bool res = false;
 
-  res = emulator.emuReadBattery(buffer);
+  if(!emulator.emuReadBattery)
+    return;
 
-  //Less annoying than 'wrote battery' since only appears once,
-  //but still not the best.
-  //if(res)
-  //  systemScreenMessage("Loaded battery");
+  //Try reading from app path.
+  sprintf(buffer, "sav/%s.sav", sdlGetFilename(filename));
+  emulator.emuReadBattery(buffer);
 }
 
 #define MOD_KEYS    (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META)
@@ -2771,6 +2761,17 @@ void updateOrientation()
     PDL_SetOrientation( notification_direction );
 }
 
+//Do whatever upgrade/migration logic required.  Eventually should probably try to use versions
+//to make this more specific.
+void migration()
+{
+  //Create 'sav' folder in calling path
+  system("mkdir -p sav");
+  //Move states and battery files over
+  system("mv /media/internal/vba/roms/*.sgm ./sav");
+  system("mv /media/internal/vba/roms/*.sav ./sav");
+}
+
 int main(int argc, char **argv)
 {
   fprintf(stderr, "VisualBoyAdvance version %s [SDL]\n", VERSION);
@@ -2789,6 +2790,7 @@ int main(int argc, char **argv)
 
   parseDebug = true;
 
+  migration();
   sdlReadPreferences();
   readOptions();
   loadSkins();
