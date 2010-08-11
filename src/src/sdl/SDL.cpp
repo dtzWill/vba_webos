@@ -288,7 +288,7 @@ int captureFormat = 0;
 int pauseWhenInactive = 1;
 int active = 1;
 int emulating = 0;
-int RGB_LOW_BITS_MASK=0x821;
+int RGB_LOW_BITS_MASK=0x822;
 u32 systemColorMap32[0x10000];
 u16 systemColorMap16[0x10000];
 u16 systemGbPalette[24];
@@ -2630,8 +2630,8 @@ void GL_InitTexture()
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     checkError();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
-            GL_UNSIGNED_BYTE, NULL );
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, srcWidth, srcHeight, 0, GL_RGBA,
+            GL_UNSIGNED_SHORT_5_5_5_1, NULL );
     checkError();
 
     if( !skin )
@@ -3183,7 +3183,7 @@ void pickRom()
   //we only have 2^5 blue values to represent, so we shift it.
   systemRedShift = 11;
   systemGreenShift = 6;
-  systemBlueShift = 0;
+  systemBlueShift = 1;
 
   systemColorDepth = 16;
 
@@ -3193,15 +3193,20 @@ void pickRom()
   //Set the colormap using the shifts.
   if(cartridgeType == 2) {
       for(int i = 0; i < 0x10000; i++) {
-          systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-              (((i & 0x7c0) >> 6) << systemGreenShift) |
-              (((i & 0xf800) >> 11) << systemRedShift);  
+          //systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
+          //    (((i & 0x7c0) >> 6) << systemGreenShift) |
+          //    (((i & 0xf800) >> 11) << systemRedShift);
+          systemColorMap16[i] = i | 1;
       }      
   } else {
       for(int i = 0; i < 0x10000; i++) {
+          //systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
+          //    (((i & 0x3e0) >> 5) << systemGreenShift) |
+          //    (((i & 0x7c00) >> 10) << systemBlueShift);  
           systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
               (((i & 0x3e0) >> 5) << systemGreenShift) |
               (((i & 0x7c00) >> 10) << systemBlueShift);  
+          systemColorMap16[i] |= 1;
       }
   }
 
@@ -3379,7 +3384,7 @@ void systemDrawScreen()
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D( GL_TEXTURE_2D,0,
             0,0, srcWidth,srcHeight,
-            GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
+            GL_RGBA,GL_UNSIGNED_SHORT_5_5_5_1,pix);
 
     checkError();
 
