@@ -51,7 +51,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.2.1"
+#define VERSION "1.2.3"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
