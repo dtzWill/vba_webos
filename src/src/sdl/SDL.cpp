@@ -384,7 +384,7 @@ int sdlNumDevices = 0;
 SDL_Joystick **sdlDevices = NULL;
 
 bool wasPaused = false;
-int autoFrameSkip = 0;
+int autoFrameSkip = 1;
 int frameskipadjust = 0;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
@@ -3342,11 +3342,15 @@ void drawScreenText()
     }
   }
 
+  char buffer[40];
+#if 0
   if(showSpeed) {
-    char buffer[40];
     if(showSpeed == 1)
       sprintf(buffer, "%d%%", systemSpeed);
     else
+#else
+  {
+#endif
       sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
               systemFrameSkip,
               showRenderedFrames);
