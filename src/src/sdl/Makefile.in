@@ -433,7 +433,7 @@ TestEmu$(EXEEXT): $(TestEmu_OBJECTS) $(TestEmu_DEPENDENCIES)
 	$(CXXLINK) $(TestEmu_OBJECTS) $(TestEmu_LDADD) $(LIBS)
 VisualBoyAdvance$(EXEEXT): $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_DEPENDENCIES) 
 	@rm -f VisualBoyAdvance$(EXEEXT)
-	$(CXXLINK) $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_LDADD) $(LIBS)
+	$(CXXLINK) -s $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
