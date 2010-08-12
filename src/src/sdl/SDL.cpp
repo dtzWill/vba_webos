@@ -51,7 +51,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.2.0"
+#define VERSION "1.2.1"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
@@ -1679,7 +1679,7 @@ void sdlPollEvents()
       if ( keyBindingMode != NOT_BINDING )
       {
           int key = event.key.keysym.sym;
-          if ( key == SDLK_EQUALS )
+          if ( key == SDLK_EQUALS || key == SDLK_QUESTION )
           {
               //cancel;
               keyBindingMode = NOT_BINDING;
@@ -1895,6 +1895,7 @@ void sdlPollEvents()
             systemScreenMessage( "Auto save disabled" );
         }
         break;
+      case SDLK_QUESTION:
       case SDLK_EQUALS:
         //Enter key-binding mode.
         keyBindingMode = NOT_BINDING;
