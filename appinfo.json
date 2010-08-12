@@ -6,7 +6,7 @@
        "vendor": "WebOS Internals",
        "vendor_email": "support@webos-internals.org",
        "vendor_url": "http://www.webos-internals.org/wiki/Application:VBA",
-       "type": "game",
+       "type": "pdk",
        "main": "vba",
        "icon": "icon.png",
        "removable": "true",
