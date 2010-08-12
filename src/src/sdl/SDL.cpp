@@ -83,8 +83,9 @@ line no_roms[] {
 { "Looks like you don't have any ROMs.", textColor},
 { "To play games, put the roms in ",     textColor},
 { "/vba/roms",                           hiColor},
-{ "using USB mode, and ",                textColor},
-{ "then launch VBA again",               textColor},
+{ "using USB mode",                      textColor},
+{ "(make the directory if needed)",      textColor},
+{ "and then launch VBA again",           textColor},
 { "For more information, see the wiki",  textColor},
 { "(click here to launch wiki)",         linkColor}
 };
@@ -2097,6 +2098,8 @@ char * romSelector()
         exit( 1 );
     }
 
+    //Don't bail here, we can't write to /media/internal on 1.4.5
+#if 0
     //Make sure rom dir exists
     //XXX: This assumes /media/internal (parent directory) already exists
     int mode = S_IRWXU | S_IRWXG | S_IRWXO;
@@ -2112,6 +2115,7 @@ char * romSelector()
         fprintf( stderr, "Error creating directory %s for roms!\n", ROM_PATH );
         exit( 1 );
     }
+#endif
 
 
     struct dirent ** roms;
