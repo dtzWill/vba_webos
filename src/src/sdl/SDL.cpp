@@ -51,7 +51,7 @@
 #include <dirent.h>
 #include "esFunc.h"
 
-#define VERSION "1.2.3"
+#define VERSION "1.2.4"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
@@ -223,7 +223,7 @@ int running = true;
 
 //current skin
 controller_skin * skin = NULL;
-int skin_index = 0;
+int skin_index = 9;
 int skin_count;
 
 /*-----------------------------------------------------------------------------
@@ -2503,19 +2503,20 @@ void loadSkins()
             skin = skin->next;
         }
         skin = first;
+        
+        //count 'skin_index' skins, this is the one we used last time.
+        //Nope, not very robust to adding/removing skins, but whatcha gonna do.
+        //Not sure it's worth implementing string support for in the cfg files.
+        for ( int i = 0; i < skin_index; i++ )
+        {
+          skin = skin->next;
+        }
     }
     else
     {
         skin_count = 0;
     }
 
-    //count 'skin_index' skins, this is the one we used last time.
-    //Nope, not very robust to adding/removing skins, but whatcha gonna do.
-    //Not sure it's worth implementing string support for in the cfg files.
-    for ( int i = 0; i < skin_index; i++ )
-    {
-        skin = skin->next;
-    }
 }
 
 void GL_Init()

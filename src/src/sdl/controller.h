@@ -234,6 +234,16 @@ vba_option controller_options[] =
  *  Skin loading
  *-----------------------------------------------------------------------------*/
 
+//Returns the skin name w/o the leading period, doesn't allocate anything
+char * strip_leading_period( char * str )
+{
+    char * ret = str; 
+
+    if( ret && *ret == '.' ) ret++;
+
+    return ret;
+}
+
 void load_skin( char * skin_cfg, char * skin_img, char * skin_name, char * skin_folder, controller_skin ** skin )
 {
     bool success = false;
@@ -264,6 +274,25 @@ void load_skin( char * skin_cfg, char * skin_img, char * skin_name, char * skin_
     {
         fprintf( stderr, "Error reading in %s! Read %d/%d\n", full_skin_cfg, options_read, all_options );
         return;
+    }
+
+    //Before adding to list of skins, verify we don't have this one already
+    if ( *skin )
+    {
+        controller_skin * cur = *skin;
+        do
+        {
+            fprintf( stderr, "%s vs %s\n", cur->name, skin_name );
+            bool duplicate = !strcmp(
+                strip_leading_period(cur->name),
+                strip_leading_period(skin_name));
+            if ( duplicate )
+            {
+                fprintf( stderr, "Duplicate skin \"%s\" found, skipping!\n", skin_name );
+                return;
+            }
+            cur = cur->next;
+        } while (cur != *skin);
     }
 
     //Well we read it in, let's add it to the list.
