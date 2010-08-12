@@ -6,6 +6,7 @@ all: cat_beta cat preware
 #Make sure the binary is up-to-date
 pkg_base/vba: ../src/src/sdl/VisualBoyAdvance
 	cp $< $@
+	cp $< ../binaries/armv7/vba
 
 update: pkg_base/vba
 
