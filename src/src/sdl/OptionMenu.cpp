@@ -23,6 +23,7 @@
 #include <SDL_ttf.h>
 
 #define OPTION_SIZE 40
+#define OPTION_SPACING 50
 #define OPTION_WIDTH 300
 
 //Toggle stuff
@@ -91,6 +92,7 @@ void initializeMenu();
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
 void doHelp( SDL_Surface * s );
 bool optionHitCheck( menuOption * opt, int x, int y );
+void freeMenu();
 
 static SDL_Color textColor = { 255, 255, 255 };
 static SDL_Color onColor   = { 255, 200, 200 };
@@ -103,7 +105,7 @@ static SDL_Color itemColor = {   0,   0,   0 };
 menuOption createButton( char * text, void (*action)(void), int y )
 {
   menuOption opt;
-  opt.text = text;
+  opt.text = strdup( text );
   opt.type = MENU_BUTTON;
   opt.button.action = action;
   opt.y = y;
@@ -130,14 +132,46 @@ menuOption createButton( char * text, void (*action)(void), int y )
 menuOption createToggle( char * text, char * on, char * off, int y, void (*set)(bool), bool (*get)(void) )
 {
   menuOption opt;
-  opt.text = text;
+  opt.text = strdup( text );
   opt.type = MENU_TOGGLE;
-  opt.toggle.on_text = on;
-  opt.toggle.off_text = off;
+  opt.toggle.on_text = strdup( on );
+  opt.toggle.off_text = strdup( off );
   opt.toggle.set = set;
   opt.toggle.get = get;
   opt.y = y;
   opt.surface = NULL;
+
+  return opt;
+}
+
+menuOption createSave( int num, int y )
+{
+  char buf[1024];
+  sprintf( buf, "Save %d", num + 1 );
+  menuOption opt;
+  opt.text = strdup( buf );
+  opt.type = MENU_SAVE;
+  opt.save.save_num = num;
+  opt.y = y;
+
+  //Black rectangle
+  opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+      0xff0000, 0x00ff00, 0x0000ff, 0);
+  int black = SDL_MapRGB( opt.surface->format, 0, 0, 0);
+  SDL_FillRect( opt.surface, NULL, black );
+
+  //Create "Save 1:  load  save"-style display
+  SDL_Surface * s_txt  = TTF_RenderText_Blended( menu_font, opt.text, textColor );
+  SDL_Surface * s_load = TTF_RenderText_Blended( menu_font, "Load",   textColor );
+  SDL_Surface * s_save = TTF_RenderText_Blended( menu_font, "Save",   textColor );
+
+  apply_surface( TOGGLE_TXT_X, TOGGLE_Y, s_txt,  opt.surface );
+  apply_surface( TOGGLE_ON_X,  TOGGLE_Y, s_load, opt.surface );
+  apply_surface( TOGGLE_OFF_X, TOGGLE_Y, s_save, opt.surface );
+
+  SDL_FreeSurface( s_txt  );
+  SDL_FreeSurface( s_load );
+  SDL_FreeSurface( s_save );
 
   return opt;
 }
@@ -173,38 +207,6 @@ void updateToggleSurface( menuOption * opt )
   SDL_FreeSurface( s_off );
 }
 
-menuOption createSave( int num, int y )
-{
-  char buf[1024];
-  sprintf( buf, "Save %d", num + 1 );
-  menuOption opt;
-  opt.text = strdup( buf );
-  opt.type = MENU_SAVE;
-  opt.save.save_num = num;
-  opt.y = y;
-
-  //Black rectangle
-  opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
-      0xff0000, 0x00ff00, 0x0000ff, 0);
-  int black = SDL_MapRGB( opt.surface->format, 0, 0, 0);
-  SDL_FillRect( opt.surface, NULL, black );
-
-  //Create "Save 1:  load  save"-style display
-  SDL_Surface * s_txt  = TTF_RenderText_Blended( menu_font, opt.text, textColor );
-  SDL_Surface * s_load = TTF_RenderText_Blended( menu_font, "Load",   textColor );
-  SDL_Surface * s_save = TTF_RenderText_Blended( menu_font, "Save",   textColor );
-
-  apply_surface( TOGGLE_TXT_X, TOGGLE_Y, s_txt,  opt.surface );
-  apply_surface( TOGGLE_ON_X,  TOGGLE_Y, s_load, opt.surface );
-  apply_surface( TOGGLE_OFF_X, TOGGLE_Y, s_save, opt.surface );
-
-  SDL_FreeSurface( s_txt  );
-  SDL_FreeSurface( s_load );
-  SDL_FreeSurface( s_save );
-
-  return opt;
-}
-
 /*-----------------------------------------------------------------------------
  *  Functors for menu options...
  *-----------------------------------------------------------------------------*/
@@ -220,10 +222,12 @@ void handleMenuSaveState(int,bool);
 void menuSetOrientation( bool portrait )
 {
   orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
+  if (emulating) updateOrientation();
 }
 
 void menuSetSound( bool sound )   { soundMute = !sound;                          }
-void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST; }
+void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST;
+                                    if (emulating) GL_InitTexture();             }
 void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
 void menuSetAutoSave( bool on )   { autosave = on;                               }
 void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                          }
@@ -296,52 +300,63 @@ void initializeMenu()
   int x = 0;
   topMenu = (menuOption*)malloc( ( emulating ? 5 : 3 )*sizeof(menuOption));
   if (emulating)
-    topMenu[x++] = createButton( "Save states", changeToSaveState,   100+x*50);
-  topMenu[x++] = createButton( "Options", changeToOptionsState,    100+x*50);
-  topMenu[x++] = createButton( "Help", changeToHelpState,          100+x*50);
+    topMenu[x++] = createButton( "Save states", changeToSaveState,  100+x*OPTION_SPACING);
+  topMenu[x++] = createButton( "Options", changeToOptionsState,     100+x*OPTION_SPACING);
+  topMenu[x++] = createButton( "Help", changeToHelpState,           100+x*OPTION_SPACING);
   if (emulating)
-    topMenu[x++] = createButton( "Rom Selector", moveToRomSelector,  100+x*50);
-  topMenu[x++] = createButton( "Return", exitMenu,                 100+x*50);
+    topMenu[x++] = createButton( "Rom Selector", moveToRomSelector, 100+x*OPTION_SPACING);
+  topMenu[x++] = createButton( "Return", exitMenu,                  100+x*OPTION_SPACING);
 
   //Save menu
   saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
   x = 0;
-  saveMenu[x++] = createSave( x, 100+x*50 );
-  saveMenu[x++] = createSave( x, 100+x*50 );
-  saveMenu[x++] = createSave( x, 100+x*50 );
-  saveMenu[x++] = createButton( "Return", changeToMainState, 100+x*50 );
+  saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
+  saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
+  saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
+  saveMenu[x++] = createButton( "Return", changeToMainState, 100+x*OPTION_SPACING );
   
   //Options menu
   optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
   x = 0;
-  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*50,
+  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
-  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*50,
+  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*OPTION_SPACING,
       menuSetSound, menuGetSound );
-  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 50+x*50,
+  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 50+x*OPTION_SPACING,
       menuSetFilter, menuGetFilter );
-  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   50+x*50,
+  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   50+x*OPTION_SPACING,
       menuSetSpeed, menuGetSpeed );
-  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   50+x*50,
+  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   50+x*OPTION_SPACING,
       menuSetAutoSave, menuGetAutoSave );
-  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   50+x*50,
+  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   50+x*OPTION_SPACING,
       menuSetAutoSkip, menuGetAutoSkip );
-  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*50,
+  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
-  optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*50 );
+  optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*OPTION_SPACING );
 }
 
 void freeMenu( menuOption ** opt, int numOptions )
 {
   for ( int i = 0; i < numOptions; ++i )
   {
-    menuOption *o = opt[i];
-    free( o->text );
-    free(
+    menuOption o = (*opt)[i];
+    free( o.text );
+    SDL_FreeSurface( o.surface );
+    switch( o.type )
+    {
+      case MENU_TOGGLE:
+        free( o.toggle.on_text );
+        free( o.toggle.off_text );
+        break;
+      case MENU_SAVE:
+        break;
+      case MENU_BUTTON:
+        break;
+    }
   }
 
-
-  free *opt;
+  //Free the array...
+  free( *opt );
   *opt = NULL;
 }
 
