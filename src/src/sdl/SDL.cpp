@@ -44,7 +44,6 @@
 #include "Options.h"
 #include "GLUtil.h"
 
-
 /*-----------------------------------------------------------------------------
  *  Game state
  *-----------------------------------------------------------------------------*/
@@ -154,7 +153,7 @@ int gl_filter = GL_LINEAR;
 
 int use_on_screen = true;
 
-int autosave = false;
+int autosave = true;
 
 int running = true;
 
