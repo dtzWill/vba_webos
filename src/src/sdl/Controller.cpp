@@ -229,7 +229,6 @@ void load_skin( char * skin_cfg, char * skin_img, char * skin_name, char * skin_
         controller_skin * cur = *skin;
         do
         {
-            fprintf( stderr, "%s vs %s\n", cur->name, skin_name );
             bool duplicate = !strcmp(
                 strip_leading_period(cur->name),
                 strip_leading_period(skin_name));

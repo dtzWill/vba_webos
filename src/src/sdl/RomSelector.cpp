@@ -23,16 +23,16 @@
 #include <dirent.h>
 
 //In 'BGR' format...
-SDL_Color textColor = { 255, 255, 255 };
-SDL_Color hiColor = { 200, 200, 255 };
-SDL_Color linkColor = { 255, 200, 200 };
+static SDL_Color textColor = { 255, 255, 255 };
+static SDL_Color hiColor = { 200, 200, 255 };
+static SDL_Color linkColor = { 255, 200, 200 };
 
 typedef struct
 {
   char * msg;
   SDL_Color color;
 } line;
-line no_roms[] {
+static line no_roms[] {
 { "Welcome to VBA!",                     textColor},
 { "Looks like you don't have any ROMs.", textColor},
 { "To play games, put the roms in ",     textColor},

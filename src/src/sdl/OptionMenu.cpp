@@ -17,11 +17,19 @@
 #include "OptionMenu.h"
 #include "GLUtil.h"
 #include "VBA.h"
+#include "RomSelector.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
 
 #define OPTION_SIZE 40
+#define OPTION_WIDTH 300
+
+//Toggle stuff
+#define TOGGLE_TXT_X 10
+#define TOGGLE_ON_X 160
+#define TOGGLE_OFF_X 240
+#define TOGGLE_Y 5
 
 enum menuState
 {
@@ -41,7 +49,8 @@ typedef struct
 {
   char * on_text;
   char * off_text;
-  void (*change)(bool);
+  void (*set)(bool);
+  bool (*get)(void);
 } toggle_data;
 
 typedef struct
@@ -58,6 +67,7 @@ typedef struct
 typedef struct
 {
   char * text;
+  int y;
   enum optionType type;
   SDL_Surface * surface;
   union
@@ -68,32 +78,100 @@ typedef struct
   };
 } menuOption;
 
-bool menuInitialized = false;
-menuOption * topMenu = NULL;
-menuOption * saveMenu = NULL;
-menuOption * optionMenu = NULL;
-menuOption * helpMenu = NULL;
-TTF_Font * menu_font = NULL;
+static bool menuInitialized = false;
+static menuOption * topMenu = NULL;
+static menuOption * saveMenu = NULL;
+static menuOption * optionMenu = NULL;
+static menuOption * helpMenu = NULL;
+static TTF_Font * menu_font = NULL;
 
-enum menuState menuState;
-bool menuDone;
+static enum menuState menuState;
+static bool menuDone;
 
 void initializeMenu();
-void doMenu( SDL_Surface * s );
+void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
+void doHelp( SDL_Surface * s );
+bool optionHitCheck( menuOption * opt, int x, int y );
 
-SDL_Color textColor = { 255, 255, 255 };
-SDL_Color itemColor = { 0, 0, 0 }
+static SDL_Color textColor = { 255, 255, 255 };
+static SDL_Color onColor   = { 255, 200, 200 };
+static SDL_Color offColor  = {  50,  50,  50 };
+static SDL_Color itemColor = {   0,   0,   0 };
 
 /*-----------------------------------------------------------------------------
  *  Constructors for menu items
  *-----------------------------------------------------------------------------*/
-menuOption createButton( char * text, void (*action)(void) )
+menuOption createButton( char * text, void (*action)(void), int y )
 {
   menuOption opt;
   opt.text = text;
   opt.type = MENU_BUTTON;
-  opt.action = action;
-  opt.surface = TTF_RenderText_Blended( menu_font, text, textColor );
+  opt.button.action = action;
+  opt.y = y;
+  opt.surface = NULL;
+
+  //Black rectangle
+  opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+      0x0000ff, 0x00ff00, 0xff0000, 0);
+  int black = SDL_MapRGB( opt.surface->format, 0, 0, 0);
+  SDL_FillRect( opt.surface, NULL, black );
+
+  //With text on it
+  SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, text, textColor );
+  int xx = opt.surface->w/2 - s_txt->w/2;
+  int yy = opt.surface->h/2 - s_txt->h/2;
+  apply_surface( xx, yy, s_txt, opt.surface );
+
+  SDL_FreeSurface( s_txt );
+
+
+  return opt;
+}
+
+menuOption createToggle( char * text, char * on, char * off, int y, void (*set)(bool), bool (*get)(void) )
+{
+  menuOption opt;
+  opt.text = text;
+  opt.type = MENU_TOGGLE;
+  opt.toggle.on_text = on;
+  opt.toggle.off_text = off;
+  opt.toggle.set = set;
+  opt.toggle.get = get;
+  opt.y = y;
+  opt.surface = NULL;
+
+  return opt;
+}
+
+
+/*-----------------------------------------------------------------------------
+ *  Menu option rendering routines
+ *-----------------------------------------------------------------------------*/
+void updateToggleSurface( menuOption * opt )
+{
+  if ( opt->surface )
+    SDL_FreeSurface( opt->surface );
+
+  //Black rectangle
+  opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+      0xff0000, 0x00ff00, 0x0000ff, 0);
+  int black = SDL_MapRGB( opt->surface->format, 0, 0, 0);
+  SDL_FillRect( opt->surface, NULL, black );
+
+  //Render each piece...
+  SDL_Color on_color = opt->toggle.get() ? onColor : offColor;
+  SDL_Color off_color = opt->toggle.get() ? offColor : onColor;
+  SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, opt->text,            textColor );
+  SDL_Surface * s_on  = TTF_RenderText_Blended( menu_font, opt->toggle.on_text,  on_color );
+  SDL_Surface * s_off = TTF_RenderText_Blended( menu_font, opt->toggle.off_text, off_color );
+
+  apply_surface( TOGGLE_TXT_X, TOGGLE_Y, s_txt, opt->surface );
+  apply_surface( TOGGLE_ON_X,  TOGGLE_Y, s_on,  opt->surface );
+  apply_surface( TOGGLE_OFF_X, TOGGLE_Y, s_off, opt->surface );
+
+  SDL_FreeSurface( s_txt );
+  SDL_FreeSurface( s_on  );
+  SDL_FreeSurface( s_off );
 }
 
 #if 0
@@ -119,6 +197,26 @@ void exitMenu(void)              { menuDone = true;          }
 void moveToRomSelector(void);
 void handleMenuSaveState(int,bool);
 
+void menuSetOrientation( bool portrait )
+{
+  orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
+}
+
+void menuSetSound( bool sound )   { /*soundOffFlag = !sound;*/                   }
+void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST; }
+void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
+void menuSetAutoSave( bool on )   { autosave = on;                               }
+void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                          }
+void menuSetOnscreen( bool on )   { use_on_screen = on;                          }
+
+bool menuGetOrientation() { return orientation == ORIENTATION_PORTRAIT; }
+bool menuGetSound()       { return true; /*soundOffFlag;*/              }
+bool menuGetFilter()      { return gl_filter == GL_LINEAR;              }
+bool menuGetSpeed()       { return showSpeed != 0;                      }
+bool menuGetAutoSave()    { return autosave;                            }
+bool menuGetAutoSkip()    { return autoFrameSkip;                       }
+bool menuGetOnscreen()    { return use_on_screen;                       }
+
 //Call this to display the options menu...
 void optionsMenu()
 {
@@ -134,8 +232,6 @@ void optionsMenu()
 
   TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
 
-  SDL_Event event;
-
   initializeMenu();
 
   //Start out at top-level menu
@@ -143,7 +239,19 @@ void optionsMenu()
   menuDone = false;
   while (!menuDone)
   {
-    doMenu( options_screen );
+    switch( menuState )
+    {
+      case MENU_MAIN:
+        doMenu( options_screen, topMenu, 5 );
+        break;
+      case MENU_OPTIONS:
+        doMenu( options_screen, optionMenu, 8 );
+      case MENU_HELP:
+        doHelp( options_screen );
+      case MENU_SAVES:
+      default:
+        break;
+    }
   }
 
   SDL_FreeSurface( options_screen );
@@ -157,14 +265,15 @@ void initializeMenu()
   menu_font = TTF_OpenFont( FONT, 18 );
 
   //Static initializers for all this is a PITA, so do it dynamically.
-  topMenu = (menuOption*)malloc(5*sizeof(menuOption));
   
   //Top-level menu
-  topMenu[0] = createButton( "Save states", changeToSaveState );
-  topMenu[1] = createButton( "Options", changeToOptionsState );
-  topMenu[2] = createButton( "Help", changeToHelpState );
-  topMenu[3] = createButton( "Rom Selector", moveToRomSelector );
-  topMenu[4] = createButton( "Return", exitMenu );
+  int x = 0;
+  topMenu = (menuOption*)malloc(5*sizeof(menuOption));
+  topMenu[x++] = createButton( "Save states", changeToSaveState,   100+x*50);
+  topMenu[x++] = createButton( "Options", changeToOptionsState,    100+x*50);
+  topMenu[x++] = createButton( "Help", changeToHelpState,          100+x*50);
+  topMenu[x++] = createButton( "Rom Selector", moveToRomSelector,  100+x*50);
+  topMenu[x++] = createButton( "Return", exitMenu,                 100+x*50);
 
   //Save menu
 #if 0
@@ -190,33 +299,110 @@ void initializeMenu()
 #endif
   
   //Options menu
-  //FIXME: implement!
+  optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
+  x = 0;
+  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*50,
+      menuSetOrientation, menuGetOrientation );
+  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*50,
+      menuSetSound, menuGetSound );
+  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 50+x*50,
+      menuSetFilter, menuGetFilter );
+  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   50+x*50,
+      menuSetSpeed, menuGetSpeed );
+  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   50+x*50,
+      menuSetAutoSave, menuGetAutoSave );
+  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   50+x*50,
+      menuSetAutoSkip, menuGetAutoSkip );
+  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*50,
+      menuSetOnscreen, menuGetOnscreen );
+  optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*50 );
 }
 
-void doMenu( SDL_Surface * s )
+void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
 {
-  switch( menuState )
+  // Menu background, same as rom selector
+  int menuBGColor = SDL_MapRGB( s->format, 85, 0, 0 );//BGR
+  SDL_FillRect( s, NULL, menuBGColor );
+
+  //Draw the menu we were given...
+  for ( int i = 0; i < numOptions; ++i )
   {
-    case MENU_MAIN:
-      doMainMenu( s );
-      break;
-    case MENU_SAVES:
-    case MENU_OPTIONS:
-    case MENU_HELP:
-    default:
-      break;
+    if ( options[i].type == MENU_TOGGLE )
+      updateToggleSurface( &options[i] );
+
+    //Draw option on top of the box we drew
+    int x = s->w / 2 - options[i].surface->w/2;
+    int y = options[i].y;
+    apply_surface( x, y, options[i].surface, s );
+  }
+
+  // Loop, redrawing menu (in case card gets invalidated, etc)
+  // until something interesting happens...
+  bool done = false;
+  SDL_Event event;
+  while( !done )
+  {
+    SDL_DrawSurfaceAsGLTexture( s, portrait_vertexCoords );
+    while( SDL_PollEvent( &event ) )
+    {
+      if ( event.type == SDL_MOUSEBUTTONUP )
+      {
+        //Find which option this was, if it's somehow multiple we just take the first such option
+        for ( int i = 0; i < numOptions; ++i )
+        {
+          if ( optionHitCheck( &options[i], event.button.x, event.button.y ) )
+          {
+            printf( "Chose: %s\n", options[i].text );
+            done = true;
+            break;
+          }
+        }
+      }
+    }
+    SDL_Delay(100);
   }
 }
 
-void doMainMenu( SDL_Surface * s )
+void doHelp( SDL_Surface * s )
 {
-  bool done = false;
-  while(!done)
+  //XXX: Implement me!!!
+}
+
+//Determine if this click hits this option... if so, take the right action!
+bool optionHitCheck( menuOption * opt, int x, int y )
+{
+  bool hit = false;
+
+  if ( y >= opt->y && y <= opt->y + OPTION_SIZE )
   {
-    for ( int i = 0; i < 5; ++i )
+    switch( opt->type )
     {
-      int y = 100 + 
-      //Draw topMenu[i]
-      topMenu[i]
+      case MENU_BUTTON:
+        //Buttons are easy :)
+        hit = true;
+        opt->button.action();
+        break;
+      case MENU_SAVE:
+        break;
+      case MENU_TOGGLE:
+        if ( x >= TOGGLE_ON_X && x < TOGGLE_OFF_X )
+        {
+          hit = true;
+          opt->toggle.set(true);
+        } else if ( x >= TOGGLE_OFF_X )
+        {
+          hit = true;
+          opt->toggle.set(false);
+        }
+        break;
     }
+  }
+
+  return hit;
+
+}
+
+void moveToRomSelector()
+{
+
 }
