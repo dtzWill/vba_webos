@@ -60,6 +60,8 @@ am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
 	getopt.$(OBJEXT) getopt1.$(OBJEXT) interframe.$(OBJEXT) \
 	memgzio.$(OBJEXT) pixel.$(OBJEXT) unzip.$(OBJEXT)
 VisualBoyAdvance_OBJECTS = $(am_VisualBoyAdvance_OBJECTS)
+VisualBoyAdvance_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(VisualBoyAdvance_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -289,6 +291,9 @@ VisualBoyAdvance_SOURCES = \
 	../unzip.h
 
 VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2 -lsrv_um -lIMGegl
+
+#strip the binary
+VisualBoyAdvance_LDFLAGS = -s
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src		\
@@ -369,7 +374,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 VisualBoyAdvance$(EXEEXT): $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_DEPENDENCIES) 
 	@rm -f VisualBoyAdvance$(EXEEXT)
-	$(CXXLINK) $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_LDADD) $(LIBS)
+	$(VisualBoyAdvance_LINK) $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
