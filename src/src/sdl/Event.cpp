@@ -576,11 +576,23 @@ void sdlPollEvents()
 //        }
 //        break;
       case SDLK_ESCAPE:
+      { 
         //make sure we have a save...
         sdlWriteBattery();
 
-        optionsMenu();
+        eMenuResponse r = optionsMenu();
+        switch ( r )
+        {
+          default:
+            fprintf( stderr, "Unhandled menu response!\n" );
+          case MENU_RESPONSE_RESUME:
+            break;
+          case MENU_RESPONSE_ROMSELECTOR:
+            emulating = 0;
+            break;
+        }
         break;
+      }
 //      case SDLK_1:
 //      case SDLK_2:
 //      case SDLK_3:
