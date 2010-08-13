@@ -17,6 +17,8 @@
 #ifndef _OPTIONS_MENU_H_
 #define _OPTIONS_MENU_H_
 
+#include <SDL.h>
+
 typedef enum menuResponse
 {
   MENU_RESPONSE_RESUME,
@@ -24,5 +26,8 @@ typedef enum menuResponse
 } eMenuResponse;
 
 eMenuResponse optionsMenu();
+
+//Show help screen!
+void doHelp( SDL_Surface * s );
 
 #endif //_OPTIONS_MENU_H_

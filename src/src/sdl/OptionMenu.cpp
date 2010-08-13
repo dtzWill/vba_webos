@@ -123,7 +123,6 @@ static eMenuResponse menuResponse;
 
 void initializeMenu();
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
-void doHelp( SDL_Surface * s );
 bool optionHitCheck( menuOption * opt, int x, int y );
 void freeMenu();
 void showLines( SDL_Surface * s, line * lines, int numlines, bool center );

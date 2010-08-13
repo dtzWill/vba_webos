@@ -40,8 +40,8 @@ static line no_roms[] {
 { "using USB mode",                      textColor},
 { "(make the directory if needed)",      textColor},
 { "and then launch VBA again",           textColor},
-{ "For more information, see the wiki",  textColor},
-{ "(click here to launch wiki)",         linkColor}
+{ "For more information, see the help",  textColor},
+{ "(click here to launch help)",         linkColor}
 };
 
 int romFilter( const struct dirent * file )
@@ -201,24 +201,33 @@ char * romSelector()
         //(Note this is where first-time users most likely end up);
         int lines = sizeof(no_roms)/sizeof(no_roms[0]);
         SDL_Surface * nr[lines];
-        int offset = 100;//arbitrary offset, centering all this isn't worth it.
         for ( int i = 0; i < lines; ++i )
         {
           nr[i] = TTF_RenderText_Blended( font_normal, no_roms[i].msg, no_roms[i].color );
-          apply_surface( selector->w/2-nr[i]->w/2, offset, nr[i], selector );
-          offset += nr[i]->h + 10;
         }
 
         SDL_Event event;
         while (1)
         {
+            SDL_FillRect( selector, NULL, borderColor );
+            apply_surface( selector->w - author->w - 10, selector->h - author->h - 10, author, selector );
+            apply_surface( 10, 10, title, selector );
+            SDL_FillRect(selector, &drawRect, black);
+            int offset = 100;//arbitrary offset, centering all this isn't worth it.
+            for ( int i = 0; i < lines; ++i )
+            {
+                apply_surface( selector->w/2-nr[i]->w/2, offset, nr[i], selector );
+                offset += nr[i]->h + 10;
+            }
+
             SDL_DrawSurfaceAsGLTexture( selector, portrait_vertexCoords );
             while ( SDL_PollEvent( &event ) )
             {
                 if ( event.type == SDL_MOUSEBUTTONDOWN )
                 {
-                  //Regardless of what the text says, if the user clicks, launch the wiki...
-                  PDL_LaunchBrowser( VBA_WIKI );
+                  //Regardless of what the text says, if the user clicks, launch the help...
+                  //PDL_LaunchBrowser( VBA_WIKI );
+                  doHelp( selector );
                 }
 
             }
