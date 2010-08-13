@@ -32,6 +32,39 @@
 #define TOGGLE_OFF_X 240
 #define TOGGLE_Y 5
 
+//Colors (BGR format)
+static SDL_Color textColor = { 255, 255, 255 };
+static SDL_Color onColor   = { 255, 200, 200 };
+static SDL_Color offColor  = {  50,  50,  50 };
+static SDL_Color itemColor = {   0,   0,   0 };
+static SDL_Color linkColor = { 255, 200, 200 };
+
+//Help screen stuff
+
+typedef struct
+{
+  char * msg;
+  SDL_Color color;
+} line;
+
+line helpScreen1[] =
+{
+    {"Welcome to VisualBoyAdvance (VBA)!",          textColor },
+    {" ",                                           textColor },
+    {"VBA is a Gameboy, Gameboy Color,",            textColor }, 
+    {"and Gameboy Advance emulator.",               textColor }, 
+    {" ",                                           textColor },
+    {"What that means is VBA allows you",           textColor },
+    {"to play games made for those systems--",      textColor },
+    {"however, much like your gameboy needs",       textColor },
+    {"separate games to play, VBA needs games",     textColor },
+    {"too.  These games are generally called",      textColor },
+    {"'ROM's, which are computer copies of",        textColor },
+    {"games for those devices.",                    textColor },
+    {" ",                                           textColor },
+    {"(Click to go to next screen)",                linkColor }
+};
+
 enum menuState
 {
   MENU_MAIN,
@@ -93,11 +126,7 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
 void doHelp( SDL_Surface * s );
 bool optionHitCheck( menuOption * opt, int x, int y );
 void freeMenu();
-
-static SDL_Color textColor = { 255, 255, 255 };
-static SDL_Color onColor   = { 255, 200, 200 };
-static SDL_Color offColor  = {  50,  50,  50 };
-static SDL_Color itemColor = {   0,   0,   0 };
+void showLines( SDL_Surface * s, line * lines, int numlines, bool center );
 
 /*-----------------------------------------------------------------------------
  *  Constructors for menu items
@@ -253,8 +282,6 @@ eMenuResponse optionsMenu()
     fprintf( stderr, "Error creating options menu!\n" );
     exit( 1 );
   }
-
-  TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
 
   initializeMenu();
 
@@ -426,11 +453,15 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
     }
     //SDL_Delay(50);
   }
+  //Delay between menus to prevent unexpected clicks
+  SDL_Delay( 200 );
 }
 
 void doHelp( SDL_Surface * s )
 {
-  //XXX: Implement me!!!
+  //Show help text, taps advance to next until done.
+  showLines( s, helpScreen1, sizeof(helpScreen1)/sizeof(helpScreen1[0]), false );
+  changeToMainState();
 }
 
 //Determine if this click hits this option... if so, take the right action!
@@ -489,4 +520,62 @@ void moveToRomSelector()
 {
   menuDone = true;
   menuResponse = MENU_RESPONSE_ROMSELECTOR;
+}
+
+void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
+{
+    // Menu background, same as rom selector
+    int menuBGColor = SDL_MapRGB( s->format, 85, 0, 0 );//BGR
+    SDL_FillRect( s, NULL, menuBGColor );
+
+    //Black rectangle behind text...
+    SDL_Rect drawRect;
+    drawRect.x = 10;
+    drawRect.y = 20;
+    drawRect.h = s->h - 30;
+    drawRect.w = s->w-20;
+    int black = SDL_MapRGB(s->format, 0, 0, 0);
+    SDL_FillRect(s, &drawRect, black);
+    
+    //Draw the lines specified...
+    SDL_Surface * nr[numlines];
+    int offset = 30;//arbitrary offset, centering all this isn't worth it.
+    TTF_Font * font_normal = TTF_OpenFont( FONT, 16 );
+    for ( int i = 0; i < numlines; ++i )
+    {
+        nr[i] = TTF_RenderText_Blended( font_normal, lines[i].msg, lines[i].color );
+        int x;
+        if (center)
+            x = s->w/2-nr[i]->w/2;
+        else
+            x = 20;
+        apply_surface( x, offset, nr[i], s );
+        offset += nr[i]->h + 10;
+    }
+    TTF_CloseFont( font_normal );
+
+    SDL_Event event;
+    bool done = false;
+    while (!done)
+    {
+        SDL_DrawSurfaceAsGLTexture( s, portrait_vertexCoords );
+        SDL_Delay( 100 );
+        while ( SDL_PollEvent( &event ) )
+        {
+            if ( event.type == SDL_MOUSEBUTTONDOWN )
+            {
+                //User clicked, we're done.
+                done = true;
+                break;
+            }
+
+        }
+    }
+    SDL_Delay( 200 );
+
+    //Free the surfaces we created...
+    for ( int i = 0; i < numlines; ++i )
+    {
+        SDL_FreeSurface( nr[i] );
+    }
 }
