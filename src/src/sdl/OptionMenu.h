@@ -17,6 +17,12 @@
 #ifndef _OPTIONS_MENU_H_
 #define _OPTIONS_MENU_H_
 
-void optionsMenu();
+typedef enum menuResponse
+{
+  MENU_RESPONSE_RESUME,
+  MENU_RESPONSE_ROMSELECTOR
+} eMenuResponse;
+
+eMenuResponse optionsMenu();
 
 #endif //_OPTIONS_MENU_H_

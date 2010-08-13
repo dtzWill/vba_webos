@@ -576,6 +576,9 @@ void sdlPollEvents()
 //        }
 //        break;
       case SDLK_ESCAPE:
+        //make sure we have a save...
+        sdlWriteBattery();
+
         optionsMenu();
         break;
 //      case SDLK_1:

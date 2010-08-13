@@ -56,7 +56,6 @@ typedef struct
 typedef struct
 {
   int save_num;
-  void (*change)(int,bool);
 } save_data;
 
 typedef struct
@@ -87,6 +86,7 @@ static TTF_Font * menu_font = NULL;
 
 static enum menuState menuState;
 static bool menuDone;
+static eMenuResponse menuResponse;
 
 void initializeMenu();
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
@@ -202,7 +202,7 @@ void menuSetOrientation( bool portrait )
   orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
 }
 
-void menuSetSound( bool sound )   { /*soundOffFlag = !sound;*/                   }
+void menuSetSound( bool sound )   { soundMute = !sound;                          }
 void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST; }
 void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
 void menuSetAutoSave( bool on )   { autosave = on;                               }
@@ -210,7 +210,7 @@ void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                         
 void menuSetOnscreen( bool on )   { use_on_screen = on;                          }
 
 bool menuGetOrientation() { return orientation == ORIENTATION_PORTRAIT; }
-bool menuGetSound()       { return true; /*soundOffFlag;*/              }
+bool menuGetSound()       { return !soundMute;                           }
 bool menuGetFilter()      { return gl_filter == GL_LINEAR;              }
 bool menuGetSpeed()       { return showSpeed != 0;                      }
 bool menuGetAutoSave()    { return autosave;                            }
@@ -218,7 +218,7 @@ bool menuGetAutoSkip()    { return autoFrameSkip;                       }
 bool menuGetOnscreen()    { return use_on_screen;                       }
 
 //Call this to display the options menu...
-void optionsMenu()
+eMenuResponse optionsMenu()
 {
   SDL_Surface * surface = SDL_GetVideoSurface();
   SDL_Surface * options_screen = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
@@ -237,6 +237,7 @@ void optionsMenu()
   //Start out at top-level menu
   menuState = MENU_MAIN;
   menuDone = false;
+  menuResponse = MENU_RESPONSE_RESUME;
   while (!menuDone)
   {
     switch( menuState )
@@ -255,6 +256,8 @@ void optionsMenu()
   }
 
   SDL_FreeSurface( options_screen );
+
+  return menuResponse;
 }
 
 void initializeMenu()
@@ -345,21 +348,37 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
     SDL_DrawSurfaceAsGLTexture( s, portrait_vertexCoords );
     while( SDL_PollEvent( &event ) )
     {
-      if ( event.type == SDL_MOUSEBUTTONUP )
+      switch ( event.type )
       {
-        //Find which option this was, if it's somehow multiple we just take the first such option
-        for ( int i = 0; i < numOptions; ++i )
-        {
-          if ( optionHitCheck( &options[i], event.button.x, event.button.y ) )
+        case SDL_MOUSEBUTTONUP:
+          //Find which option this was, if it's somehow multiple we just take the first such option
+          for ( int i = 0; i < numOptions; ++i )
           {
-            printf( "Chose: %s\n", options[i].text );
-            done = true;
-            break;
+            if ( optionHitCheck( &options[i], event.button.x, event.button.y ) )
+            {
+              printf( "Chose: %s\n", options[i].text );
+              done = true;
+              break;
+            }
           }
-        }
+          break;
+        case SDL_KEYUP:
+          //Back-gesture /swipe back
+          if ( event.key.keysym.sym == SDLK_ESCAPE )
+          {
+            //If top-level, exit menu, else go to main menu
+            if ( menuState == MENU_MAIN )
+              menuDone = true;
+            else
+              menuState = MENU_MAIN;
+            done = true;
+          }
+          break;
+        default:
+          break;
       }
     }
-    SDL_Delay(100);
+    //SDL_Delay(50);
   }
 }
 
@@ -385,6 +404,7 @@ bool optionHitCheck( menuOption * opt, int x, int y )
       case MENU_SAVE:
         break;
       case MENU_TOGGLE:
+#if 0
         if ( x >= TOGGLE_ON_X && x < TOGGLE_OFF_X )
         {
           hit = true;
@@ -394,6 +414,12 @@ bool optionHitCheck( menuOption * opt, int x, int y )
           hit = true;
           opt->toggle.set(false);
         }
+#else
+        //Instead of having the user CHOOSE which, tapping this option
+        //toggles between the two available options.
+        hit = true;
+        opt->toggle.set(!opt->toggle.get());
+#endif
         break;
     }
   }
@@ -404,5 +430,6 @@ bool optionHitCheck( menuOption * opt, int x, int y )
 
 void moveToRomSelector()
 {
-
+  menuDone = true;
+  menuResponse = MENU_RESPONSE_ROMSELECTOR;
 }
