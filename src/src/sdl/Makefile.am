@@ -11,6 +11,8 @@ VisualBoyAdvance_SOURCES = \
 	Options.cpp \
 	GLUtil.h \
 	GLUtil.cpp \
+	OptionMenu.h \
+	OptionMenu.cpp \
 	VBA.h \
 	SDL.cpp			\
 	esFunc.h		\

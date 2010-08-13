@@ -50,15 +50,16 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
 	RomSelector.$(OBJEXT) Options.$(OBJEXT) GLUtil.$(OBJEXT) \
-	SDL.$(OBJEXT) Cheats.$(OBJEXT) EEprom.$(OBJEXT) \
-	Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) Globals.$(OBJEXT) \
-	Mode0.$(OBJEXT) Mode1.$(OBJEXT) Mode2.$(OBJEXT) \
-	Mode3.$(OBJEXT) Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) \
-	Sound.$(OBJEXT) Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) \
-	admame.$(OBJEXT) bios.$(OBJEXT) elf.$(OBJEXT) \
-	expr-lex.$(OBJEXT) expr.$(OBJEXT) exprNode.$(OBJEXT) \
-	getopt.$(OBJEXT) getopt1.$(OBJEXT) interframe.$(OBJEXT) \
-	memgzio.$(OBJEXT) pixel.$(OBJEXT) unzip.$(OBJEXT)
+	OptionMenu.$(OBJEXT) SDL.$(OBJEXT) Cheats.$(OBJEXT) \
+	EEprom.$(OBJEXT) Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) \
+	Globals.$(OBJEXT) Mode0.$(OBJEXT) Mode1.$(OBJEXT) \
+	Mode2.$(OBJEXT) Mode3.$(OBJEXT) Mode4.$(OBJEXT) \
+	Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) Sram.$(OBJEXT) \
+	Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) bios.$(OBJEXT) \
+	elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
+	exprNode.$(OBJEXT) getopt.$(OBJEXT) getopt1.$(OBJEXT) \
+	interframe.$(OBJEXT) memgzio.$(OBJEXT) pixel.$(OBJEXT) \
+	unzip.$(OBJEXT)
 VisualBoyAdvance_OBJECTS = $(am_VisualBoyAdvance_OBJECTS)
 VisualBoyAdvance_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
 	$(VisualBoyAdvance_LDFLAGS) $(LDFLAGS) -o $@
@@ -231,6 +232,8 @@ VisualBoyAdvance_SOURCES = \
 	Options.cpp \
 	GLUtil.h \
 	GLUtil.cpp \
+	OptionMenu.h \
+	OptionMenu.cpp \
 	VBA.h \
 	SDL.cpp			\
 	esFunc.h		\
@@ -397,6 +400,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Mode3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Mode4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Mode5.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/OptionMenu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Options.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RTC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RomSelector.Po@am__quote@
