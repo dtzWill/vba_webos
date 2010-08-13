@@ -77,7 +77,6 @@ typedef struct
   };
 } menuOption;
 
-static bool menuInitialized = false;
 static menuOption * topMenu = NULL;
 static menuOption * saveMenu = NULL;
 static menuOption * optionMenu = NULL;
@@ -264,7 +263,7 @@ eMenuResponse optionsMenu()
     switch( menuState )
     {
       case MENU_MAIN:
-        doMenu( options_screen, topMenu, 5 );
+        doMenu( options_screen, topMenu, emulating? 5 : 3 );
         break;
       case MENU_OPTIONS:
         doMenu( options_screen, optionMenu, 8 );
@@ -282,25 +281,26 @@ eMenuResponse optionsMenu()
 
   SDL_FreeSurface( options_screen );
 
+  freeMenu();
+
   return menuResponse;
 }
 
 void initializeMenu()
 {
-  if (menuInitialized) return;
-  menuInitialized = true;
-
   menu_font = TTF_OpenFont( FONT, 18 );
 
   //Static initializers for all this is a PITA, so do it dynamically.
   
   //Top-level menu
   int x = 0;
-  topMenu = (menuOption*)malloc(5*sizeof(menuOption));
-  topMenu[x++] = createButton( "Save states", changeToSaveState,   100+x*50);
+  topMenu = (menuOption*)malloc( ( emulating ? 5 : 3 )*sizeof(menuOption));
+  if (emulating)
+    topMenu[x++] = createButton( "Save states", changeToSaveState,   100+x*50);
   topMenu[x++] = createButton( "Options", changeToOptionsState,    100+x*50);
   topMenu[x++] = createButton( "Help", changeToHelpState,          100+x*50);
-  topMenu[x++] = createButton( "Rom Selector", moveToRomSelector,  100+x*50);
+  if (emulating)
+    topMenu[x++] = createButton( "Rom Selector", moveToRomSelector,  100+x*50);
   topMenu[x++] = createButton( "Return", exitMenu,                 100+x*50);
 
   //Save menu
@@ -329,6 +329,27 @@ void initializeMenu()
   optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*50,
       menuSetOnscreen, menuGetOnscreen );
   optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*50 );
+}
+
+void freeMenu( menuOption ** opt, int numOptions )
+{
+  for ( int i = 0; i < numOptions; ++i )
+  {
+    menuOption *o = opt[i];
+    free( o->text );
+    free(
+  }
+
+
+  free *opt;
+  *opt = NULL;
+}
+
+void freeMenu()
+{
+  freeMenu( &topMenu, emulating ? 5 : 3 );
+  freeMenu( &saveMenu, 4 );
+  freeMenu( &optionMenu, 8 );
 }
 
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
