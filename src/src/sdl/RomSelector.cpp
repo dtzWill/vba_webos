@@ -178,7 +178,7 @@ char * romSelector()
     top = 10+title->h+10;
 
     SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    SDL_Surface * options = TTF_RenderText_Blended( font_large, OPTIONS_TEXT, textColor );
+    SDL_Surface * options = TTF_RenderText_Blended( font_large, OPTIONS_TEXT, linkColor );
     bottom = min(selector->h - author->h - 10, selector->h - options->h - 20);
 
     //Draw border/text

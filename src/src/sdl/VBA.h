@@ -35,7 +35,7 @@
 #define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
 #define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
 #define AUTHOR_TAG "Support: webos@wdtz.org"
-#define OPTIONS_TEXT "Options"
+#define OPTIONS_TEXT "MENU"
 
 #define OPTIONS_CFG "options.cfg"
 

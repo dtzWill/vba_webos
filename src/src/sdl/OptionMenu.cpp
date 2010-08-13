@@ -300,12 +300,12 @@ void initializeMenu()
   int x = 0;
   topMenu = (menuOption*)malloc( ( emulating ? 5 : 3 )*sizeof(menuOption));
   if (emulating)
-    topMenu[x++] = createButton( "Save states", changeToSaveState,  100+x*OPTION_SPACING);
-  topMenu[x++] = createButton( "Options", changeToOptionsState,     100+x*OPTION_SPACING);
-  topMenu[x++] = createButton( "Help", changeToHelpState,           100+x*OPTION_SPACING);
+    topMenu[x++] = createButton( "Save states",           changeToSaveState,   100+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Options",               changeToOptionsState,100+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Help",                  changeToHelpState,   100+x*OPTION_SPACING);
   if (emulating)
-    topMenu[x++] = createButton( "Rom Selector", moveToRomSelector, 100+x*OPTION_SPACING);
-  topMenu[x++] = createButton( "Return", exitMenu,                  100+x*OPTION_SPACING);
+    topMenu[x++] = createButton( "Choose different game", moveToRomSelector,   100+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Return",                exitMenu,            100+x*OPTION_SPACING);
 
   //Save menu
   saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
