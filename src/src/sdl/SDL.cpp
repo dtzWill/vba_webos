@@ -27,8 +27,6 @@
 #include "AutoBuild.h"
 
 #include "VBA.h"
-#include "debugger.h"
-#include "agbprint.h"
 #include "Flash.h"
 #include "Port.h"
 #include "RTC.h"
@@ -117,8 +115,6 @@ int showSpeedTransparent = 1;
 bool disableStatusMessages = false;
 bool paused = false;
 bool pauseNextFrame = false;
-bool debugger = false;
-bool debuggerStub = false;
 int fullscreen = 0;
 int soundMute = false;
 bool systemSoundOn = false;
@@ -146,10 +142,6 @@ struct EmulatedSystem emulator = {
   false,
   0
 };
-
-void (*dbgMain)() = debuggerMain;
-void (*dbgSignal)(int,int) = debuggerSignal;
-void (*dbgOutput)(char *, u32) = debuggerOutput;
 
 
 /*-----------------------------------------------------------------------------
@@ -1169,8 +1161,6 @@ int main(int argc, char **argv)
   //force RTC --doesn't hurt, and some games need it.
   rtcEnable( true );
 
-  agbPrintEnable(sdlAgbPrint ? true : false);
-
   if(filter) {
     sizeOption = 1;
   }
@@ -1394,7 +1384,6 @@ void runRom()
   
   emulating = 0;
   fprintf(stderr,"Shutting down\n");
-  remoteCleanUp();
   //soundShutdown();
 
   if(gbRom != NULL || rom != NULL) {

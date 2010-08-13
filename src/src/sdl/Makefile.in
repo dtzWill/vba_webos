@@ -36,7 +36,6 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = VisualBoyAdvance$(EXEEXT)
-noinst_PROGRAMS = TestEmu$(EXEEXT)
 subdir = src/sdl
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -48,32 +47,18 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-am_TestEmu_OBJECTS = TestEmu.$(OBJEXT) debugger.$(OBJEXT) \
-	2xSaI.$(OBJEXT) Cheats.$(OBJEXT) EEprom.$(OBJEXT) \
+PROGRAMS = $(bin_PROGRAMS)
+am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
+	RomSelector.$(OBJEXT) Options.$(OBJEXT) GLUtil.$(OBJEXT) \
+	SDL.$(OBJEXT) Cheats.$(OBJEXT) EEprom.$(OBJEXT) \
 	Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) Globals.$(OBJEXT) \
 	Mode0.$(OBJEXT) Mode1.$(OBJEXT) Mode2.$(OBJEXT) \
 	Mode3.$(OBJEXT) Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) \
 	Sound.$(OBJEXT) Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) \
-	admame.$(OBJEXT) agbprint.$(OBJEXT) armdis.$(OBJEXT) \
-	bios.$(OBJEXT) elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
-	exprNode.$(OBJEXT) hq2x.$(OBJEXT) memgzio.$(OBJEXT) \
-	motionblur.$(OBJEXT) pixel.$(OBJEXT) remote.$(OBJEXT) \
-	scanline.$(OBJEXT) simple2x.$(OBJEXT) unzip.$(OBJEXT)
-TestEmu_OBJECTS = $(am_TestEmu_OBJECTS)
-am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
-	RomSelector.$(OBJEXT) Options.$(OBJEXT) GLUtil.$(OBJEXT) \
-	debugger.$(OBJEXT) SDL.$(OBJEXT) Cheats.$(OBJEXT) \
-	EEprom.$(OBJEXT) Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) \
-	Globals.$(OBJEXT) Mode0.$(OBJEXT) Mode1.$(OBJEXT) \
-	Mode2.$(OBJEXT) Mode3.$(OBJEXT) Mode4.$(OBJEXT) \
-	Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) Sram.$(OBJEXT) \
-	Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) \
-	agbprint.$(OBJEXT) armdis.$(OBJEXT) bios.$(OBJEXT) \
-	elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
-	exprNode.$(OBJEXT) getopt.$(OBJEXT) getopt1.$(OBJEXT) \
-	interframe.$(OBJEXT) memgzio.$(OBJEXT) pixel.$(OBJEXT) \
-	remote.$(OBJEXT) unzip.$(OBJEXT)
+	admame.$(OBJEXT) bios.$(OBJEXT) elf.$(OBJEXT) \
+	expr-lex.$(OBJEXT) expr.$(OBJEXT) exprNode.$(OBJEXT) \
+	getopt.$(OBJEXT) getopt1.$(OBJEXT) interframe.$(OBJEXT) \
+	memgzio.$(OBJEXT) pixel.$(OBJEXT) unzip.$(OBJEXT)
 VisualBoyAdvance_OBJECTS = $(am_VisualBoyAdvance_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -88,8 +73,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(TestEmu_SOURCES) $(VisualBoyAdvance_SOURCES)
-DIST_SOURCES = $(TestEmu_SOURCES) $(VisualBoyAdvance_SOURCES)
+SOURCES = $(VisualBoyAdvance_SOURCES)
+DIST_SOURCES = $(VisualBoyAdvance_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -245,8 +230,6 @@ VisualBoyAdvance_SOURCES = \
 	GLUtil.h \
 	GLUtil.cpp \
 	VBA.h \
-	debugger.cpp \
-	debugger.h \
 	SDL.cpp			\
 	esFunc.h		\
 	../AutoBuild.h		\
@@ -283,11 +266,7 @@ VisualBoyAdvance_SOURCES = \
 	../Util.cpp		\
 	../Util.h		\
 	../admame.cpp		\
-	../agbprint.cpp		\
-	../agbprint.h		\
 	../arm-new.h		\
-	../armdis.cpp		\
-	../armdis.h		\
 	../bios.cpp		\
 	../bios.h		\
 	../elf.cpp		\
@@ -305,83 +284,12 @@ VisualBoyAdvance_SOURCES = \
 	../memgzio.c		\
 	../memgzio.h		\
 	../pixel.cpp		\
-	../remote.cpp		\
 	../thumb.h		\
 	../unzip.cpp		\
 	../unzip.h
 
 VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2 -lsrv_um -lIMGegl
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
-TestEmu_SOURCES = \
-	TestEmu.cpp		\
-	debugger.cpp		\
-	debugger.h		\
-	../2xSaI.cpp		\
-	../AutoBuild.h		\
-	../Cheats.cpp		\
-	../Cheats.h		\
-	../EEprom.cpp		\
-	../EEprom.h		\
-	../Flash.cpp		\
-	../Flash.h		\
-	../GBA.cpp		\
-	../GBA.h		\
-	../GBAinline.h		\
-	../Gfx.cpp		\
-	../Gfx.h		\
-	../Globals.cpp		\
-	../Globals.h		\
-	../Mode0.cpp		\
-	../Mode1.cpp		\
-	../Mode2.cpp		\
-	../Mode3.cpp		\
-	../Mode4.cpp		\
-	../Mode5.cpp		\
-	../NLS.h		\
-	../Port.h		\
-	../RTC.cpp		\
-	../RTC.h		\
-	../Sound.cpp		\
-	../Sound.h		\
-	../Sram.cpp		\
-	../Sram.h		\
-	../System.h		\
-	../Text.cpp		\
-	../Text.h		\
-	../Util.cpp		\
-	../Util.h		\
-	../admame.cpp		\
-	../agbprint.cpp		\
-	../agbprint.h		\
-	../arm-new.h		\
-	../armdis.cpp		\
-	../armdis.h		\
-	../bios.cpp		\
-	../bios.h		\
-	../elf.cpp		\
-	../elf.h		\
-	../expr-lex.cpp		\
-	../expr.cpp		\
-	../expr.cpp.h		\
-	../exprNode.cpp		\
-	../exprNode.h		\
-	../hq2x.cpp		\
-	../hq2x.h		\
-	../interp.h		\
-	../lq2x.h		\
-	../memgzio.c		\
-	../memgzio.h		\
-	../motionblur.cpp	\
-	../pixel.cpp		\
-	../remote.cpp		\
-	../scanline.cpp		\
-	../simple2x.cpp		\
-	../thumb.h		\
-	../unzip.cpp		\
-	../unzip.h
-
-TestEmu_LDADD = @VBA_LIBS@ @SDL_LIBS@
-TestEmu_DEPENDENCIES = @VBA_LIBS@
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src		\
 	-DSDL				\
@@ -459,12 +367,6 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-
-clean-noinstPROGRAMS:
-	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-TestEmu$(EXEEXT): $(TestEmu_OBJECTS) $(TestEmu_DEPENDENCIES) 
-	@rm -f TestEmu$(EXEEXT)
-	$(CXXLINK) $(TestEmu_OBJECTS) $(TestEmu_LDADD) $(LIBS)
 VisualBoyAdvance$(EXEEXT): $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_DEPENDENCIES) 
 	@rm -f VisualBoyAdvance$(EXEEXT)
 	$(CXXLINK) $(VisualBoyAdvance_OBJECTS) $(VisualBoyAdvance_LDADD) $(LIBS)
@@ -475,7 +377,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/2xSaI.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Cheats.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Controller.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EEprom.Po@am__quote@
@@ -497,28 +398,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SDL.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Sound.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Sram.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TestEmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Text.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/admame.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/agbprint.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armdis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debugger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expr-lex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exprNode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt1.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hq2x.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interframe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memgzio.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/motionblur.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pixel.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scanline.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/simple2x.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unzip.Po@am__quote@
 
 .c.o:
@@ -534,20 +426,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-memgzio.o: ../memgzio.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memgzio.o -MD -MP -MF $(DEPDIR)/memgzio.Tpo -c -o memgzio.o `test -f '../memgzio.c' || echo '$(srcdir)/'`../memgzio.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memgzio.Tpo $(DEPDIR)/memgzio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../memgzio.c' object='memgzio.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memgzio.o `test -f '../memgzio.c' || echo '$(srcdir)/'`../memgzio.c
-
-memgzio.obj: ../memgzio.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memgzio.obj -MD -MP -MF $(DEPDIR)/memgzio.Tpo -c -o memgzio.obj `if test -f '../memgzio.c'; then $(CYGPATH_W) '../memgzio.c'; else $(CYGPATH_W) '$(srcdir)/../memgzio.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memgzio.Tpo $(DEPDIR)/memgzio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../memgzio.c' object='memgzio.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memgzio.obj `if test -f '../memgzio.c'; then $(CYGPATH_W) '../memgzio.c'; else $(CYGPATH_W) '$(srcdir)/../memgzio.c'; fi`
 
 getopt.o: ../getopt.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT getopt.o -MD -MP -MF $(DEPDIR)/getopt.Tpo -c -o getopt.o `test -f '../getopt.c' || echo '$(srcdir)/'`../getopt.c
@@ -577,6 +455,20 @@ getopt1.obj: ../getopt1.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o getopt1.obj `if test -f '../getopt1.c'; then $(CYGPATH_W) '../getopt1.c'; else $(CYGPATH_W) '$(srcdir)/../getopt1.c'; fi`
 
+memgzio.o: ../memgzio.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memgzio.o -MD -MP -MF $(DEPDIR)/memgzio.Tpo -c -o memgzio.o `test -f '../memgzio.c' || echo '$(srcdir)/'`../memgzio.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memgzio.Tpo $(DEPDIR)/memgzio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../memgzio.c' object='memgzio.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memgzio.o `test -f '../memgzio.c' || echo '$(srcdir)/'`../memgzio.c
+
+memgzio.obj: ../memgzio.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT memgzio.obj -MD -MP -MF $(DEPDIR)/memgzio.Tpo -c -o memgzio.obj `if test -f '../memgzio.c'; then $(CYGPATH_W) '../memgzio.c'; else $(CYGPATH_W) '$(srcdir)/../memgzio.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memgzio.Tpo $(DEPDIR)/memgzio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../memgzio.c' object='memgzio.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o memgzio.obj `if test -f '../memgzio.c'; then $(CYGPATH_W) '../memgzio.c'; else $(CYGPATH_W) '$(srcdir)/../memgzio.c'; fi`
+
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
@@ -590,20 +482,6 @@ getopt1.obj: ../getopt1.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
-
-2xSaI.o: ../2xSaI.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT 2xSaI.o -MD -MP -MF $(DEPDIR)/2xSaI.Tpo -c -o 2xSaI.o `test -f '../2xSaI.cpp' || echo '$(srcdir)/'`../2xSaI.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/2xSaI.Tpo $(DEPDIR)/2xSaI.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../2xSaI.cpp' object='2xSaI.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o 2xSaI.o `test -f '../2xSaI.cpp' || echo '$(srcdir)/'`../2xSaI.cpp
-
-2xSaI.obj: ../2xSaI.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT 2xSaI.obj -MD -MP -MF $(DEPDIR)/2xSaI.Tpo -c -o 2xSaI.obj `if test -f '../2xSaI.cpp'; then $(CYGPATH_W) '../2xSaI.cpp'; else $(CYGPATH_W) '$(srcdir)/../2xSaI.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/2xSaI.Tpo $(DEPDIR)/2xSaI.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../2xSaI.cpp' object='2xSaI.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o 2xSaI.obj `if test -f '../2xSaI.cpp'; then $(CYGPATH_W) '../2xSaI.cpp'; else $(CYGPATH_W) '$(srcdir)/../2xSaI.cpp'; fi`
 
 Cheats.o: ../Cheats.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT Cheats.o -MD -MP -MF $(DEPDIR)/Cheats.Tpo -c -o Cheats.o `test -f '../Cheats.cpp' || echo '$(srcdir)/'`../Cheats.cpp
@@ -857,34 +735,6 @@ admame.obj: ../admame.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o admame.obj `if test -f '../admame.cpp'; then $(CYGPATH_W) '../admame.cpp'; else $(CYGPATH_W) '$(srcdir)/../admame.cpp'; fi`
 
-agbprint.o: ../agbprint.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT agbprint.o -MD -MP -MF $(DEPDIR)/agbprint.Tpo -c -o agbprint.o `test -f '../agbprint.cpp' || echo '$(srcdir)/'`../agbprint.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/agbprint.Tpo $(DEPDIR)/agbprint.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../agbprint.cpp' object='agbprint.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o agbprint.o `test -f '../agbprint.cpp' || echo '$(srcdir)/'`../agbprint.cpp
-
-agbprint.obj: ../agbprint.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT agbprint.obj -MD -MP -MF $(DEPDIR)/agbprint.Tpo -c -o agbprint.obj `if test -f '../agbprint.cpp'; then $(CYGPATH_W) '../agbprint.cpp'; else $(CYGPATH_W) '$(srcdir)/../agbprint.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/agbprint.Tpo $(DEPDIR)/agbprint.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../agbprint.cpp' object='agbprint.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o agbprint.obj `if test -f '../agbprint.cpp'; then $(CYGPATH_W) '../agbprint.cpp'; else $(CYGPATH_W) '$(srcdir)/../agbprint.cpp'; fi`
-
-armdis.o: ../armdis.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT armdis.o -MD -MP -MF $(DEPDIR)/armdis.Tpo -c -o armdis.o `test -f '../armdis.cpp' || echo '$(srcdir)/'`../armdis.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/armdis.Tpo $(DEPDIR)/armdis.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../armdis.cpp' object='armdis.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o armdis.o `test -f '../armdis.cpp' || echo '$(srcdir)/'`../armdis.cpp
-
-armdis.obj: ../armdis.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT armdis.obj -MD -MP -MF $(DEPDIR)/armdis.Tpo -c -o armdis.obj `if test -f '../armdis.cpp'; then $(CYGPATH_W) '../armdis.cpp'; else $(CYGPATH_W) '$(srcdir)/../armdis.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/armdis.Tpo $(DEPDIR)/armdis.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../armdis.cpp' object='armdis.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o armdis.obj `if test -f '../armdis.cpp'; then $(CYGPATH_W) '../armdis.cpp'; else $(CYGPATH_W) '$(srcdir)/../armdis.cpp'; fi`
-
 bios.o: ../bios.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT bios.o -MD -MP -MF $(DEPDIR)/bios.Tpo -c -o bios.o `test -f '../bios.cpp' || echo '$(srcdir)/'`../bios.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/bios.Tpo $(DEPDIR)/bios.Po
@@ -955,33 +805,19 @@ exprNode.obj: ../exprNode.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o exprNode.obj `if test -f '../exprNode.cpp'; then $(CYGPATH_W) '../exprNode.cpp'; else $(CYGPATH_W) '$(srcdir)/../exprNode.cpp'; fi`
 
-hq2x.o: ../hq2x.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hq2x.o -MD -MP -MF $(DEPDIR)/hq2x.Tpo -c -o hq2x.o `test -f '../hq2x.cpp' || echo '$(srcdir)/'`../hq2x.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/hq2x.Tpo $(DEPDIR)/hq2x.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../hq2x.cpp' object='hq2x.o' libtool=no @AMDEPBACKSLASH@
+interframe.o: ../interframe.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT interframe.o -MD -MP -MF $(DEPDIR)/interframe.Tpo -c -o interframe.o `test -f '../interframe.cpp' || echo '$(srcdir)/'`../interframe.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/interframe.Tpo $(DEPDIR)/interframe.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../interframe.cpp' object='interframe.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hq2x.o `test -f '../hq2x.cpp' || echo '$(srcdir)/'`../hq2x.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o interframe.o `test -f '../interframe.cpp' || echo '$(srcdir)/'`../interframe.cpp
 
-hq2x.obj: ../hq2x.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hq2x.obj -MD -MP -MF $(DEPDIR)/hq2x.Tpo -c -o hq2x.obj `if test -f '../hq2x.cpp'; then $(CYGPATH_W) '../hq2x.cpp'; else $(CYGPATH_W) '$(srcdir)/../hq2x.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/hq2x.Tpo $(DEPDIR)/hq2x.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../hq2x.cpp' object='hq2x.obj' libtool=no @AMDEPBACKSLASH@
+interframe.obj: ../interframe.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT interframe.obj -MD -MP -MF $(DEPDIR)/interframe.Tpo -c -o interframe.obj `if test -f '../interframe.cpp'; then $(CYGPATH_W) '../interframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../interframe.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/interframe.Tpo $(DEPDIR)/interframe.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../interframe.cpp' object='interframe.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hq2x.obj `if test -f '../hq2x.cpp'; then $(CYGPATH_W) '../hq2x.cpp'; else $(CYGPATH_W) '$(srcdir)/../hq2x.cpp'; fi`
-
-motionblur.o: ../motionblur.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT motionblur.o -MD -MP -MF $(DEPDIR)/motionblur.Tpo -c -o motionblur.o `test -f '../motionblur.cpp' || echo '$(srcdir)/'`../motionblur.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/motionblur.Tpo $(DEPDIR)/motionblur.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../motionblur.cpp' object='motionblur.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o motionblur.o `test -f '../motionblur.cpp' || echo '$(srcdir)/'`../motionblur.cpp
-
-motionblur.obj: ../motionblur.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT motionblur.obj -MD -MP -MF $(DEPDIR)/motionblur.Tpo -c -o motionblur.obj `if test -f '../motionblur.cpp'; then $(CYGPATH_W) '../motionblur.cpp'; else $(CYGPATH_W) '$(srcdir)/../motionblur.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/motionblur.Tpo $(DEPDIR)/motionblur.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../motionblur.cpp' object='motionblur.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o motionblur.obj `if test -f '../motionblur.cpp'; then $(CYGPATH_W) '../motionblur.cpp'; else $(CYGPATH_W) '$(srcdir)/../motionblur.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o interframe.obj `if test -f '../interframe.cpp'; then $(CYGPATH_W) '../interframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../interframe.cpp'; fi`
 
 pixel.o: ../pixel.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pixel.o -MD -MP -MF $(DEPDIR)/pixel.Tpo -c -o pixel.o `test -f '../pixel.cpp' || echo '$(srcdir)/'`../pixel.cpp
@@ -997,48 +833,6 @@ pixel.obj: ../pixel.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pixel.obj `if test -f '../pixel.cpp'; then $(CYGPATH_W) '../pixel.cpp'; else $(CYGPATH_W) '$(srcdir)/../pixel.cpp'; fi`
 
-remote.o: ../remote.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT remote.o -MD -MP -MF $(DEPDIR)/remote.Tpo -c -o remote.o `test -f '../remote.cpp' || echo '$(srcdir)/'`../remote.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/remote.Tpo $(DEPDIR)/remote.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../remote.cpp' object='remote.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o remote.o `test -f '../remote.cpp' || echo '$(srcdir)/'`../remote.cpp
-
-remote.obj: ../remote.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT remote.obj -MD -MP -MF $(DEPDIR)/remote.Tpo -c -o remote.obj `if test -f '../remote.cpp'; then $(CYGPATH_W) '../remote.cpp'; else $(CYGPATH_W) '$(srcdir)/../remote.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/remote.Tpo $(DEPDIR)/remote.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../remote.cpp' object='remote.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o remote.obj `if test -f '../remote.cpp'; then $(CYGPATH_W) '../remote.cpp'; else $(CYGPATH_W) '$(srcdir)/../remote.cpp'; fi`
-
-scanline.o: ../scanline.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT scanline.o -MD -MP -MF $(DEPDIR)/scanline.Tpo -c -o scanline.o `test -f '../scanline.cpp' || echo '$(srcdir)/'`../scanline.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/scanline.Tpo $(DEPDIR)/scanline.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../scanline.cpp' object='scanline.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o scanline.o `test -f '../scanline.cpp' || echo '$(srcdir)/'`../scanline.cpp
-
-scanline.obj: ../scanline.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT scanline.obj -MD -MP -MF $(DEPDIR)/scanline.Tpo -c -o scanline.obj `if test -f '../scanline.cpp'; then $(CYGPATH_W) '../scanline.cpp'; else $(CYGPATH_W) '$(srcdir)/../scanline.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/scanline.Tpo $(DEPDIR)/scanline.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../scanline.cpp' object='scanline.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o scanline.obj `if test -f '../scanline.cpp'; then $(CYGPATH_W) '../scanline.cpp'; else $(CYGPATH_W) '$(srcdir)/../scanline.cpp'; fi`
-
-simple2x.o: ../simple2x.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT simple2x.o -MD -MP -MF $(DEPDIR)/simple2x.Tpo -c -o simple2x.o `test -f '../simple2x.cpp' || echo '$(srcdir)/'`../simple2x.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/simple2x.Tpo $(DEPDIR)/simple2x.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../simple2x.cpp' object='simple2x.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o simple2x.o `test -f '../simple2x.cpp' || echo '$(srcdir)/'`../simple2x.cpp
-
-simple2x.obj: ../simple2x.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT simple2x.obj -MD -MP -MF $(DEPDIR)/simple2x.Tpo -c -o simple2x.obj `if test -f '../simple2x.cpp'; then $(CYGPATH_W) '../simple2x.cpp'; else $(CYGPATH_W) '$(srcdir)/../simple2x.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/simple2x.Tpo $(DEPDIR)/simple2x.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../simple2x.cpp' object='simple2x.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o simple2x.obj `if test -f '../simple2x.cpp'; then $(CYGPATH_W) '../simple2x.cpp'; else $(CYGPATH_W) '$(srcdir)/../simple2x.cpp'; fi`
-
 unzip.o: ../unzip.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT unzip.o -MD -MP -MF $(DEPDIR)/unzip.Tpo -c -o unzip.o `test -f '../unzip.cpp' || echo '$(srcdir)/'`../unzip.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/unzip.Tpo $(DEPDIR)/unzip.Po
@@ -1052,20 +846,6 @@ unzip.obj: ../unzip.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../unzip.cpp' object='unzip.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o unzip.obj `if test -f '../unzip.cpp'; then $(CYGPATH_W) '../unzip.cpp'; else $(CYGPATH_W) '$(srcdir)/../unzip.cpp'; fi`
-
-interframe.o: ../interframe.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT interframe.o -MD -MP -MF $(DEPDIR)/interframe.Tpo -c -o interframe.o `test -f '../interframe.cpp' || echo '$(srcdir)/'`../interframe.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/interframe.Tpo $(DEPDIR)/interframe.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../interframe.cpp' object='interframe.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o interframe.o `test -f '../interframe.cpp' || echo '$(srcdir)/'`../interframe.cpp
-
-interframe.obj: ../interframe.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT interframe.obj -MD -MP -MF $(DEPDIR)/interframe.Tpo -c -o interframe.obj `if test -f '../interframe.cpp'; then $(CYGPATH_W) '../interframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../interframe.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/interframe.Tpo $(DEPDIR)/interframe.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../interframe.cpp' object='interframe.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o interframe.obj `if test -f '../interframe.cpp'; then $(CYGPATH_W) '../interframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../interframe.cpp'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1183,8 +963,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-noinstPROGRAMS \
-	mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -1254,17 +1033,17 @@ uninstall-am: uninstall-binPROGRAMS
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic clean-noinstPROGRAMS ctags distclean \
-	distclean-compile distclean-generic distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-binPROGRAMS
+	clean-generic ctags distclean distclean-compile \
+	distclean-generic distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

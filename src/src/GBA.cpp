@@ -37,7 +37,6 @@
 #include "elf.h"
 #include "Util.h"
 #include "Port.h"
-#include "agbprint.h"
 #ifdef PROFILING
 #include "prof/prof.h"
 #endif
@@ -1174,8 +1173,6 @@ bool CPUIsGBABios(const char * file)
     if(p != NULL) {
       if(_stricmp(p, ".gba") == 0)
         return true;
-      if(_stricmp(p, ".agb") == 0)
-        return true;
       if(_stricmp(p, ".bin") == 0)
         return true;
       if(_stricmp(p, ".bios") == 0)
@@ -1672,7 +1669,7 @@ void CPUSoftwareInterrupt(int comment)
   }
 #endif
   if(comment == 0xfa) {
-    agbPrintFlush();
+    //agbPrintFlush();
     return;
   }
 #ifdef SDL
@@ -2765,7 +2762,7 @@ void CPUWriteHalfWord(u32 address, u16 value)
     if(address == 0x80000c4 || address == 0x80000c6 || address == 0x80000c8) {
       if(!rtcWrite(address, value))
         goto unwritable;
-    } else if(!agbPrintWrite(address, value)) goto unwritable;
+    }// else if(!agbPrintWrite(address, value)) goto unwritable;
     break;
   case 13:
     if(cpuEEPROMEnabled) {
