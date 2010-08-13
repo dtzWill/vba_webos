@@ -3,9 +3,20 @@ bin_PROGRAMS = VisualBoyAdvance
 noinst_PROGRAMS = TestEmu
 
 VisualBoyAdvance_SOURCES = \
+	Controller.h \
+	Controller.cpp \
+	Event.h \
+	Event.cpp \
+	RomSelector.h \
+	RomSelector.cpp \
+	Options.h \
+	Options.cpp \
+	GLUtil.h \
+	GLUtil.cpp \
+	VBA.h \
+	debugger.cpp \
+	debugger.h \
 	SDL.cpp			\
-	debugger.cpp		\
-	debugger.h		\
 	esFunc.h		\
 	../AutoBuild.h		\
 	../Cheats.cpp		\
