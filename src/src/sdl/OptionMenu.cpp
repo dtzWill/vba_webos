@@ -174,16 +174,37 @@ void updateToggleSurface( menuOption * opt )
   SDL_FreeSurface( s_off );
 }
 
-#if 0
-menuOption createSave( char * text, void (*action)(void) )
+menuOption createSave( int num, int y )
 {
+  char buf[1024];
+  sprintf( buf, "Save %d", num + 1 );
   menuOption opt;
-  opt.text = text;
-  opt.type = MENU_BUTTON;
-  opt.action = action;
-  opt.surface = TTF_RenderText_Blended( menu_font, text, textColor );
+  opt.text = strdup( buf );
+  opt.type = MENU_SAVE;
+  opt.save.save_num = num;
+  opt.y = y;
+
+  //Black rectangle
+  opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+      0xff0000, 0x00ff00, 0x0000ff, 0);
+  int black = SDL_MapRGB( opt.surface->format, 0, 0, 0);
+  SDL_FillRect( opt.surface, NULL, black );
+
+  //Create "Save 1:  load  save"-style display
+  SDL_Surface * s_txt  = TTF_RenderText_Blended( menu_font, opt.text, textColor );
+  SDL_Surface * s_load = TTF_RenderText_Blended( menu_font, "Load",   textColor );
+  SDL_Surface * s_save = TTF_RenderText_Blended( menu_font, "Save",   textColor );
+
+  apply_surface( TOGGLE_TXT_X, TOGGLE_Y, s_txt,  opt.surface );
+  apply_surface( TOGGLE_ON_X,  TOGGLE_Y, s_load, opt.surface );
+  apply_surface( TOGGLE_OFF_X, TOGGLE_Y, s_save, opt.surface );
+
+  SDL_FreeSurface( s_txt  );
+  SDL_FreeSurface( s_load );
+  SDL_FreeSurface( s_save );
+
+  return opt;
 }
-#endif
 
 /*-----------------------------------------------------------------------------
  *  Functors for menu options...
@@ -247,9 +268,13 @@ eMenuResponse optionsMenu()
         break;
       case MENU_OPTIONS:
         doMenu( options_screen, optionMenu, 8 );
+        break;
+      case MENU_SAVES:
+        doMenu( options_screen, saveMenu, 4 );
+        break;
       case MENU_HELP:
         doHelp( options_screen );
-      case MENU_SAVES:
+        break;
       default:
         break;
     }
@@ -279,27 +304,12 @@ void initializeMenu()
   topMenu[x++] = createButton( "Return", exitMenu,                 100+x*50);
 
   //Save menu
-#if 0
   saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
-  saveMenu[0].text = "Save 1";
-  saveMenu[0].type = MENU_SAVE;
-  saveMenu[0].save.save_num = 1;
-  saveMenu[0].save.change = handleMenuSaveState;
-
-  saveMenu[1].text = "Save 2";
-  saveMenu[1].type = MENU_SAVE;
-  saveMenu[1].save.save_num = 2;
-  saveMenu[1].save.change = handleMenuSaveState;
-
-  saveMenu[2].text = "Save 3";
-  saveMenu[2].type = MENU_SAVE;
-  saveMenu[2].save.save_num = 3;
-  saveMenu[2].save.change = handleMenuSaveState;
-
-  saveMenu[3].text = "Return";
-  saveMenu[3].type = MENU_BUTTON;
-  saveMenu[3].button.action = changeToMainState;
-#endif
+  x = 0;
+  saveMenu[x++] = createSave( x, 100+x*50 );
+  saveMenu[x++] = createSave( x, 100+x*50 );
+  saveMenu[x++] = createSave( x, 100+x*50 );
+  saveMenu[x++] = createButton( "Return", changeToMainState, 100+x*50 );
   
   //Options menu
   optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
@@ -402,6 +412,17 @@ bool optionHitCheck( menuOption * opt, int x, int y )
         opt->button.action();
         break;
       case MENU_SAVE:
+        if ( x >= TOGGLE_ON_X && x < TOGGLE_OFF_X )
+        {
+          hit = true;
+          sdlReadState(opt->save.save_num);
+          menuDone = true;
+        } else if ( x >= TOGGLE_OFF_X )
+        {
+          hit = true;
+          sdlWriteState(opt->save.save_num);
+          menuDone = true;
+        }
         break;
       case MENU_TOGGLE:
 #if 0
