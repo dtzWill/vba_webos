@@ -404,6 +404,10 @@ char * romSelector()
     SDL_FreeSurface( options );
     SDL_FreeSurface( selector );
 
+    TTF_CloseFont( font_small );
+    TTF_CloseFont( font_normal );
+    TTF_CloseFont( font_large );
+
     // restore the original orientation
     orientation = oldOrientation;
     updateOrientation();

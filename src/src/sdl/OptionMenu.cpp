@@ -21,6 +21,8 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
+#define OPTION_SIZE 40
+
 enum menuState
 {
   MENU_MAIN,
@@ -50,7 +52,6 @@ typedef struct
 
 typedef struct
 {
-  char * button_text;
   void (*action)(void);
 } button_data;
 
@@ -66,12 +67,32 @@ typedef struct
   };
 } menuOption;
 
+bool menuInitialized = false;
+menuOption * topMenu = NULL;
+menuOption * saveMenu = NULL;
+menuOption * optionMenu = NULL;
+menuOption * helpMenu = NULL;
 
 enum menuState menuState;
 bool menuDone;
 
+void initializeMenu();
 void drawOptionsMenu( SDL_Surface * surface );
 void handleOptionsEvent( SDL_Event * event );
+void drawMenu( menuOption * options, SDL_Surface * surface, int numOptions );
+
+
+/*-----------------------------------------------------------------------------
+ *  Functors for menu options...
+ *-----------------------------------------------------------------------------*/
+void changeToMainState(void)     { menuState = MENU_MAIN;    }
+void changeToSaveState(void)     { menuState = MENU_SAVES;   }
+void changeToOptionsState(void)  { menuState = MENU_OPTIONS; }
+void changeToHelpState(void)     { menuState = MENU_HELP;    }
+
+void exitMenu(void)              { menuDone = true;          }
+void moveToRomSelector(void);
+void handleMenuSaveState(int,bool);
 
 //Call this to display the options menu...
 void optionsMenu()
@@ -89,6 +110,8 @@ void optionsMenu()
   TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
 
   SDL_Event event;
+
+  initializeMenu();
 
   //Start out at top-level menu
   menuState = MENU_MAIN;
@@ -108,6 +131,60 @@ void optionsMenu()
   SDL_FreeSurface( options_screen );
 }
 
+void initializeMenu()
+{
+  if (menuInitialized) return;
+  menuInitialized = true;
+
+  //Static initializers for all this is a PITA, so do it dynamically.
+  topMenu = (menuOption*)malloc(5*sizeof(menuOption));
+  
+  //Top-level menu
+  topMenu[0].text = "Save states";
+  topMenu[0].type = MENU_BUTTON;
+  topMenu[0].button.action = changeToSaveState;
+
+  topMenu[1].text = "Options";
+  topMenu[1].type = MENU_BUTTON;
+  topMenu[1].button.action = changeToOptionsState;
+
+  topMenu[2].text = "Help";
+  topMenu[2].type = MENU_BUTTON;
+  topMenu[2].button.action = changeToHelpState;
+
+  topMenu[3].text = "Rom Selector";
+  topMenu[3].type = MENU_BUTTON;
+  topMenu[3].button.action = moveToRomSelector;
+
+  topMenu[4].text = "Return";
+  topMenu[4].type = MENU_BUTTON;
+  topMenu[4].button.action = exitMenu;
+
+  //Save menu
+  saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
+  saveMenu[0].text = "Save 1";
+  saveMenu[0].type = MENU_SAVE;
+  saveMenu[0].save.save_num = 1;
+  saveMenu[0].save.change = handleMenuSaveState;
+
+  saveMenu[1].text = "Save 2";
+  saveMenu[1].type = MENU_SAVE;
+  saveMenu[1].save.save_num = 2;
+  saveMenu[1].save.change = handleMenuSaveState;
+
+  saveMenu[2].text = "Save 3";
+  saveMenu[2].type = MENU_SAVE;
+  saveMenu[2].save.save_num = 3;
+  saveMenu[2].save.change = handleMenuSaveState;
+
+  saveMenu[3].text = "Return";
+  saveMenu[3].type = MENU_BUTTON;
+  saveMenu[3].button.action = changeToMainState;
+  
+  //Options menu
+  //FIXME: implement!
+}
+
 void drawOptionsMenu( SDL_Surface * surface )
 {
   //Same as border color of rom selector
@@ -118,9 +195,10 @@ void drawOptionsMenu( SDL_Surface * surface )
   {
     case MENU_MAIN:
       //Top-level menu.
-      //Show list of other menus
+      drawMenu(topMenu, surface, 5);
       break;
     case MENU_SAVES:
+      drawMenu(topMenu, surface, 4);
       break;
     case MENU_OPTIONS:
       break;
@@ -137,5 +215,52 @@ void drawOptionsMenu( SDL_Surface * surface )
 
 void handleOptionsEvent( SDL_Event * event )
 {
+
+}
+
+void moveToRomSelector(void)
+{
+  //XXX IMPLEMENT ME!
+
+}
+
+void handleMenuSaveState( int save_num, bool load )
+{
+  //XXX IMPLEMENT ME!
+
+  menuDone = true;
+}
+
+//Calculate y-coord for given option number
+int y_coord( int optionNum, int numOptions, int height )
+{
+  int half = numOptions/2;
+  return height/2 + (optionNum-half)*OPTION_SIZE;
+
+}
+
+void drawMenu( menuOption * options, SDL_Surface * surface, int numOptions )
+{
+  //For each option, draw it!
+  TTF_Font * font_normal = TTF_OpenFont( FONT, 18 );
+  for ( int i = 0; i < numOptions; ++i )
+  {
+    int y = y_coord(i, numOptions, surface->h);
+    SDL_Surface * option;
+
+    switch( options[i].type )
+    {
+      case MENU_TOGGLE:
+        //Label, then on/off
+        break;
+      case MENU_SAVE:
+        //Label, then load/store
+        break;
+      case MENU_BUTTON:
+        //Label
+        break;
+    }
+
+  }
 
 }
