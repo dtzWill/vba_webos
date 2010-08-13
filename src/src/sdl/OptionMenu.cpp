@@ -210,7 +210,7 @@ void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                         
 void menuSetOnscreen( bool on )   { use_on_screen = on;                          }
 
 bool menuGetOrientation() { return orientation == ORIENTATION_PORTRAIT; }
-bool menuGetSound()       { return !soundMute;                           }
+bool menuGetSound()       { return !soundMute;                          }
 bool menuGetFilter()      { return gl_filter == GL_LINEAR;              }
 bool menuGetSpeed()       { return showSpeed != 0;                      }
 bool menuGetAutoSave()    { return autosave;                            }
