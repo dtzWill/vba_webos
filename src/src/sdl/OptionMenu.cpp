@@ -91,13 +91,12 @@ line helpScreen3[] =
     {"You'll want to put your ROMs in",             textColor },
     {"a folder called",                             textColor },
     {"/vba/roms",                                   hiColor },
-    {"...which you might have to create.",          textColor },
+    {"which you might have to create.",             textColor },
     {"First create a 'vba' folder then create",     textColor },
     {"a 'roms' folder inside of that.",             textColor },
     {"Watch the capitalization, all lower case.",   textColor },
     {"Once you have the ROMs there, restart VBA",   textColor },
     {"and then just click them to play.",           textColor },
-    {" ",                                           textColor },
     {"(Click to go to next screen)",                linkColor }
 };
 
