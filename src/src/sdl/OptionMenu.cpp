@@ -73,7 +73,7 @@ line helpScreen2[] =
     {"There are many great ROMs freely available",  textColor },
     {"all over the internet.  Examples of such",    textColor },
     {"include \"Anguna\" and \"Another World\".",   textColor },
-    {"VBA can also play many games commercially",   textColor },
+    {"VBA can also play many commercial games",     textColor },
     {"made for the Gameboy (Color/Advance)",        textColor },
     {"but how to get those ROMs is something",      textColor },
     {"we don't cover, and you are responsible",     textColor },
@@ -98,6 +98,17 @@ line helpScreen3[] =
     {"Watch the capitalization, all lower case.",   textColor },
     {"Once you have the ROMs there, restart VBA",   textColor },
     {"and then just click them to play.",           textColor },
+    {"(Click to go to next screen)",                linkColor }
+};
+line helpScreen4[] =
+{
+    {"How do I play?",                              textColor },
+    {" ",                                           textColor },
+    {"VBA initially gives you onscreen controls.",  textColor },
+    {"You can also use the physical keyboard.",     textColor },
+    {"W/A/S/D --- up/down/left/right (d-pad)",      textColor },
+    {"K/L --- B/A (action buttons)",                textColor },
+    {"Q/P --- L/R (trigger buttons) folder called", textColor },
     {"(Click to go to next screen)",                linkColor }
 };
 
