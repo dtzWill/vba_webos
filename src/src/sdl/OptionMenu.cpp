@@ -38,7 +38,7 @@ static SDL_Color onColor   = { 255, 200, 200 };
 static SDL_Color offColor  = {  50,  50,  50 };
 static SDL_Color itemColor = {   0,   0,   0 };
 static SDL_Color linkColor = { 255, 200, 200 };
-static SDL_Color hiColor = { 200, 200, 255 };
+static SDL_Color hiColor   = { 200, 200, 255 };
 
 //Help screen stuff
 
