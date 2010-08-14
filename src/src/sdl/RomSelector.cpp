@@ -120,13 +120,6 @@ int sortCompar( const void * a, const void * b )
 
 char * romSelector()
 {
-    // save the old orientation
-    int oldOrientation = orientation;
-
-    // We have a portrait rom selector, but need to prentend landscape to get things to work right
-    orientation = ORIENTATION_PORTRAIT;
-    updateOrientation();
-
     // Create buffer we render selector into
     SDL_Surface * surface = SDL_GetVideoSurface();
     SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
@@ -416,10 +409,6 @@ char * romSelector()
     TTF_CloseFont( font_small );
     TTF_CloseFont( font_normal );
     TTF_CloseFont( font_large );
-
-    // restore the original orientation
-    orientation = oldOrientation;
-    updateOrientation();
 
     char * rom_base = roms[romSelected]->d_name;
     char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );

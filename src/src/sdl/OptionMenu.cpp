@@ -286,12 +286,12 @@ void handleMenuSaveState(int,bool);
 void menuSetOrientation( bool portrait )
 {
   orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
-  if (emulating) updateOrientation();
+  updateOrientation();
 }
 
 void menuSetSound( bool sound )   { soundMute = !sound;                          }
 void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST;
-                                    if (emulating) GL_InitTexture();             }
+                                    GL_InitTexture();                            }
 void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
 void menuSetAutoSave( bool on )   { autosave = on;                               }
 void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                          }
@@ -317,6 +317,9 @@ eMenuResponse optionsMenu()
     fprintf( stderr, "Error creating options menu!\n" );
     exit( 1 );
   }
+
+  //Make sure we have the proper values...
+  readOptions();
 
   initializeMenu();
 
