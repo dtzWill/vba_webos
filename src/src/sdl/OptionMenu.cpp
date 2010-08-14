@@ -488,10 +488,7 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
           break;
       }
     }
-    //SDL_Delay(50);
   }
-  //Delay between menus to prevent unexpected clicks
-  SDL_Delay( 200 );
 }
 
 void doHelp( SDL_Surface * s )
@@ -598,10 +595,9 @@ void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
     while (!done)
     {
         SDL_DrawSurfaceAsGLTexture( s, portrait_vertexCoords );
-        SDL_Delay( 100 );
         while ( SDL_PollEvent( &event ) )
         {
-            if ( event.type == SDL_MOUSEBUTTONDOWN )
+            if ( event.type == SDL_MOUSEBUTTONUP )
             {
                 //User clicked, we're done.
                 done = true;
@@ -610,7 +606,6 @@ void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
 
         }
     }
-    SDL_Delay( 200 );
 
     //Free the surfaces we created...
     for ( int i = 0; i < numlines; ++i )
