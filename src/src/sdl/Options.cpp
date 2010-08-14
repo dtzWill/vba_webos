@@ -27,6 +27,7 @@ vba_option state_options[] =
     { "speed", &showSpeed },
     { "onscreen", &use_on_screen },
     { "autosave", &autosave },
+    { "autoframeskip", &autoFrameSkip },
     { "skin", &skin_index }
 };
 

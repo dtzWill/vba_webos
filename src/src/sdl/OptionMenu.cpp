@@ -18,6 +18,7 @@
 #include "GLUtil.h"
 #include "VBA.h"
 #include "RomSelector.h"
+#include "Options.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -465,6 +466,8 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
             {
               printf( "Chose: %s\n", options[i].text );
               done = true;
+              //Make sure any changes to options are saved.
+              writeOptions();
               break;
             }
           }
