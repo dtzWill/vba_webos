@@ -38,6 +38,7 @@ static SDL_Color onColor   = { 255, 200, 200 };
 static SDL_Color offColor  = {  50,  50,  50 };
 static SDL_Color itemColor = {   0,   0,   0 };
 static SDL_Color linkColor = { 255, 200, 200 };
+static SDL_Color hiColor = { 200, 200, 255 };
 
 //Help screen stuff
 
@@ -51,8 +52,8 @@ line helpScreen1[] =
 {
     {"Welcome to VisualBoyAdvance (VBA)!",          textColor },
     {" ",                                           textColor },
-    {"VBA is a Gameboy, Gameboy Color,",            textColor }, 
-    {"and Gameboy Advance emulator.",               textColor }, 
+    {"VBA is a Gameboy, Gameboy Color,",            textColor },
+    {"and Gameboy Advance emulator.",               textColor },
     {" ",                                           textColor },
     {"What that means is VBA allows you",           textColor },
     {"to play games made for those systems--",      textColor },
@@ -61,6 +62,41 @@ line helpScreen1[] =
     {"too.  These games are generally called",      textColor },
     {"'ROM's, which are computer copies of",        textColor },
     {"games for those devices.",                    textColor },
+    {" ",                                           textColor },
+    {"(Click to go to next screen)",                linkColor }
+};
+line helpScreen2[] =
+{
+    {"Where do I get ROMs?",                        textColor },
+    {" ",                                           textColor },
+    {"There are many great ROMs freely available",  textColor },
+    {"all over the internet.  Examples of such",    textColor },
+    {"include \"Anguna\" and \"Another World\".",   textColor },
+    {"VBA can also play many games commercially",   textColor },
+    {"made for the Gameboy (Color/Advance)",        textColor },
+    {"but how to get those ROMs is something",      textColor },
+    {"we don't cover, and you are responsible",     textColor },
+    {"for checking the legality of them",           textColor },
+    {"in your country.",                            textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {"(Click to go to next screen)",                linkColor }
+};
+line helpScreen3[] =
+{
+    {"Okay I got the ROMs, what now?",              textColor },
+    {" ",                                           textColor },
+    {"To play your ROMs, connect your device",      textColor },
+    {"to your computer and put it in USB mode.",    textColor },
+    {"You'll want to put your ROMs in",             textColor },
+    {"a folder called",                             textColor },
+    {"/vba/roms",                                   hiColor },
+    {"...which you might have to create.",          textColor },
+    {"First create a 'vba' folder then create",     textColor },
+    {"a 'roms' folder inside of that.",             textColor },
+    {"Watch the capitalization, all lower case.",   textColor },
+    {"Once you have the ROMs there, restart VBA",   textColor },
+    {"and then just click them to play.",           textColor },
     {" ",                                           textColor },
     {"(Click to go to next screen)",                linkColor }
 };
@@ -460,6 +496,8 @@ void doHelp( SDL_Surface * s )
 {
   //Show help text, taps advance to next until done.
   showLines( s, helpScreen1, sizeof(helpScreen1)/sizeof(helpScreen1[0]), false );
+  showLines( s, helpScreen2, sizeof(helpScreen2)/sizeof(helpScreen2[0]), false );
+  showLines( s, helpScreen3, sizeof(helpScreen3)/sizeof(helpScreen3[0]), false );
   changeToMainState();
 }
 
