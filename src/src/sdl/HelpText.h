@@ -35,12 +35,12 @@ line helpROMs[][14] =
     {"and Gameboy Advance emulator.",               textColor },
     {" ",                                           textColor },
     {"What that means is VBA allows you",           textColor },
-    {"to play games made for those systems--",      textColor },
-    {"however, much like your gameboy needs",       textColor },
+    {"to play games made for those systems.",       textColor },
+    {"However, much like your gameboy needs",       textColor },
     {"separate games to play, VBA needs games",     textColor },
     {"too.  These games are generally called",      textColor },
     {"'ROM's, which are computer copies of",        textColor },
-    {"games for those devices.",                    textColor },
+    {"games for those Gameboy devices.",            textColor },
     {" ",                                           textColor },
     {"(Click to go to next screen)",                linkColor }
 },
@@ -51,11 +51,11 @@ line helpROMs[][14] =
     {"all over the internet.  Examples of such",    textColor },
     {"include \"Anguna\" and \"Another World\".",   textColor },
     {"VBA can also play many commercial games",     textColor },
-    {"made for the Gameboy (Color/Advance)",        textColor },
-    {"but how to get those ROMs is something",      textColor },
-    {"we don't cover, and you are responsible",     textColor },
-    {"for checking the legality of them",           textColor },
-    {"in your country.",                            textColor },
+    {"made for the Gameboy (Color/Advance).",       textColor },
+    {"We don't cover how to dump these games",      textColor },
+    {"from your originals, and we remind you",      textColor },
+    {"to observe all relevant laws that might",     textColor },
+    {"apply before doing so.",                      textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
     {"(Click to go to next screen)",                linkColor }
@@ -74,7 +74,7 @@ line helpROMs[][14] =
     {"Watch the capitalization, all lower case.",   textColor },
     {"Once you have the ROMs there, restart VBA",   textColor },
     {"and then just click them to play.",           textColor },
-    {"(Click to go to next screen)",                linkColor }
+    {"(Click to go to return to help)",             linkColor }
 }
 };
 
