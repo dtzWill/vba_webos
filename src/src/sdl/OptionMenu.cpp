@@ -57,6 +57,13 @@ enum optionType {
   MENU_BUTTON,
 };
 
+enum helpState
+{
+  HELP_ROMS,
+  HELP_CONTROLS,
+  HELP_SETTINGS
+};
+
 typedef struct
 {
   char * on_text;
@@ -96,6 +103,7 @@ static menuOption * helpMenu = NULL;
 static TTF_Font * menu_font = NULL;
 
 static enum menuState menuState;
+static enum helpState helpState;
 static bool menuDone;
 static eMenuResponse menuResponse;
 
@@ -225,6 +233,10 @@ void exitMenu(void)              { menuDone = true;          }
 void moveToRomSelector(void);
 void handleMenuSaveState(int,bool);
 
+void changeToHelpROMsState(void)     { helpState = HELP_ROMS;     }
+void changeToHelpControlsState(void) { helpState = HELP_CONTROLS; }
+void changeToHelpSettingsState(void) { helpState = HELP_SETTINGS; }
+
 void menuSetOrientation( bool portrait )
 {
   orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
@@ -315,16 +327,16 @@ void initializeMenu()
   topMenu[x++] =   createButton( "Return",                exitMenu,            100+x*OPTION_SPACING);
 
   //Save menu
-  saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
   x = 0;
+  saveMenu = (menuOption*)malloc(4*sizeof(menuOption));
   saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
   saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
   saveMenu[x++] = createSave( x, 100+x*OPTION_SPACING );
   saveMenu[x++] = createButton( "Return", changeToMainState, 100+x*OPTION_SPACING );
   
   //Options menu
-  optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
   x = 0;
+  optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
   optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
   optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*OPTION_SPACING,
@@ -340,6 +352,14 @@ void initializeMenu()
   optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
   optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*OPTION_SPACING );
+  
+  //Help menu
+  x = 0;
+  helpMenu = (menuOption*)malloc(4*sizeof(menuOption));
+  helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     100+x*OPTION_SPACING);
+  helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, 100+x*OPTION_SPACING);
+  helpMenu[x++] = createButton( "Settings",        changeToHelpSettingsState, 100+x*OPTION_SPACING);
+  helpMenu[x++] = createButton( "Return",          changeToMainState,         100+x*OPTION_SPACING );
 }
 
 void freeMenu( menuOption ** opt, int numOptions )
@@ -436,7 +456,7 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
   }
 }
 
-#define DO_HELP( HELP_SCREEN ) \
+#define DO_HELP( HELP_SCREEN, s ) \
   do {                                                              \
     int count = sizeof(HELP_SCREEN)/sizeof(HELP_SCREEN[0]);         \
     for (int i = 0; i < count; ++i )                                \
@@ -446,12 +466,41 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
     }                                                               \
   } while(0)
 
-
 void doHelp( SDL_Surface * s )
 {
-  //Show help text, taps advance to next until done.
-  DO_HELP( helpROMs );
-  changeToMainState();
+  while( menuState == MENU_HELP )
+  {
+    //Show menu asking user which help they want...
+    doMenu( s, helpMenu, 4 );
+    
+    //This is weak, but will do:
+    //If we exit the above menu, two things are true:
+    //--either user wanted to exit the help menu altogether
+    //--or the user wants to see a particular help topic
+
+    //Cover the former here
+    if ( menuState != MENU_HELP ) break;
+
+    //And the latter here
+    switch( helpState )
+    {
+      case HELP_ROMS:
+        DO_HELP( helpROMs, s );
+        break;
+      case HELP_CONTROLS:
+        DO_HELP( helpControls, s );
+        break;
+      case HELP_SETTINGS:
+        DO_HELP( helpSettings, s );
+        break;
+      default:
+        printf( "Unexpected help state?!\n" );
+        break;
+    }
+    
+    //Okay, done showing the help topic the user selected,
+    //loop back and let them pick again.
+  }
 }
 
 //Determine if this click hits this option... if so, take the right action!

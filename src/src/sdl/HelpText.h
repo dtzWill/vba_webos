@@ -80,6 +80,7 @@ line helpROMs[][14] =
 
 line helpControls[][14] =
 {
+{
     {"How do I play?",                              textColor },
     {" ",                                           textColor },
     {"VBA initially gives you onscreen controls.",  textColor },
@@ -94,4 +95,25 @@ line helpControls[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {"(Click to go to next screen)",                linkColor }
+}
+};
+
+line helpSettings[][14] =
+{
+{
+    {"How do I play?",                              textColor },
+    {" ",                                           textColor },
+    {"VBA initially gives you onscreen controls.",  textColor },
+    {"You can also use the physical keyboard.",     textColor },
+    {"W/A/S/D --- up/down/left/right (d-pad)",      textColor },
+    {"K/L --- B/A (action buttons)",                textColor },
+    {"Q/P --- L/R (trigger buttons) folder called", textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {"(Click to go to next screen)",                linkColor }
+}
 };
