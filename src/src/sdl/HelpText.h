@@ -42,7 +42,7 @@ line helpROMs[][14] =
     {"'ROM's, which are computer copies of",        textColor },
     {"games for those Gameboy devices.",            textColor },
     {" ",                                           textColor },
-    {"(Click to go to next screen)",                linkColor }
+    {"(Tap to go to next screen)",                  linkColor }
 },
 {
     {"Where do I get ROMs?",                        textColor },
@@ -58,7 +58,7 @@ line helpROMs[][14] =
     {"apply before doing so.",                      textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
-    {"(Click to go to next screen)",                linkColor }
+    {"(Tap to go to next screen)",                linkColor }
 },
 {
     {"Okay I got the ROMs, what now?",              textColor },
@@ -73,8 +73,8 @@ line helpROMs[][14] =
     {"a 'roms' folder inside of that.",             textColor },
     {"Watch the capitalization, all lower case.",   textColor },
     {"Once you have the ROMs there, restart VBA",   textColor },
-    {"and then just click them to play.",           textColor },
-    {"(Click to go to return to help)",             linkColor }
+    {"and then just tap them to play.",             textColor },
+    {"(Tap to go to return to help)",               linkColor }
 }
 };
 
@@ -94,7 +94,7 @@ line helpControls[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
-    {"(Click to go to next screen)",                linkColor }
+    {"(Tap to go to next screen)",                  linkColor }
 }
 };
 
@@ -114,6 +114,6 @@ line helpSettings[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
-    {"(Click to go to next screen)",                linkColor }
+    {"(Tap to go to next screen)",                  linkColor }
 }
 };
