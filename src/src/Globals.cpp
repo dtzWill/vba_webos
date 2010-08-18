@@ -45,6 +45,7 @@ bool speedHack = false;
 int cpuSaveType = 0;
 bool cpuEnhancedDetection = true;
 bool cheatsEnabled = true;
+bool mirroringEnable = false;
 
 u8 *bios = NULL;
 u8 *rom = NULL;

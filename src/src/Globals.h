@@ -57,6 +57,7 @@ extern bool speedHack;
 extern int cpuSaveType;
 extern bool cpuEnhancedDetection;
 extern bool cheatsEnabled;
+extern bool mirroringEnable;
 
 extern u8 *bios;
 extern u8 *rom;
