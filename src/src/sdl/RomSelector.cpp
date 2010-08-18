@@ -300,11 +300,16 @@ char * romSelector()
                     down = false;
                     if ( tap )
                     {
-                        int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
-                        if ( rom_index >= 0 && rom_index < num_roms_display &&
-                            rom_index + scroll_offset < filecount )
+                        // If tap was in the rom selection scrollbox...
+                        if ( event.button.y >= top && event.button.y <= bottom )
                         {
+                          //Calculate which rom this would be, and verify that makes sense
+                          int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
+                          if ( rom_index >= 0 && rom_index < num_roms_display &&
+                              rom_index + scroll_offset < filecount )
+                          {
                             romSelected = rom_index+scroll_offset;
+                          }
                         }
                         if ( event.button.y > bottom && event.button.x < selector->w / 2 )
                         {
