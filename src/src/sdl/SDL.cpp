@@ -1363,6 +1363,9 @@ void runRom()
 
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
+  printf( "Flash size: %x\n", flashSize );
+  printf( "Save Type: %d\n", cpuSaveType ); 
+
   while(emulating) {
     if(!paused && active) {
       emulator.emuMain(emulator.emuCount);
