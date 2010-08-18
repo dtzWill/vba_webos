@@ -629,6 +629,8 @@ static void sdlApplyPerImagePreferences()
   buffer[5] = ']';
   buffer[6] = 0;
 
+  printf( "Game ID: %s\n", buffer );
+
   char readBuffer[2048];
 
   bool found = false;
