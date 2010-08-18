@@ -111,7 +111,7 @@ void initializeMenu();
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
 bool optionHitCheck( menuOption * opt, int x, int y );
 void freeMenu();
-void showLines( SDL_Surface * s, line * lines, int numlines, bool center );
+bool showLines( SDL_Surface * s, line * lines, int numlines, bool center );
 
 /*-----------------------------------------------------------------------------
  *  Constructors for menu items
@@ -466,7 +466,7 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
     for (int i = 0; i < count; ++i )                                \
     {                                                               \
       int lines = sizeof(HELP_SCREEN[i])/sizeof(HELP_SCREEN[i][0]); \
-      showLines( s, HELP_SCREEN[i],lines, false );                  \
+      if (showLines( s, HELP_SCREEN[i],lines, false )) break;       \
     }                                                               \
   } while(0)
 
@@ -565,11 +565,12 @@ void moveToRomSelector()
   menuResponse = MENU_RESPONSE_ROMSELECTOR;
 }
 
-void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
+bool showLines( SDL_Surface * s, line * lines, int numlines, bool center )
 {
     // Menu background, same as rom selector
     int menuBGColor = SDL_MapRGB( s->format, 85, 0, 0 );//BGR
     SDL_FillRect( s, NULL, menuBGColor );
+    bool exit = false;
 
     //Black rectangle behind text...
     SDL_Rect drawRect;
@@ -610,7 +611,14 @@ void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
                 done = true;
                 break;
             }
-
+            if ( event.type == SDL_KEYUP &&
+                 event.key.keysym.sym == SDLK_ESCAPE )
+            {
+              done = true;
+              exit = true;
+              break;
+            }
+            
         }
     }
 
@@ -619,4 +627,6 @@ void showLines( SDL_Surface * s, line * lines, int numlines, bool center )
     {
         SDL_FreeSurface( nr[i] );
     }
+
+    return exit;
 }
