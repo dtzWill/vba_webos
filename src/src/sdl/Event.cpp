@@ -687,15 +687,7 @@ void sdlPollEvents()
         break;
       case SDLK_SLASH:
         //toggle skins..
-        if ( skin_count > 0 )
-        {
-            skin = skin->next;
-            //So next time we know which one
-            skin_index = ( skin_index + 1 ) % skin_count;
-        }
-
-        GL_InitTexture();
-        updateOrientation();
+        nextSkin();
         break;
       case SDLK_1:
       case SDLK_2:

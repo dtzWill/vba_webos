@@ -96,4 +96,6 @@ extern controllerEvent controllerHitCheck( int x, int y );
 
 extern void loadSkins();
 
+extern void nextSkin();
+
 #endif //_CONTROLLER_H_

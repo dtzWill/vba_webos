@@ -21,6 +21,7 @@
 
 #include "Controller.h"
 #include "Event.h"
+#include "GLUtil.h"
 
 //current skin
 controller_skin * skin = NULL;
@@ -442,4 +443,17 @@ void loadSkins()
         skin_count = 0;
     }
 
+}
+
+void nextSkin()
+{
+  if ( skin_count > 0 )
+  {
+    skin = skin->next;
+    //So next time we know which one
+    skin_index = ( skin_index + 1 ) % skin_count;
+  }
+
+  GL_InitTexture();
+  updateOrientation();
 }

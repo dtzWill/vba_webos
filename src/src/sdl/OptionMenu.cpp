@@ -4,6 +4,7 @@
  *       Filename:  OptionMenu.cpp
  *
  *    Description:  Options menu
+ *       Subtitle:  Because using an OO language would be too easy.
  *
  *        Version:  1.0
  *        Created:  08/12/2010 08:53:33 PM
@@ -19,6 +20,7 @@
 #include "VBA.h"
 #include "RomSelector.h"
 #include "Options.h"
+#include "Controller.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -32,6 +34,11 @@
 #define TOGGLE_ON_X 160
 #define TOGGLE_OFF_X 240
 #define TOGGLE_Y 5
+
+//Skin stuff
+#define SKIN_TXT_X TOGGLE_TXT_X
+#define SKIN_NUM_X TOGGLE_ON_X
+#define SKIN_Y TOGGLE_Y
 
 //Colors (BGR format)
 static SDL_Color textColor = { 255, 255, 255 };
@@ -48,13 +55,15 @@ enum menuState
   MENU_MAIN,
   MENU_SAVES,
   MENU_OPTIONS,
+  MENU_SKINS,
   MENU_HELP
 };
 
 enum optionType {
-  MENU_TOGGLE,
-  MENU_SAVE,
-  MENU_BUTTON,
+  WIDGET_TOGGLE,
+  WIDGET_SAVE,
+  WIDGET_BUTTON,
+  WIDGET_SKIN
 };
 
 enum helpState
@@ -82,12 +91,13 @@ typedef struct
   void (*action)(void);
 } button_data;
 
-typedef struct
+typedef struct menuOption
 {
   char * text;
   int y;
   enum optionType type;
   SDL_Surface * surface;
+  void (*updateSurface)(struct menuOption*);
   union
   {
     toggle_data toggle;
@@ -100,6 +110,7 @@ static menuOption * topMenu = NULL;
 static menuOption * saveMenu = NULL;
 static menuOption * optionMenu = NULL;
 static menuOption * helpMenu = NULL;
+static menuOption * skinMenu = NULL;
 static TTF_Font * menu_font = NULL;
 
 static enum menuState menuState;
@@ -113,6 +124,9 @@ bool optionHitCheck( menuOption * opt, int x, int y );
 void freeMenu();
 bool showLines( SDL_Surface * s, line * lines, int numlines, bool center );
 
+void updateToggleSurface( menuOption * opt );
+void updateSkinSurface( menuOption * opt );
+
 /*-----------------------------------------------------------------------------
  *  Constructors for menu items
  *-----------------------------------------------------------------------------*/
@@ -120,10 +134,11 @@ menuOption createButton( char * text, void (*action)(void), int y )
 {
   menuOption opt;
   opt.text = strdup( text );
-  opt.type = MENU_BUTTON;
+  opt.type = WIDGET_BUTTON;
   opt.button.action = action;
   opt.y = y;
   opt.surface = NULL;
+  opt.updateSurface = NULL;
 
   //Black rectangle
   opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
@@ -147,13 +162,26 @@ menuOption createToggle( char * text, char * on, char * off, int y, void (*set)(
 {
   menuOption opt;
   opt.text = strdup( text );
-  opt.type = MENU_TOGGLE;
+  opt.type = WIDGET_TOGGLE;
   opt.toggle.on_text = strdup( on );
   opt.toggle.off_text = strdup( off );
   opt.toggle.set = set;
   opt.toggle.get = get;
   opt.y = y;
   opt.surface = NULL;
+  opt.updateSurface = updateToggleSurface;
+
+  return opt;
+}
+
+menuOption createSkinWidget( int y )
+{
+  menuOption opt;
+  opt.text = strdup( "Selected Skin" );
+  opt.type = WIDGET_SKIN;
+  opt.y = y;
+  opt.surface = NULL;
+  opt.updateSurface = updateSkinSurface;
 
   return opt;
 }
@@ -164,9 +192,10 @@ menuOption createSave( int num, int y )
   sprintf( buf, "Save %d", num + 1 );
   menuOption opt;
   opt.text = strdup( buf );
-  opt.type = MENU_SAVE;
+  opt.type = WIDGET_SAVE;
   opt.save.save_num = num;
   opt.y = y;
+  opt.updateSurface = NULL;
 
   //Black rectangle
   opt.surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
@@ -221,11 +250,38 @@ void updateToggleSurface( menuOption * opt )
   SDL_FreeSurface( s_off );
 }
 
+void updateSkinSurface( menuOption * opt )
+{
+  if ( opt->surface )
+    SDL_FreeSurface( opt->surface );
+
+  char skin_num[20];
+  snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, skin->name );
+  skin_num[sizeof(skin_num)-1] = '\0';
+
+  //Black rectangle
+  opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+      0xff0000, 0x00ff00, 0x0000ff, 0);
+  int black = SDL_MapRGB( opt->surface->format, 0, 0, 0);
+  SDL_FillRect( opt->surface, NULL, black );
+
+  //Render each piece...
+  SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, opt->text, textColor );
+  SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
+
+  apply_surface( SKIN_TXT_X, TOGGLE_Y, s_txt,  opt->surface );
+  apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, opt->surface );
+
+  SDL_FreeSurface( s_txt );
+  SDL_FreeSurface( s_num  );
+}
+
 /*-----------------------------------------------------------------------------
  *  Functors for menu options...
  *-----------------------------------------------------------------------------*/
 void changeToMainState(void)     { menuState = MENU_MAIN;    }
 void changeToSaveState(void)     { menuState = MENU_SAVES;   }
+void changeToSkinState(void)     { menuState = MENU_SKINS;   }
 void changeToOptionsState(void)  { menuState = MENU_OPTIONS; }
 void changeToHelpState(void)     { menuState = MENU_HELP;    }
 
@@ -288,10 +344,13 @@ eMenuResponse optionsMenu()
     switch( menuState )
     {
       case MENU_MAIN:
-        doMenu( options_screen, topMenu, emulating? 5 : 3 );
+        doMenu( options_screen, topMenu, emulating? 6 : 4 );
         break;
       case MENU_OPTIONS:
-        doMenu( options_screen, optionMenu, 9 );
+        doMenu( options_screen, optionMenu, 8 );
+        break;
+      case MENU_SKINS:
+        doMenu( options_screen, skinMenu, 3 );
         break;
       case MENU_SAVES:
         doMenu( options_screen, saveMenu, 4 );
@@ -319,10 +378,11 @@ void initializeMenu()
   
   //Top-level menu
   int x = 0;
-  topMenu = (menuOption*)malloc( ( emulating ? 5 : 3 )*sizeof(menuOption));
+  topMenu = (menuOption*)malloc( ( emulating ? 6 : 4 )*sizeof(menuOption));
   if (emulating)
     topMenu[x++] = createButton( "Save states",           changeToSaveState,   100+x*OPTION_SPACING);
   topMenu[x++] =   createButton( "Options",               changeToOptionsState,100+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Skins",                 changeToSkinState,   100+x*OPTION_SPACING);
   topMenu[x++] =   createButton( "Help",                  changeToHelpState,   100+x*OPTION_SPACING);
   if (emulating)
     topMenu[x++] = createButton( "Choose different game", moveToRomSelector,   100+x*OPTION_SPACING);
@@ -338,25 +398,31 @@ void initializeMenu()
   
   //Options menu
   x = 0;
-  optionMenu = (menuOption*)malloc(9*sizeof(menuOption));
-  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  20+x*OPTION_SPACING,
+  optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
+  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
-  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*OPTION_SPACING,
       menuSetSound, menuGetSound );
-  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 50+x*OPTION_SPACING,
       menuSetFilter, menuGetFilter );
-  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   50+x*OPTION_SPACING,
       menuSetSpeed, menuGetSpeed );
-  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   50+x*OPTION_SPACING,
       menuSetAutoSave, menuGetAutoSave );
-  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   50+x*OPTION_SPACING,
       menuSetAutoSkip, menuGetAutoSkip );
-  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   20+x*OPTION_SPACING,
-      menuSetOnscreen, menuGetOnscreen );
-  optionMenu[x++] = createToggle( "Turbo toggles", "On",     "Off",   20+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Turbo toggles", "On",     "Off",   50+x*OPTION_SPACING,
       menuSetTurboToggle, menuGetTurboToggle );
-  optionMenu[x++] = createButton( "Return", changeToMainState, 20+x*OPTION_SPACING );
+  optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*OPTION_SPACING );
   
+  //Skin menu
+  x = 0;
+  skinMenu = (menuOption*)malloc(3*sizeof(menuOption));
+  skinMenu[x++] = createToggle( "Display skin",   "On",     "Off",   100+x*OPTION_SPACING,
+      menuSetOnscreen, menuGetOnscreen );
+  skinMenu[x++] = createSkinWidget( 100+x*OPTION_SPACING );
+  skinMenu[x++] = createButton( "Return", changeToMainState, 100+x*OPTION_SPACING );
+
   //Help menu
   x = 0;
   helpMenu = (menuOption*)malloc(4*sizeof(menuOption));
@@ -375,13 +441,15 @@ void freeMenu( menuOption ** opt, int numOptions )
     SDL_FreeSurface( o.surface );
     switch( o.type )
     {
-      case MENU_TOGGLE:
+      case WIDGET_TOGGLE:
         free( o.toggle.on_text );
         free( o.toggle.off_text );
         break;
-      case MENU_SAVE:
+      case WIDGET_SAVE:
         break;
-      case MENU_BUTTON:
+      case WIDGET_BUTTON:
+        break;
+      default:
         break;
     }
   }
@@ -393,9 +461,10 @@ void freeMenu( menuOption ** opt, int numOptions )
 
 void freeMenu()
 {
-  freeMenu( &topMenu, emulating ? 5 : 3 );
+  freeMenu( &topMenu, emulating ? 6 : 4 );
   freeMenu( &saveMenu, 4 );
-  freeMenu( &optionMenu, 9 );
+  freeMenu( &skinMenu, 3 );
+  freeMenu( &optionMenu, 8 );
 }
 
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
@@ -407,8 +476,9 @@ void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
   //Draw the menu we were given...
   for ( int i = 0; i < numOptions; ++i )
   {
-    if ( options[i].type == MENU_TOGGLE )
-      updateToggleSurface( &options[i] );
+    //If the option has an update functor, use it.
+    if ( options[i].updateSurface )
+      options[i].updateSurface( &options[i] );
 
     //Draw option on top of the box we drew
     int x = s->w / 2 - options[i].surface->w/2;
@@ -516,12 +586,12 @@ bool optionHitCheck( menuOption * opt, int x, int y )
   {
     switch( opt->type )
     {
-      case MENU_BUTTON:
+      case WIDGET_BUTTON:
         //Buttons are easy :)
         hit = true;
         opt->button.action();
         break;
-      case MENU_SAVE:
+      case WIDGET_SAVE:
         if ( x >= TOGGLE_ON_X && x < TOGGLE_OFF_X )
         {
           hit = true;
@@ -534,7 +604,7 @@ bool optionHitCheck( menuOption * opt, int x, int y )
           menuDone = true;
         }
         break;
-      case MENU_TOGGLE:
+      case WIDGET_TOGGLE:
 #if 0
         if ( x >= TOGGLE_ON_X && x < TOGGLE_OFF_X )
         {
@@ -551,6 +621,12 @@ bool optionHitCheck( menuOption * opt, int x, int y )
         hit = true;
         opt->toggle.set(!opt->toggle.get());
 #endif
+        break;
+      case WIDGET_SKIN:
+        hit = true;
+        nextSkin();
+        writeOptions();
+
         break;
     }
   }
