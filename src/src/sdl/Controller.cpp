@@ -192,6 +192,11 @@ char * strip_leading_period( char * str )
     return ret;
 }
 
+char * getSkinName( controller_skin * skin )
+{
+  return strip_leading_period( skin->name );
+}
+
 void load_skin( char * skin_cfg, char * skin_img, char * skin_name, char * skin_folder, controller_skin ** skin )
 {
     bool success = false;

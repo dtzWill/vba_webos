@@ -256,7 +256,7 @@ void updateSkinSurface( menuOption * opt )
     SDL_FreeSurface( opt->surface );
 
   char skin_num[20];
-  snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, skin->name );
+  snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, getSkinName( skin ) );
   skin_num[sizeof(skin_num)-1] = '\0';
 
   //Black rectangle
