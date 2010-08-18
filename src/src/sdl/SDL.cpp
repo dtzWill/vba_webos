@@ -157,6 +157,11 @@ int autosave = true;
 
 int running = true;
 
+int turbo_toggle = false;
+
+
+int turbo_on = false;
+
 bool screenMessage = false;
 char screenMessageBuffer[21];
 u32  screenMessageTime = 0;

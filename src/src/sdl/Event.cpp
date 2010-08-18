@@ -161,6 +161,14 @@ void sdlUpdateKey(int key, bool down)
       sdlButtons[0][KEY_BUTTON_START] = down;
       sdlButtons[0][KEY_BUTTON_SELECT] = down;
   }
+
+  if ( turbo_toggle )
+  {
+    if ( down && key == joypad[0][KEY_BUTTON_SPEED] )
+      turbo_on = !turbo_on;
+  }
+  else
+    turbo_on = false;
 }
 
 void sdlUpdateJoyButton(int which,
@@ -771,8 +779,13 @@ u32 systemReadJoypad(int which)
   if((res & 192) == 192)
     res &= ~128;
 
-  if(sdlButtons[which][KEY_BUTTON_SPEED])
+  // If user has 'turbo_toggle' option, turbo is enabled based on the
+  // toggle value, not the state of a button.
+  if ( turbo_on )
     res |= 1024;
+  else if(sdlButtons[which][KEY_BUTTON_SPEED])
+    res |= 1024;
+
   if(sdlButtons[which][KEY_BUTTON_CAPTURE])
     res |= 2048;
 

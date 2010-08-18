@@ -250,6 +250,7 @@ void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                   
 void menuSetAutoSave( bool on )   { autosave = on;                               }
 void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                          }
 void menuSetOnscreen( bool on )   { use_on_screen = on;                          }
+void menuSetTurboToggle( bool on ){ turbo_toggle = on;                           }
 
 bool menuGetOrientation() { return orientation == ORIENTATION_PORTRAIT; }
 bool menuGetSound()       { return !soundMute;                          }
@@ -258,6 +259,7 @@ bool menuGetSpeed()       { return showSpeed != 0;                      }
 bool menuGetAutoSave()    { return autosave;                            }
 bool menuGetAutoSkip()    { return autoFrameSkip;                       }
 bool menuGetOnscreen()    { return use_on_screen;                       }
+bool menuGetTurboToggle() { return turbo_toggle;                        }
 
 //Call this to display the options menu...
 eMenuResponse optionsMenu()
@@ -289,7 +291,7 @@ eMenuResponse optionsMenu()
         doMenu( options_screen, topMenu, emulating? 5 : 3 );
         break;
       case MENU_OPTIONS:
-        doMenu( options_screen, optionMenu, 8 );
+        doMenu( options_screen, optionMenu, 9 );
         break;
       case MENU_SAVES:
         doMenu( options_screen, saveMenu, 4 );
@@ -336,22 +338,24 @@ void initializeMenu()
   
   //Options menu
   x = 0;
-  optionMenu = (menuOption*)malloc(8*sizeof(menuOption));
-  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  50+x*OPTION_SPACING,
+  optionMenu = (menuOption*)malloc(9*sizeof(menuOption));
+  optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  20+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
-  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Sound",         "On",     "Off",   20+x*OPTION_SPACING,
       menuSetSound, menuGetSound );
-  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", 20+x*OPTION_SPACING,
       menuSetFilter, menuGetFilter );
-  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   20+x*OPTION_SPACING,
       menuSetSpeed, menuGetSpeed );
-  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   20+x*OPTION_SPACING,
       menuSetAutoSave, menuGetAutoSave );
-  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Autoframeskip", "On",     "Off",   20+x*OPTION_SPACING,
       menuSetAutoSkip, menuGetAutoSkip );
-  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   50+x*OPTION_SPACING,
+  optionMenu[x++] = createToggle( "Touchscreen",   "On",     "Off",   20+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
-  optionMenu[x++] = createButton( "Return", changeToMainState, 50+x*OPTION_SPACING );
+  optionMenu[x++] = createToggle( "Turbo toggles", "On",     "Off",   20+x*OPTION_SPACING,
+      menuSetTurboToggle, menuGetTurboToggle );
+  optionMenu[x++] = createButton( "Return", changeToMainState, 20+x*OPTION_SPACING );
   
   //Help menu
   x = 0;
@@ -391,7 +395,7 @@ void freeMenu()
 {
   freeMenu( &topMenu, emulating ? 5 : 3 );
   freeMenu( &saveMenu, 4 );
-  freeMenu( &optionMenu, 8 );
+  freeMenu( &optionMenu, 9 );
 }
 
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions )

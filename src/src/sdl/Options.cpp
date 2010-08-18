@@ -28,7 +28,8 @@ vba_option state_options[] =
     { "onscreen", &use_on_screen },
     { "autosave", &autosave },
     { "autoframeskip", &autoFrameSkip },
-    { "skin", &skin_index }
+    { "skin", &skin_index },
+    { "turbo_toggle", &turbo_toggle }
 };
 
 struct option sdlOptions[] = {
