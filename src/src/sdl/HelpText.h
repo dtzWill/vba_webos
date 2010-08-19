@@ -111,7 +111,7 @@ line helpControls[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {"(Tap to go to next screen)",                  linkColor }
-}
+},
 {
     {"Physical buttons -- Defaults",                textColor },
     {" ",                                           textColor },
