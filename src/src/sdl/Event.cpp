@@ -430,16 +430,6 @@ void sdlPollEvents()
     case SDL_MOUSEBUTTONUP:
     case SDL_MOUSEBUTTONDOWN:
     {
-      //This was a bug--we were supposed to only have touchscreen controls if
-      //we were in the right orientation and they were enabled.
-      //However, the 'nice' side effect for this is that you can turn off the controls
-      //which will hide the skin but still use the onscreen controls, something
-      //that users discovered and have found useful.
-      //if ( !use_on_screen || orientation != ORIENTATION_LANDSCAPE_R )
-      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
-      {
-          return;
-      }
       //These are switched and transformed because we're in landscape
       int x = event.button.y;
       int y = destWidth -event.button.x;
@@ -452,16 +442,6 @@ void sdlPollEvents()
     }
     case SDL_MOUSEMOTION:
     {
-      //This was a bug--we were supposed to only have touchscreen controls if
-      //we were in the right orientation and they were enabled.
-      //However, the 'nice' side effect for this is that you can turn off the controls
-      //which will hide the skin but still use the onscreen controls, something
-      //that users discovered and have found useful.
-      //if ( !use_on_screen || orientation != ORIENTATION_LANDSCAPE_R )
-      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
-      {
-          return;
-      }
       //These are switched and transformed because we're in landscape
       int x = event.motion.y;
       int y = destWidth - event.motion.x;
