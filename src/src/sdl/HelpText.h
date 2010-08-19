@@ -115,7 +115,7 @@ line helpControls[][14] =
 {
     {"Physical buttons -- Defaults",                textColor },
     {" ",                                           textColor },
-    {"Here's the default keyboard bindings:",       textColor },
+    {"Default keyboard bindings:",                  textColor },
     {"W/A/S/D -- Up/Down/Left/Right (d-pad)",       textColor },
     {"K/L -- B/A (action buttons)",                 textColor },
     {"Q/P -- L/R (shoulder trigger buttons)",       textColor },
@@ -136,7 +136,39 @@ line helpControls[][14] =
     {"them to your liking.",                        textColor },
     {"To start the process, just press",            textColor },
     {"either the '=' or '?' keys",                  textColor },
-    {"and follow the on-screen instructions.",      textColor },
+    {"while in-game and follow the ",               textColor },
+    {"on-screen instructions.",                     textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {"(Tap to go to next screen)",                  linkColor }
+},
+{
+    {"Physical buttons -- Extras",                  textColor },
+    {" ",                                           textColor },
+    {"There are also some non-configurable",        textColor },
+    {"'extra' keyboard buttons, which are",         textColor },
+    {"listed below:",                               textColor },
+    {"t -- Start/Select/A/B together (reset)",      textColor },
+    {"- (minus) -- Toggle displaying speed",        textColor },
+    {"' (apostrophe) -- Toggle scaling filter",     textColor },
+    {"0 -- Toggle orientation",                     textColor },
+    {"* (asterisk) -- Toggle sound",                textColor },
+    {"1,2,3 -- Save state number 1,2,3",            textColor },
+    {"4,5,6 -- Load state number 1,2,3",            textColor },
+    {" ",                                           textColor },
+    {"(Tap to go to next screen)",                  linkColor }
+},
+{
+    {"Physical buttons -- Extras (Continued)",      textColor },
+    {" ",                                           textColor },
+    {"+ (plus) -- Toggle displaying skin",          textColor },
+    {"& (ampersand) -- Toggle autosave feature",    textColor },
+    {"/ (slash) -- Toggle active skin",             textColor },
+    {"Back gesture -- Launch menu",                 textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
@@ -213,3 +245,22 @@ line helpSettings[][14] =
     {"(Tap to go to return to help)",               linkColor }
 }
 };
+
+line helpWiki[14] =
+{
+    {"VBA Wiki",                                    textColor },
+    {" ",                                           textColor },
+    {"Beyond the in-game help, VBA also has a",     textColor },
+    {"Wiki page that contains more in-depth",       textColor },
+    {"explanations, guides, compatibility lists",   textColor },
+    {"and more.",                                   textColor },
+    {"To view this wiki, just tap the screen.",     textColor },
+    {"To exit without going to the wiki just",      textColor },
+    {"do a back gesture.",                          textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {" ",                                           textColor },
+    {"(Back gesture to return to help)",            linkColor },
+    {"(Tap to go to launch wiki)",                  linkColor }
+};
+

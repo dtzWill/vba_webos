@@ -21,6 +21,7 @@
 #include "RomSelector.h"
 #include "Options.h"
 #include "Controller.h"
+#include "pdl.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -70,7 +71,8 @@ enum helpState
 {
   HELP_ROMS,
   HELP_CONTROLS,
-  HELP_SETTINGS
+  HELP_SETTINGS,
+  HELP_WIKI
 };
 
 typedef struct
@@ -292,6 +294,7 @@ void handleMenuSaveState(int,bool);
 void changeToHelpROMsState(void)     { helpState = HELP_ROMS;     }
 void changeToHelpControlsState(void) { helpState = HELP_CONTROLS; }
 void changeToHelpSettingsState(void) { helpState = HELP_SETTINGS; }
+void changeToHelpWikiState(void)     { helpState = HELP_WIKI;     }
 
 void menuSetOrientation( bool portrait )
 {
@@ -425,10 +428,11 @@ void initializeMenu()
 
   //Help menu
   x = 0;
-  helpMenu = (menuOption*)malloc(4*sizeof(menuOption));
+  helpMenu = (menuOption*)malloc(5*sizeof(menuOption));
   helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     100+x*OPTION_SPACING);
   helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, 100+x*OPTION_SPACING);
   helpMenu[x++] = createButton( "Settings",        changeToHelpSettingsState, 100+x*OPTION_SPACING);
+  helpMenu[x++] = createButton( "Wiki",            changeToHelpWikiState,     100+x*OPTION_SPACING);
   helpMenu[x++] = createButton( "Return",          changeToMainState,         100+x*OPTION_SPACING );
 }
 
@@ -464,6 +468,7 @@ void freeMenu()
   freeMenu( &topMenu, emulating ? 6 : 4 );
   freeMenu( &saveMenu, 4 );
   freeMenu( &skinMenu, 3 );
+  freeMenu( &helpMenu, 5 );
   freeMenu( &optionMenu, 8 );
 }
 
@@ -545,7 +550,7 @@ void doHelp( SDL_Surface * s )
   while( menuState == MENU_HELP )
   {
     //Show menu asking user which help they want...
-    doMenu( s, helpMenu, 4 );
+    doMenu( s, helpMenu, 5 );
     
     //This is weak, but will do:
     //If we exit the above menu, two things are true:
@@ -567,6 +572,13 @@ void doHelp( SDL_Surface * s )
       case HELP_SETTINGS:
         DO_HELP( helpSettings, s );
         break;
+      case HELP_WIKI:
+      {
+        bool launchWiki = !showLines( s, helpWiki, 14, false );
+        if (launchWiki)
+          PDL_LaunchBrowser( VBA_WIKI );
+        break;
+      }
       default:
         printf( "Unexpected help state?!\n" );
         break;
