@@ -31,6 +31,7 @@
 #include "gbSound.h"
 #include "../unzip.h"
 #include "../Util.h"
+#include "../convertColor.h"
 
 #ifdef __GNUC__
 #define _stricmp strcasecmp
@@ -2850,111 +2851,15 @@ void gbEmulate(int ticksToStop)
                 gbRenderLine();
                 gbDrawSprites();
                 
-                switch(systemColorDepth) {
-                case 16:
-                  {
-                    u16 * dest = (u16 *)pix +
-                      (gbBorderLineSkip) * (register_LY + gbBorderRowSkip)
-                      + gbBorderColumnSkip;
-                    for(int x = 0; x < 160; ) {
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                      *dest++ = systemColorMap16[gbLineMix[x++]];
-                    }
-                    if(gbBorderOn)
-                      dest += gbBorderColumnSkip;
-                    //*dest++ = 0; // for filters that read one pixel more
-                  }
-                  break;
-                case 24:
-                  {
-                    u8 *dest = (u8 *)pix +
-                      3*(gbBorderLineSkip * (register_LY + gbBorderRowSkip) +
-                         gbBorderColumnSkip);
-                    for(int x = 0; x < 160;) {
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                      *((u32 *)dest) = systemColorMap32[gbLineMix[x++]];
-                      dest+= 3;
-                    }
-                  }
-                  break;
-                case 32:
-                  {
-                    u32 * dest = (u32 *)pix +
-                      (gbBorderLineSkip+1) * (register_LY + gbBorderRowSkip+1)
-                      + gbBorderColumnSkip;
-                    for(int x = 0; x < 160;) {
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                      *dest++ = systemColorMap32[gbLineMix[x++]];
-                    }
-                  }
-                  break;
+                u16 * dest = (u16 *)pix +
+                  (gbBorderLineSkip) * (register_LY + gbBorderRowSkip)
+                  + gbBorderColumnSkip;
+                for(int x = 0; x < 160; ) {
+                  *dest++ = convertColor(gbLineMix[x++]);
                 }
+                if(gbBorderOn)
+                  dest += gbBorderColumnSkip;
+                //*dest++ = 0; // for filters that read one pixel more
               }
             }
           }

@@ -20,18 +20,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
 
 #include "AutoBuild.h"
 
-#include "SDL.h"
-#include "GBA.h"
-#include "agbprint.h"
+#include "VBA.h"
 #include "Flash.h"
 #include "Port.h"
-#include "debugger.h"
 #include "RTC.h"
 #include "Sound.h"
 #include "Text.h"
@@ -39,216 +36,17 @@
 #include "Util.h"
 #include "gb/GB.h"
 #include "gb/gbGlobals.h"
-#include "controller.h"
-#include "options.h"
 #include "pdl.h"
 
-#include <SDL_opengles.h>
-#include <SDL_video.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <assert.h>
-#include <dirent.h>
-#include "esFunc.h"
-
-#define VERSION "1.1.2"
-
-#define VBA_HOME "/media/internal/vba"
-#define ROM_PATH VBA_HOME "/roms/"
-#define SKIN_PATH VBA_HOME "/skins/"
-#define SKIN_CFG_NAME "controller.cfg"
-#define SKIN_IMG_NAME "controller.png"
-#define FONT "/usr/share/fonts/PreludeCondensed-Medium.ttf"
-#define TITLE "VisualBoyAdvance for WebOS (" VERSION ")"
-#define AUTHOR_TAG "brought to you by Will Dietz (dtzWill) webos@wdtz.org"
-#define NO_ROMS1 "Welcome to VBA!  Looks like you don't have any ROMs yet."
-#define NO_ROMS2 "To play games, put the roms in "
-#define NO_ROMS3 "/vba/roms"
-#define NO_ROMS4 "using USB mode, and then launch VBA again"
-#define NO_ROMS5 "For more information, see the wiki"
-#define NO_ROMS6 "http://www.webos-internals.org/wiki/Application:VBA"
-
-#define OPTIONS_CFG VBA_HOME "/options.cfg"
-
-#define SCROLL_FACTOR 20
-#define AUTOSAVE_STATE 100
-
-//#define DEBUG_GL
-
-#ifdef DEBUG_GL
-void checkError()
-{
-    /* Check for error conditions. */
-    GLenum gl_error = glGetError( );
-
-    if( gl_error != GL_NO_ERROR ) {
-        fprintf( stderr, "VBA: OpenGL error: %x\n", gl_error );
-        while(1);
-        exit( 1 );
-    }
-
-    char * sdl_error = SDL_GetError( );
-
-    if( sdl_error[0] != '\0' ) {
-        fprintf(stderr, "VBA: SDL error '%s'\n", sdl_error);
-        while(1);
-        exit( 2 );
-    }
-}
-#else
-#define checkError()
-#endif
-
-void GL_Init();
-void GL_InitTexture();
-void updateOrientation();
-
-char * romSelector();
-
-#ifndef WIN32
-# include <unistd.h>
-# define GETCWD getcwd
-#else // WIN32
-# include <direct.h>
-# define GETCWD _getcwd
-#endif // WIN32
-
-#ifndef __GNUC__
-# define HAVE_DECL_GETOPT 0
-# define __STDC__ 1
-# include "getopt.h"
-#else // ! __GNUC__
-# define HAVE_DECL_GETOPT 1
-# include "getopt.h"
-#endif // ! __GNUC__
-
-#ifdef MMX
-extern "C" bool cpu_mmx;
-#endif
-extern bool soundEcho;
-extern bool soundLowPass;
-extern bool soundReverse;
-
-extern void remoteInit();
-extern void remoteCleanUp();
-extern void remoteStubMain();
-extern void remoteStubSignal(int,int);
-extern void remoteOutput(char *, u32);
-extern void remoteSetProtocol(int);
-extern void remoteSetPort(int);
-extern void debuggerOutput(char *, u32);
-
-extern void CPUUpdateRenderBuffers(bool);
-
-struct EmulatedSystem emulator = {
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  false,
-  0
-};
-
-SDL_Surface *surface = NULL;
-SDL_Overlay *overlay = NULL;
-SDL_Rect overlay_rect;
-
+#include "Controller.h"
+#include "Event.h"
+#include "RomSelector.h"
+#include "Options.h"
+#include "GLUtil.h"
 
 /*-----------------------------------------------------------------------------
- *  GL variables
+ *  Game state
  *-----------------------------------------------------------------------------*/
-GLuint texture = 0;
-GLuint controller_tex = 0;
-
-// Handle to a program object
-GLuint programObject;
-
-// Attribute locations
-GLint  positionLoc;
-GLint  texCoordLoc;
-
-// Sampler location
-GLint samplerLoc;
-
-
-/*-----------------------------------------------------------------------------
- *  State variables (outside the GB emulation core)
- *-----------------------------------------------------------------------------*/
-enum orientation
-{
-    ORIENTATION_PORTRAIT,    // default mode, portrait
-    ORIENTATION_LANDSCAPE_R, // landscape, keyboard on right
-    ORIENTATION_LANDSCAPE_L  // landscape, keyboard on left
-};
-
-int orientation = ORIENTATION_LANDSCAPE_R;
-
-int gl_filter = GL_LINEAR;
-
-int combo_down = false;
-
-int use_on_screen = true;
-
-int autosave = false;
-
-//current skin
-controller_skin * skin = NULL;
-int skin_index = 0;
-int skin_count;
-
-/*-----------------------------------------------------------------------------
- *  Vertex coordinates for various orientations.
- *-----------------------------------------------------------------------------*/
-
-//Current coords;
-float vertexCoords[8];
-
-//Landscape, keyboard on left.
-float land_l_vertexCoords[] =
-{
-    -1, -1,
-    1, -1,
-    -1, 1,
-    1, 1
-};
-
-//Landscape, keyboard on right.
-float land_r_vertexCoords[] =
-{
-    1, 1,
-    -1, 1,
-    1, -1,
-    -1, -1
-};
-//Portrait
-float portrait_vertexCoords[] =
-{
-    -1, 1,
-    -1, -1,
-    1, 1,
-    1, -1
-};
-
-float * controller_coords = land_r_vertexCoords;
-
-float texCoords[] =
-{
-    0.0, 0.0,
-    0.0, 1.0,
-    1.0, 0.0,
-    1.0, 1.0
-};
-
-GLushort indices[] = { 0, 1, 2, 1, 2, 3 };
-
 int systemSpeed = 0;
 int systemRedShift = 0;
 int systemBlueShift = 0;
@@ -281,12 +79,8 @@ int captureFormat = 0;
 int pauseWhenInactive = 1;
 int active = 1;
 int emulating = 0;
-int RGB_LOW_BITS_MASK=0x821;
-u32 systemColorMap32[0x10000];
-u16 systemColorMap16[0x10000];
+int RGB_LOW_BITS_MASK=0x822;
 u16 systemGbPalette[24];
-void (*filterFunction)(u8*,u32,u8*,u8*,u32,int,int) = NULL;
-void (*ifbFunction)(u8*,u32,int,int) = NULL;
 int ifbType = 0;
 char filename[2048];
 char ipsname[2048];
@@ -303,64 +97,7 @@ static int rewindCount = 0;
 static bool rewindSaveNeeded = false;
 static int rewindTimer = 0;
 
-//User-friendly names while walking them through the config process.
-char * bindingNames[]= 
-{
-    "Press key for Left",
-    "Press key for Right",
-    "Press key for Up",
-    "Press key for Down",
-    "Press key for A",
-    "Press key for B",
-    "Press key for Start",
-    "Press key for Select",
-    "Press key for L",
-    "Press key for R",
-    "Press key for turbo",
-    "Press key for capture",
-    "Done binding keys"
-};
-//Config-file names
-char * bindingCfgNames [] = 
-{
-    "Joy0_Left",
-    "Joy0_Right",
-    "Joy0_Up",
-    "Joy0_Down",
-    "Joy0_A",
-    "Joy0_B",
-    "Joy0_Start",
-    "Joy0_Select",
-    "Joy0_L",
-    "Joy0_R",
-    "Joy0_Speed",
-    "Joy0_Capture"
-};
-#define NOT_BINDING -1
-#define BINDING_DONE ( KEY_BUTTON_CAPTURE + 1 )
-static int keyBindingMode = NOT_BINDING;
-u16 bindingJoypad[12];
-
-
 #define REWIND_SIZE 400000
-
-#define _stricmp strcasecmp
-
-bool sdlButtons[4][12] = {
-  { false, false, false, false, false, false, 
-    false, false, false, false, false, false },
-  { false, false, false, false, false, false,
-    false, false, false, false, false, false },
-  { false, false, false, false, false, false,
-    false, false, false, false, false, false },
-  { false, false, false, false, false, false,
-    false, false, false, false, false, false }
-};
-
-bool sdlMotionButtons[4] = { false, false, false, false };
-
-int sdlNumDevices = 0;
-SDL_Joystick **sdlDevices = NULL;
 
 bool wasPaused = false;
 int autoFrameSkip = 0;
@@ -377,8 +114,6 @@ int showSpeedTransparent = 1;
 bool disableStatusMessages = false;
 bool paused = false;
 bool pauseNextFrame = false;
-bool debugger = false;
-bool debuggerStub = false;
 int fullscreen = 0;
 int soundMute = false;
 bool systemSoundOn = false;
@@ -390,28 +125,42 @@ int sdlAutoIPS = 1;
 int sdlRtcEnable = 0;
 int sdlAgbPrint = 0;
 
-vba_option state_options[] =
-{
-    { "orientation", &orientation },
-    { "sound", &soundMute },
-    { "filter", &gl_filter },
-    { "speed", &showSpeed },
-    { "onscreen", &use_on_screen },
-    { "autosave", &autosave },
-    { "skin", &skin_index }
+struct EmulatedSystem emulator = {
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  false,
+  0
 };
 
-int sdlDefaultJoypad = 0;
 
-extern void debuggerSignal(int,int);
+/*-----------------------------------------------------------------------------
+ *  State variables (outside the GB emulation core)
+ *-----------------------------------------------------------------------------*/
 
-void (*dbgMain)() = debuggerMain;
-void (*dbgSignal)(int,int) = debuggerSignal;
-void (*dbgOutput)(char *, u32) = debuggerOutput;
+int orientation = ORIENTATION_LANDSCAPE_R;
 
-int  mouseCounter = 0;
-int autoFire = 0;
-bool autoFireToggle = false;
+int gl_filter = GL_LINEAR;
+
+int use_on_screen = true;
+
+int autosave = true;
+
+int running = true;
+
+int turbo_toggle = false;
+
+
+int turbo_on = false;
 
 bool screenMessage = false;
 char screenMessageBuffer[21];
@@ -434,222 +183,6 @@ int sdlStretcherPos;
 void (*sdlStretcher)(u8 *, u8*) = NULL;
 #endif
 
-enum {
-  KEY_LEFT, KEY_RIGHT,
-  KEY_UP, KEY_DOWN,
-  KEY_BUTTON_A, KEY_BUTTON_B,
-  KEY_BUTTON_START, KEY_BUTTON_SELECT,
-  KEY_BUTTON_L, KEY_BUTTON_R,
-  KEY_BUTTON_SPEED, KEY_BUTTON_CAPTURE
-};
-
-u16 joypad[4][12] = {
-  { SDLK_a,  SDLK_d,
-    SDLK_w,    SDLK_s,
-    SDLK_l,     SDLK_k,
-    SDLK_RETURN,SDLK_SPACE,
-    SDLK_q,     SDLK_p,
-    SDLK_AT, SDLK_PERIOD
-  },
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
-};
-
-u16 defaultJoypad[12] = {
-  SDLK_LEFT,  SDLK_RIGHT,
-  SDLK_UP,    SDLK_DOWN,
-  SDLK_z,     SDLK_x,
-  SDLK_RETURN,SDLK_BACKSPACE,
-  SDLK_a,     SDLK_s,
-  SDLK_SPACE, SDLK_F12
-};
-
-u16 motion[4] = {
-  SDLK_KP4, SDLK_KP6, SDLK_KP8, SDLK_KP2
-};
-
-u16 defaultMotion[4] = {
-  SDLK_KP4, SDLK_KP6, SDLK_KP8, SDLK_KP2
-};
-
-struct option sdlOptions[] = {
-  { "agb-print", no_argument, &sdlAgbPrint, 1 },
-  { "auto-frameskip", no_argument, &autoFrameSkip, 1 },  
-  { "bios", required_argument, 0, 'b' },
-  { "config", required_argument, 0, 'c' },
-  { "debug", no_argument, 0, 'd' },
-  { "filter", required_argument, 0, 'f' },
-  { "filter-normal", no_argument, &filter, 0 },
-  { "filter-tv-mode", no_argument, &filter, 1 },
-  { "filter-2xsai", no_argument, &filter, 2 },
-  { "filter-super-2xsai", no_argument, &filter, 3 },
-  { "filter-super-eagle", no_argument, &filter, 4 },
-  { "filter-pixelate", no_argument, &filter, 5 },
-  { "filter-motion-blur", no_argument, &filter, 6 },
-  { "filter-advmame", no_argument, &filter, 7 },
-  { "filter-simple2x", no_argument, &filter, 8 },
-  { "filter-bilinear", no_argument, &filter, 9 },
-  { "filter-bilinear+", no_argument, &filter, 10 },
-  { "filter-scanlines", no_argument, &filter, 11 },
-  { "filter-hq2x", no_argument, &filter, 12 },
-  { "filter-lq2x", no_argument, &filter, 13 },
-  { "flash-size", required_argument, 0, 'S' },
-  { "flash-64k", no_argument, &sdlFlashSize, 0 },
-  { "flash-128k", no_argument, &sdlFlashSize, 1 },
-  { "frameskip", required_argument, 0, 's' },
-  { "fullscreen", no_argument, &fullscreen, 1 },
-  { "gdb", required_argument, 0, 'G' },
-  { "help", no_argument, &sdlPrintUsage, 1 },
-  { "ifb-none", no_argument, &ifbType, 0 },
-  { "ifb-motion-blur", no_argument, &ifbType, 1 },
-  { "ifb-smart", no_argument, &ifbType, 2 },
-  { "ips", required_argument, 0, 'i' },
-  { "no-agb-print", no_argument, &sdlAgbPrint, 0 },
-  { "no-auto-frameskip", no_argument, &autoFrameSkip, 0 },
-  { "no-debug", no_argument, 0, 'N' },
-  { "no-ips", no_argument, &sdlAutoIPS, 0 },
-  { "no-mmx", no_argument, &disableMMX, 1 },
-  { "no-pause-when-inactive", no_argument, &pauseWhenInactive, 0 },
-  { "no-rtc", no_argument, &sdlRtcEnable, 0 },
-  { "no-show-speed", no_argument, &showSpeed, 0 },
-  { "no-throttle", no_argument, &throttle, 0 },
-  { "pause-when-inactive", no_argument, &pauseWhenInactive, 1 },
-  { "profile", optional_argument, 0, 'p' },
-  { "rtc", no_argument, &sdlRtcEnable, 1 },
-  { "save-type", required_argument, 0, 't' },
-  { "save-auto", no_argument, &cpuSaveType, 0 },
-  { "save-eeprom", no_argument, &cpuSaveType, 1 },
-  { "save-sram", no_argument, &cpuSaveType, 2 },
-  { "save-flash", no_argument, &cpuSaveType, 3 },
-  { "save-sensor", no_argument, &cpuSaveType, 4 },
-  { "save-none", no_argument, &cpuSaveType, 5 },
-  { "show-speed-normal", no_argument, &showSpeed, 1 },
-  { "show-speed-detailed", no_argument, &showSpeed, 2 },
-  { "throttle", required_argument, 0, 'T' },
-  { "verbose", required_argument, 0, 'v' },  
-  { "video-1x", no_argument, &sizeOption, 0 },
-  { "video-2x", no_argument, &sizeOption, 1 },
-  { "video-3x", no_argument, &sizeOption, 2 },
-  { "video-4x", no_argument, &sizeOption, 3 },
-  { "yuv", required_argument, 0, 'Y' },
-  { NULL, no_argument, NULL, 0 }
-};
-
-extern bool CPUIsGBAImage(char *);
-extern bool gbIsGameboyRom(char *);
-
-typedef struct
-{
-    int button1;
-    int button2;
-    char valid;
-} controllerEvent;
-
-/* ===========================================================================
- * controllerHitCheck
- *   
- *  Description:  Determines which on-screen controls were hit for the given x,y
- * =========================================================================*/
-controllerEvent controllerHitCheck( int x, int y )
-{
-    controllerEvent event;
-    event.valid = false;
-    event.button1 = -1;
-    event.button2 = -1;
-
-    if ( !skin )
-    {
-        return event;
-    }
-
-    if ( hit_a( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_A;
-    }
-    else if ( hit_b( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_B;
-    }
-    else if ( hit_ab( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_A;
-        event.button2 = KEY_BUTTON_B;
-    }
-    else if ( hit_l( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_L;
-    }
-    else if ( hit_r( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_R;
-    }
-    else if ( hit_start( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_START;
-    }
-    else if ( hit_select( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_SELECT;
-    }
-    else if ( hit_turbo( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_SPEED;
-    }
-    else if ( hit_capture( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_BUTTON_CAPTURE;
-    }
-    //We assign up/down to button '1', and
-    //left/right to button '2'.
-    //(You can't hit u/d or l/r at same time
-    if ( hit_up( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_UP;
-    }
-    if ( hit_down( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button1 = KEY_DOWN;
-    }
-    if ( hit_left( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button2 = KEY_LEFT;
-    }
-    if ( hit_right( skin, x, y ) )
-    {
-        event.valid = true;
-        event.button2 = KEY_RIGHT;
-    }
-
-    return event;
-}
-
-void applyControllerEvent( controllerEvent ev, char state )
-{
-    if ( ev.valid )
-    {
-        if ( ev.button1 != -1 )
-        {
-            sdlButtons[0][ev.button1] = state;
-        }
-        if ( ev.button2 != -1 )
-        {
-            sdlButtons[0][ev.button2] = state;
-        }
-    }
-}
 
 u32 sdlFromHex(char *s)
 {
@@ -657,11 +190,6 @@ u32 sdlFromHex(char *s)
   sscanf(s, "%x", &value);
   return value;
 }
-
-#ifdef __MSC__
-#define stat _stat
-#define S_IFDIR _S_IFDIR
-#endif
 
 void sdlCheckDirectory(char *dir)
 {
@@ -811,24 +339,6 @@ FILE *sdlFindFile(const char *name)
     }
   }
   return NULL;
-}
-
-void writeOptions()
-{
-    writeOptions(
-            OPTIONS_CFG,
-            state_options,
-            sizeof( state_options ) / sizeof( vba_option ),
-            true );
-}
-
-void readOptions()
-{
-    readOptions(
-            OPTIONS_CFG,
-            state_options,
-            sizeof( state_options ) / sizeof( vba_option ),
-            true );
 }
 
 void sdlReadPreferences(FILE *f)
@@ -1124,6 +634,8 @@ static void sdlApplyPerImagePreferences()
   buffer[5] = ']';
   buffer[6] = 0;
 
+  printf( "Game ID: %s\n", buffer );
+
   char readBuffer[2048];
 
   bool found = false;
@@ -1227,13 +739,14 @@ void sdlWriteState(int num)
 {
   char stateName[2048];
 
-  if(saveDir[0])
-    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
-            num+1);
-  else
-    sprintf(stateName,"%s%d.sgm", filename, num+1);
-  if(emulator.emuWriteState)
-    emulator.emuWriteState(stateName);
+  //If no writeState functor, nothing to do
+  if(!emulator.emuWriteState)
+    return;
+
+  //Use the app path...
+  sprintf(stateName, "sav/%s%d.sgm", sdlGetFilename(filename),
+      num+1);
+  emulator.emuWriteState(stateName);
 
   if ( autosave && num == AUTOSAVE_STATE )
   {
@@ -1250,14 +763,13 @@ void sdlReadState(int num)
 {
   char stateName[2048];
 
-  if(saveDir[0])
-    sprintf(stateName, "%s/%s%d.sgm", saveDir, sdlGetFilename(filename),
-            num+1);
-  else
-    sprintf(stateName,"%s%d.sgm", filename, num+1);
+  if(!emulator.emuReadState)
+    return;
 
-  if(emulator.emuReadState)
-    emulator.emuReadState(stateName);
+  //Try reading from app path.
+  sprintf(stateName, "sav/%s%d.sgm", sdlGetFilename(filename),
+          num+1);
+  emulator.emuReadState(stateName);
 
   if ( autosave && num == AUTOSAVE_STATE )
   {
@@ -1274,11 +786,7 @@ void sdlWriteBattery()
 {
   char buffer[1048];
 
-  if(batteryDir[0])
-    sprintf(buffer, "%s/%s.sav", batteryDir, sdlGetFilename(filename));
-  else  
-    sprintf(buffer, "%s.sav", filename);
-
+  sprintf(buffer, "sav/%s.sav", sdlGetFilename(filename));
   emulator.emuWriteBattery(buffer);
 
   //No one wants to see this; they assume it saves.
@@ -1297,605 +805,15 @@ void sdlWriteBattery()
 void sdlReadBattery()
 {
   char buffer[1048];
-  
-  if(batteryDir[0])
-    sprintf(buffer, "%s/%s.sav", batteryDir, sdlGetFilename(filename));
-  else 
-    sprintf(buffer, "%s.sav", filename);
-  
-  bool res = false;
 
-  res = emulator.emuReadBattery(buffer);
+  if(!emulator.emuReadBattery)
+    return;
 
-  //Less annoying than 'wrote battery' since only appears once,
-  //but still not the best.
-  //if(res)
-  //  systemScreenMessage("Loaded battery");
+  //Try reading from app path.
+  sprintf(buffer, "sav/%s.sav", sdlGetFilename(filename));
+  emulator.emuReadBattery(buffer);
 }
 
-#define MOD_KEYS    (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META)
-#define MOD_NOCTRL  (KMOD_SHIFT|KMOD_ALT|KMOD_META)
-#define MOD_NOALT   (KMOD_CTRL|KMOD_SHIFT|KMOD_META)
-#define MOD_NOSHIFT (KMOD_CTRL|KMOD_ALT|KMOD_META)
-
-void sdlUpdateKey(int key, bool down)
-{
-  int i;
-  for(int j = 0; j < 4; j++) {
-    for(i = 0 ; i < 12; i++) {
-      if((joypad[j][i] & 0xf000) == 0) {
-        if(key == joypad[j][i])
-          sdlButtons[j][i] = down;
-      }
-    }
-  }
-  for(i = 0 ; i < 4; i++) {
-    if((motion[i] & 0xf000) == 0) {
-      if(key == motion[i])
-        sdlMotionButtons[i] = down;
-    }
-  }
-
-  if ( key == SDLK_t )
-  {
-      sdlButtons[0][KEY_BUTTON_A] = down;
-      sdlButtons[0][KEY_BUTTON_B] = down;
-      sdlButtons[0][KEY_BUTTON_START] = down;
-      sdlButtons[0][KEY_BUTTON_SELECT] = down;
-  }
-}
-
-void sdlUpdateJoyButton(int which,
-                        int button,
-                        bool pressed)
-{
-  int i;
-  for(int j = 0; j < 4; j++) {
-    for(i = 0; i < 12; i++) {
-      int dev = (joypad[j][i] >> 12);
-      int b = joypad[j][i] & 0xfff;
-      if(dev) {
-        dev--;
-        
-        if((dev == which) && (b >= 128) && (b == (button+128))) {
-          sdlButtons[j][i] = pressed;
-        }
-      }
-    }
-  }
-  for(i = 0; i < 4; i++) {
-    int dev = (motion[i] >> 12);
-    int b = motion[i] & 0xfff;
-    if(dev) {
-      dev--;
-
-      if((dev == which) && (b >= 128) && (b == (button+128))) {
-        sdlMotionButtons[i] = pressed;
-      }
-    }
-  }  
-}
-
-void sdlUpdateJoyHat(int which,
-                     int hat,
-                     int value)
-{
-  int i;
-  for(int j = 0; j < 4; j++) {
-    for(i = 0; i < 12; i++) {
-      int dev = (joypad[j][i] >> 12);
-      int a = joypad[j][i] & 0xfff;
-      if(dev) {
-        dev--;
-        
-        if((dev == which) && (a>=32) && (a < 48) && (((a&15)>>2) == hat)) {
-          int dir = a & 3;
-          int v = 0;
-          switch(dir) {
-          case 0:
-            v = value & SDL_HAT_UP;
-            break;
-          case 1:
-            v = value & SDL_HAT_DOWN;
-            break;
-          case 2:
-            v = value & SDL_HAT_RIGHT;
-            break;
-          case 3:
-            v = value & SDL_HAT_LEFT;
-            break;
-          }
-          sdlButtons[j][i] = (v ? true : false);
-        }
-      }
-    }
-  }
-  for(i = 0; i < 4; i++) {
-    int dev = (motion[i] >> 12);
-    int a = motion[i] & 0xfff;
-    if(dev) {
-      dev--;
-
-      if((dev == which) && (a>=32) && (a < 48) && (((a&15)>>2) == hat)) {
-        int dir = a & 3;
-        int v = 0;
-        switch(dir) {
-        case 0:
-          v = value & SDL_HAT_UP;
-          break;
-        case 1:
-          v = value & SDL_HAT_DOWN;
-          break;
-        case 2:
-          v = value & SDL_HAT_RIGHT;
-          break;
-        case 3:
-          v = value & SDL_HAT_LEFT;
-          break;
-        }
-        sdlMotionButtons[i] = (v ? true : false);
-      }
-    }
-  }      
-}
-
-void sdlUpdateJoyAxis(int which,
-                      int axis,
-                      int value)
-{
-  int i;
-  for(int j = 0; j < 4; j++) {
-    for(i = 0; i < 12; i++) {
-      int dev = (joypad[j][i] >> 12);
-      int a = joypad[j][i] & 0xfff;
-      if(dev) {
-        dev--;
-        
-        if((dev == which) && (a < 32) && ((a>>1) == axis)) {
-          sdlButtons[j][i] = (a & 1) ? (value > 16384) : (value < -16384);
-        }
-      }
-    }
-  }
-  for(i = 0; i < 4; i++) {
-    int dev = (motion[i] >> 12);
-    int a = motion[i] & 0xfff;
-    if(dev) {
-      dev--;
-
-      if((dev == which) && (a < 32) && ((a>>1) == axis)) {
-        sdlMotionButtons[i] = (a & 1) ? (value > 16384) : (value < -16384);
-      }
-    }
-  }  
-}
-
-bool sdlCheckJoyKey(int key)
-{
-  int dev = (key >> 12) - 1;
-  int what = key & 0xfff;
-
-  if(what >= 128) {
-    // joystick button
-    int button = what - 128;
-
-    if(button >= SDL_JoystickNumButtons(sdlDevices[dev]))
-      return false;
-  } else if (what < 0x20) {
-    // joystick axis    
-    what >>= 1;
-    if(what >= SDL_JoystickNumAxes(sdlDevices[dev]))
-      return false;
-  } else if (what < 0x30) {
-    // joystick hat
-    what = (what & 15);
-    what >>= 2;
-    if(what >= SDL_JoystickNumHats(sdlDevices[dev]))
-      return false;
-  }
-
-  // no problem found
-  return true;
-}
-
-void sdlCheckKeys()
-{
-  sdlNumDevices = SDL_NumJoysticks();
-
-  if(sdlNumDevices)
-    sdlDevices = (SDL_Joystick **)calloc(1,sdlNumDevices *
-                                         sizeof(SDL_Joystick **));
-  int i;
-
-  bool usesJoy = false;
-
-  for(int j = 0; j < 4; j++) {
-    for(i = 0; i < 12; i++) {
-      int dev = joypad[j][i] >> 12;
-      if(dev) {
-        dev--;
-        bool ok = false;
-        
-        if(sdlDevices) {
-          if(dev < sdlNumDevices) {
-            if(sdlDevices[dev] == NULL) {
-              sdlDevices[dev] = SDL_JoystickOpen(dev);
-            }
-            
-            ok = sdlCheckJoyKey(joypad[j][i]);
-          } else
-            ok = false;
-        }
-        
-        if(!ok)
-          joypad[j][i] = defaultJoypad[i];
-        else
-          usesJoy = true;
-      }
-    }
-  }
-
-  for(i = 0; i < 4; i++) {
-    int dev = motion[i] >> 12;
-    if(dev) {
-      dev--;
-      bool ok = false;
-      
-      if(sdlDevices) {
-        if(dev < sdlNumDevices) {
-          if(sdlDevices[dev] == NULL) {
-            sdlDevices[dev] = SDL_JoystickOpen(dev);
-          }
-          
-          ok = sdlCheckJoyKey(motion[i]);
-        } else
-          ok = false;
-      }
-      
-      if(!ok)
-        motion[i] = defaultMotion[i];
-      else
-        usesJoy = true;
-    }
-  }
-
-  if(usesJoy)
-    SDL_JoystickEventState(SDL_ENABLE);
-}
-
-void sdlPollEvents()
-{
-  SDL_Event event;
-  while(SDL_PollEvent(&event)) {
-    switch(event.type) {
-    case SDL_QUIT:
-      if( emulating )
-      {
-          //FIRST thing we do when request to save--make sure we write the battery!
-          sdlWriteBattery();
-      }
-      emulating = 0;
-      break;
-    case SDL_ACTIVEEVENT:
-      if(pauseWhenInactive && (event.active.state & SDL_APPINPUTFOCUS)) {
-        active = event.active.gain;
-        if(active) {
-          if(!paused) {
-            if(emulating)
-              soundResume();
-          }
-        } else {
-          wasPaused = true;
-          if(pauseWhenInactive) {
-            if(emulating)
-            {
-              soundPause();
-              //write battery when pausing.
-              //Doesn't hurt, and guarantees we get a good save in.
-              sdlWriteBattery();
-            }
-          }
-          
-          memset(delta,255,sizeof(delta));
-        }
-      }
-      break;
-    case SDL_MOUSEBUTTONUP:
-    case SDL_MOUSEBUTTONDOWN:
-    {
-      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
-      {
-          return;
-      }
-      //These are switched and transformed because we're in landscape
-      int x = event.button.y;
-      int y = destWidth -event.button.x;
-      int state = event.button.state;
-
-      controllerEvent ev = controllerHitCheck( x, y );
-      applyControllerEvent( ev, state );
-
-      break;
-    }
-    case SDL_MOUSEMOTION:
-    {
-      if ( use_on_screen && orientation != ORIENTATION_LANDSCAPE_R )
-      {
-          return;
-      }
-      //These are switched and transformed because we're in landscape
-      int x = event.motion.y;
-      int y = destWidth - event.motion.x;
-      int xrel = event.motion.yrel;
-      int yrel = -event.motion.xrel;
-
-      //We make this work by considering a motion event
-      //as releasing where we came FROM
-      //and a down event where it is now.
-      //XXX: Note that if from==now no harm, it'll end up down still
-      controllerEvent ev = controllerHitCheck( x, y );
-      controllerEvent old_ev = controllerHitCheck( x - xrel, y - yrel );
-
-      //Where the mouse is now
-      applyControllerEvent( old_ev, false );
-      applyControllerEvent( ev, true );
-
-      break;
-    }
-    case SDL_JOYHATMOTION:
-      sdlUpdateJoyHat(event.jhat.which,
-                      event.jhat.hat,
-                      event.jhat.value);
-      break;
-    case SDL_JOYBUTTONDOWN:
-    case SDL_JOYBUTTONUP:
-      sdlUpdateJoyButton(event.jbutton.which,
-                         event.jbutton.button,
-                         event.jbutton.state == SDL_PRESSED);
-      break;
-    case SDL_JOYAXISMOTION:
-      sdlUpdateJoyAxis(event.jaxis.which,
-                       event.jaxis.axis,
-                       event.jaxis.value);
-      break;
-    case SDL_KEYDOWN:
-      if ( keyBindingMode == NOT_BINDING )
-      {
-          sdlUpdateKey(event.key.keysym.sym, true);
-      }
-      break;
-    case SDL_KEYUP:
-      if ( keyBindingMode != NOT_BINDING )
-      {
-          int key = event.key.keysym.sym;
-          if ( key == SDLK_EQUALS )
-          {
-              //cancel;
-              keyBindingMode = NOT_BINDING;
-              systemScreenMessage( "Cancelled binding!" );
-              break;
-          }
-
-          //Check that this is a valid key.
-          //XXX: right now we don't support
-          //orange, shift, or sym as keys b/c they are meta keys.
-          int valid = 0
-              || ( key >= SDLK_a && key <= SDLK_z ) //Alpha
-              || key == SDLK_BACKSPACE
-              || key == SDLK_RETURN
-              || key == SDLK_COMMA
-              || key == SDLK_PERIOD
-              || key == SDLK_SPACE
-              || key == SDLK_AT;
-
-          //If so, bind it.
-          if ( valid )
-          {
-              bindingJoypad[keyBindingMode] = key;
-              keyBindingMode++;
-          }
-
-          //Display message for next key.
-          systemScreenMessage( bindingNames[keyBindingMode] );
-
-          if ( keyBindingMode == BINDING_DONE )
-          {
-              //write to file.
-              //XXX: Write to alternate file? Don't overwrite this existing one?
-              FILE * f  = fopen( VBA_HOME "/VisualBoyAdvance.cfg", "w" );
-
-              for ( int i = 0; i < BINDING_DONE; i++ )
-              {
-                  fprintf( f, "%s=%04x\n", bindingCfgNames[i], bindingJoypad[i] );
-              }
-
-              fclose( f );
-
-              //make this the current joy
-              memcpy( &joypad[0][0], bindingJoypad, 12*sizeof( u16 ) );
-              
-              //we're done here!
-              keyBindingMode = NOT_BINDING;
-
-          }
-                   
-          break;
-      }
-      switch(event.key.keysym.sym) {
-          //      XXX: bind these to something useful
-//      case SDLK_r:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(emulating) {
-//            emulator.emuReset();
-//
-//            systemScreenMessage("Reset");
-//          }
-//        }
-//        break;
-//      case SDLK_b:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(emulating && emulator.emuReadMemState && rewindMemory 
-//             && rewindCount) {
-//            rewindPos = --rewindPos & 7;
-//            emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos], 
-//                                     REWIND_SIZE);
-//            rewindCount--;
-//            rewindCounter = 0;
-//            systemScreenMessage("Rewind");
-//          }
-//        }
-//        break;
-//      case SDLK_p:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          paused = !paused;
-//          SDL_PauseAudio(paused);
-//          if(paused)
-//            wasPaused = true;
-//        }
-//        break;
-//      case SDLK_ESCAPE:
-//        emulating = 0;
-//        break;
-//      case SDLK_1:
-//      case SDLK_2:
-//      case SDLK_3:
-//      case SDLK_4:
-//        if(!(event.key.keysym.mod & MOD_NOALT) &&
-//           (event.key.keysym.mod & KMOD_ALT)) {
-//          char *disableMessages[4] = 
-//            { "autofire A disabled",
-//              "autofire B disabled",
-//              "autofire R disabled",
-//              "autofire L disabled"};
-//          char *enableMessages[4] = 
-//            { "autofire A",
-//              "autofire B",
-//              "autofire R",
-//              "autofire L"};
-//          int mask = 1 << (event.key.keysym.sym - SDLK_1);
-//    if(event.key.keysym.sym > SDLK_2)
-//      mask <<= 6;
-//          if(autoFire & mask) {
-//            autoFire &= ~mask;
-//            systemScreenMessage(disableMessages[event.key.keysym.sym - SDLK_1]);
-//          } else {
-//            autoFire |= mask;
-//            systemScreenMessage(enableMessages[event.key.keysym.sym - SDLK_1]);
-//          }
-//        } if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//             (event.key.keysym.mod & KMOD_CTRL)) {
-//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-//          layerSettings ^= mask;
-//          layerEnable = DISPCNT & layerSettings;
-//          CPUUpdateRenderBuffers(false);
-//        }
-//        break;
-//      case SDLK_5:
-//      case SDLK_6:
-//      case SDLK_7:
-//      case SDLK_8:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-//          layerSettings ^= mask;
-//          layerEnable = DISPCNT & layerSettings;
-//        }
-//        break;
-//      case SDLK_n:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(paused)
-//            paused = false;
-//          pauseNextFrame = true;
-//        }
-//        break;
-      case SDLK_0:
-        //Toggle orientation
-        orientation = ( orientation + 1 ) % 3;
-        updateOrientation();
-        break;
-      case SDLK_ASTERISK:
-        //Toggle sound
-        soundMute = !soundMute;
-        break;
-      case SDLK_PLUS:
-        //toggle on-screen controls...
-        use_on_screen = !use_on_screen;
-        updateOrientation();
-        break;
-      case SDLK_QUOTE:
-        //toggle filters...
-        if ( gl_filter == GL_LINEAR )
-        {
-            gl_filter = GL_NEAREST;
-        }
-        else if ( gl_filter == GL_NEAREST )
-        {
-            gl_filter = GL_LINEAR;
-        }
-
-        GL_InitTexture();
-        break;
-      case SDLK_MINUS:
-        //toggle show speed
-        showSpeed = !showSpeed;
-        break;
-      case SDLK_SLASH:
-        //toggle skins..
-        if ( skin_count > 0 )
-        {
-            skin = skin->next;
-            //So next time we know which one
-            skin_index = ( skin_index + 1 ) % skin_count;
-        }
-
-        GL_InitTexture();
-        updateOrientation();
-        break;
-      case SDLK_1:
-      case SDLK_2:
-      case SDLK_3:
-        {
-            //save states 1-3
-            int state = event.key.keysym.sym - SDLK_1;
-            sdlWriteState( state );
-            break;
-        }
-      case SDLK_4:
-      case SDLK_5:
-      case SDLK_6:
-        {
-            //load states 1-3
-            int state = event.key.keysym.sym - SDLK_4;
-            sdlReadState( state );
-            break;
-        }
-      case SDLK_AMPERSAND:
-        autosave = !autosave;
-        if ( autosave )
-        {
-            systemScreenMessage( "Auto save enabled" );
-        }
-        else
-        {
-            systemScreenMessage( "Auto save disabled" );
-        }
-        break;
-      case SDLK_EQUALS:
-        //Enter key-binding mode.
-        keyBindingMode = NOT_BINDING;
-        keyBindingMode++;
-      default:
-        break;
-      }
-      sdlUpdateKey(event.key.keysym.sym, false);
-      break;
-    }
-  }
-}
 
 void usage(char *cmd)
 {
@@ -1987,644 +905,83 @@ Long options only:\n\
 ");
 }
 
-int romFilter( const struct dirent * file )
+
+//return true if upgrade needed
+bool version_check( char * old, char * check )
 {
-    const char * curPtr = file->d_name;
-    const char * extPtr = NULL;
-    //Don't show 'hidden' files (that start with a '.')
-    if ( *curPtr == '.' )
-    {
-        return false;
-    }
+  if (!old) return true;
+  if (!*old) return true;
+  if (!check) return false;//?!
+  if (!*check) return false;//?!
 
-    //Find the last period
-    while ( *curPtr )
-    {
-        if( *curPtr == '.' )
-        {
-            extPtr = curPtr;
-        }
-        curPtr++;
-    }
-    if ( !extPtr )
-    {
-        //No extension, not allowed.
-        return 0;
-    }
-    //We don't want the period...
-    extPtr++;
+  while( *old && *check )
+  {
+    int v1 = atoi(old);
+    int v2 = atoi(check);
 
-    return !(
-            strcasecmp( extPtr, "gb" ) &&
-            strcasecmp( extPtr, "gbc" ) &&
-            strcasecmp( extPtr, "gba" ) &&
-            strcasecmp( extPtr, "zip" ) );
+    if ( v1 < v2 ) return true;
+    if ( v1 > v2 ) return false;
+
+    //Advance each string pointer past the next period
+    while( *old && *old != '.' ) ++old;
+    if ( *old == '.' ) ++old;
+    while( *check && *check != '.' ) ++check;
+    if ( *check == '.' ) ++check;
+  }
+
+  //If we exhausted both strings and got this far, they're the same.
+  if ( !*old && !*check )
+    return false;
+
+  //If old version has more to it, it's newer
+  //1.2.1 vs 1.2
+  if ( *old ) return false;
+
+  //If we get here, we were comparing something like
+  //1.2 vs 1.2.1
+  return true;
 }
 
-void apply_surface( int x, int y, int w, SDL_Surface* source, SDL_Surface* destination )
+//Do whatever upgrade/migration logic required.
+void migration()
 {
-    //Holds offsets
-    SDL_Rect offset;
-    
-    //Source rect
-    SDL_Rect src;
-
-    //Get offsets
-    offset.x = x;
-    offset.y = y;
-
-    src.x = 0;
-    src.y = 0;
-    src.w = w;
-    src.h = source->h;
-
-    //Blit
-    SDL_BlitSurface( source, &src, destination, &offset );
-}
-
-void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination )
-{
-    apply_surface( x, y, source->w, source, destination );
-}
-
-//XXX: Figure out if there isn't something we can #ifdef for these
-//autoconf maybe?
-int sortComparD( const struct dirent ** a, const struct dirent ** b )
-{
-    return strcasecmp( (*a)->d_name, (*b)->d_name );
-}
-
-int sortCompar( const void * a, const void * b )
-{
-    return sortComparD( (const struct dirent **)a, (const struct dirent**)b );
-}
-
-char * romSelector()
-{
-    //Put notifications on the 'bottom' of the screen with respect to our orientation
-    PDL_SetOrientation( PDL_ORIENTATION_LEFT );
-
-    //Init SDL for non-gl interaction...
-    surface = SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
-    if (!surface )
+  // Read version from last run
+  FILE * f = fopen("version", "r");
+  char * old_version = NULL;
+  if (f)
+  {
+    if ( fscanf(f, "%as", &old_version) != 1 )
     {
-        fprintf( stderr, "Error setting video mode!\n" );
-        exit( 1 );
+      old_version = NULL;
     }
+    fclose(f);
+  }
+  printf( "old version: %s\n", old_version );
 
-    //Init SDL_TTF to print text to the screen...
-    if ( TTF_Init() )
-    {
-        fprintf( stderr, "Error initializing SDL_ttf!\n" );
-        exit ( 1 );
-    }
+  if ( version_check(old_version,"1.2.0") )
+  {
+    printf( "Upgrading to version 1.2.0...\n" );
+    //Create 'sav' folder in calling path
+    system("mkdir -p sav");
+    //Move states and battery files over
+    system("mv /media/internal/vba/roms/*.sgm ./sav");
+    system("mv /media/internal/vba/roms/*.sav ./sav");
+    //Copy cfg files over
+    system("mv /media/internal/vba/*.cfg ./");
+  }
 
-    TTF_Font * font_small = TTF_OpenFont( FONT, 12 );
-    TTF_Font * font_normal = TTF_OpenFont( FONT, 22 );
-    if ( !font_small || !font_normal )
-    {
-        fprintf( stderr, "Failed to open font: %s\n", FONT );
-        exit( 1 );
-    }
+  free(old_version);
 
-    //Make sure rom dir exists
-    //XXX: This assumes /media/internal (parent directory) already exists
-    int mode = S_IRWXU | S_IRWXG | S_IRWXO;
-    int result = mkdir( VBA_HOME, mode );
-    if ( result && ( errno != EEXIST ) )
-    {
-        fprintf( stderr, "Error creating directory %s!\n", VBA_HOME );
-        exit( 1 );
-    }
-    result = mkdir( ROM_PATH, mode );
-    if ( result && ( errno != EEXIST ) )
-    {
-        fprintf( stderr, "Error creating directory %s for roms!\n", ROM_PATH );
-        exit( 1 );
-    }
-
-
-    struct dirent ** roms;
-    int filecount = scandir( ROM_PATH, &roms, romFilter, sortCompar );
-    printf( "Rom count: %d\n", filecount );
-
-    //Display general information
-    int top, bottom;
-    SDL_Color textColor = { 255, 255, 255 };
-    int borderColor = SDL_MapRGB( surface->format, 0, 0, 50 );
-    SDL_Surface * title = TTF_RenderText_Blended( font_normal, TITLE, textColor );
-    top = 10+title->h+10;
-
-    SDL_Surface * author = TTF_RenderText_Blended( font_small, AUTHOR_TAG, textColor );
-    bottom = surface->h - author->h - 10;
-
-    //Draw border/text
-    SDL_FillRect( surface, NULL, borderColor );
-    apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
-    apply_surface( 10, 10, title, surface );
-
-    SDL_UpdateRect( surface, 0, 0, 0, 0 );
-    SDL_Rect drawRect;
-    drawRect.x = 10;
-    drawRect.y = top;
-    drawRect.h = bottom-top;
-    drawRect.w = surface->w-20;
-    int black = SDL_MapRGB(surface->format, 0, 0, 0);
-    SDL_FillRect(surface, &drawRect, black);
-
-    if ( filecount < 1 )
-    {
-        //No roms found! Tell the user with a nice screen.
-        //(Note this is where first-time users most likely end up);
-        SDL_Color hiColor = { 255, 200, 200 };
-        //XXX: This code has gone too far--really should make use of some engine or loop or something :(
-        SDL_Surface * nr1 = TTF_RenderText_Blended( font_normal, NO_ROMS1, textColor );
-        SDL_Surface * nr2 = TTF_RenderText_Blended( font_normal, NO_ROMS2, textColor );
-        SDL_Surface * nr3 = TTF_RenderText_Blended( font_normal, NO_ROMS3, hiColor );
-        SDL_Surface * nr4 = TTF_RenderText_Blended( font_normal, NO_ROMS4, textColor );
-        SDL_Surface * nr5 = TTF_RenderText_Blended( font_normal, NO_ROMS5, textColor );
-        SDL_Surface * nr6 = TTF_RenderText_Blended( font_normal, NO_ROMS6, textColor );
-        apply_surface( surface->w/2-nr1->w/2, (top + bottom)/2 - nr1->h - nr2->h - 45, nr1, surface );
-        apply_surface( surface->w/2-nr2->w/2, (top + bottom)/2 - nr2->h - 35, nr2, surface );
-        apply_surface( surface->w/2-nr3->w/2, (top + bottom)/2 - 25, nr3, surface );
-        apply_surface( surface->w/2-nr4->w/2, (top + bottom)/2 + nr3->h + -15, nr4, surface );
-        apply_surface( surface->w/2-nr5->w/2, (top + bottom)/2 + nr3->h + nr4->h - 5, nr5, surface );
-        apply_surface( surface->w/2-nr6->w/2, (top + bottom)/2 + nr3->h + nr4->h + nr5->h + 5, nr6, surface );
-        SDL_UpdateRect( surface, 0, 0, 0, 0 );
-        while( 1 );
-    }
-
-    //Generate text for each rom...
-    SDL_Surface * roms_surface[filecount];
-    for ( int i = 0; i < filecount; i++ )
-    {
-        //Here we remove everything in '()'s or '[]'s
-        //which is usually annoying release information, etc
-        char buffer[100];
-        char * src = roms[i]->d_name;
-        char * dst = buffer;
-        int inParen = 0;
-        while ( *src && dst < buffer+sizeof(buffer) - 1 )
-        {
-            char c = *src;
-            if ( c == '(' || c == '[' )
-            {
-                inParen++;
-            }
-            if ( !inParen )
-            {
-                *dst++ = *src;
-            }
-            if ( c == ')' || c == ']' )
-            {
-                inParen--;
-            }
-
-            src++;
-        }
-        *dst = '\0';
-
-        //now remove the extension..
-        char * extPtr = NULL;
-        dst = buffer;
-        while ( *dst )
-        {
-            if( *dst == '.' )
-            {
-                extPtr = dst;
-            }
-            dst++;
-        }
-        //If we found an extension, end the string at that period
-        if ( extPtr )
-        {
-            *extPtr = '\0';
-        }
-
-        roms_surface[i] = TTF_RenderText_Blended( font_normal, buffer, textColor );
-    }
-
-    int scroll_offset = 0;
-    SDL_Event event;
-    bool tap = false;
-    bool down = false;
-    int romSelected = -1;
-    SDL_EnableUNICODE( 1 );
-    while( romSelected == -1 )
-    {
-        //Calculate scroll, etc
-        int num_roms_display = ( bottom - top + 10 ) / ( roms_surface[0]->h + 10 );
-        //Get key input, process.
-        while ( SDL_PollEvent( &event ) )
-        {
-            switch( event.type )
-            {
-                case SDL_MOUSEBUTTONDOWN:
-                    down = tap = true;
-                    break;
-                case SDL_MOUSEBUTTONUP:
-                    down = false;
-                    if ( tap )
-                    {
-                        int rom_index = ( event.button.y - top ) / ( roms_surface[0]->h + 10 );
-                        if ( rom_index >= 0 && rom_index < num_roms_display )
-                        {
-                            romSelected = rom_index+scroll_offset;
-                        }
-                    }
-                    break;
-                case SDL_MOUSEMOTION:
-                    //If the mouse moves before going up, it's not a tap
-                    tap = false;
-
-                    //scroll accordingly..
-                    if ( down )
-                    {
-                        scroll_offset -= event.motion.yrel / SCROLL_FACTOR;
-                        if ( scroll_offset > filecount - num_roms_display ) scroll_offset = filecount - num_roms_display;
-                        if ( scroll_offset < 0 ) scroll_offset = 0;
-                    }
-
-                    break;
-                case SDL_KEYDOWN:
-                {
-                    //Filter based on letter presses.
-                    //For now, just jump to the first thing that starts at or after that letter.
-                    char c = (char)event.key.keysym.unicode;
-                    if ( 'A' <= c && c <= 'Z' )
-                    {
-                        //lowercase...
-                        c -= ( 'A' - 'a' );
-                    }
-                    if ( 'a' <= c && c <= 'z' )
-                    {
-                        //find this letter in the roms...
-                        int offset = 0;
-                        while( offset < filecount )
-                        {
-                            char c_file = *roms[offset]->d_name;
-                            if ( 'A' <= c_file && c_file <= 'Z' )
-                            {
-                                //lowercase..
-                                c_file -= ( 'A' - 'a' );
-                            }
-                            if ( c_file >= c )
-                            {
-                                break;
-                            }
-                            offset++;
-                        }
-                        scroll_offset = offset;
-                        if ( scroll_offset > filecount - num_roms_display ) scroll_offset = filecount - num_roms_display;
-                        if ( scroll_offset < 0 ) scroll_offset = 0;
-                    }
-                }
-                default:
-                    break;
-            }
-        }
-        if ( scroll_offset + num_roms_display > filecount )
-        {
-            num_roms_display = filecount - scroll_offset;
-        }
-
-        //Draw border/text
-        SDL_FillRect( surface, NULL, borderColor );
-        apply_surface( surface->w - author->w - 10, surface->h - author->h - 10, author, surface );
-        apply_surface( 10, 10, title, surface );
-
-        //Clear middle
-        SDL_FillRect(surface, &drawRect, black);
-
-        //Draw roms...
-
-        for ( int i = 0; i < num_roms_display; i++ )
-        {
-           int index = scroll_offset + i;
-           if ( index == romSelected )
-           {
-               int hiColor = SDL_MapRGB( surface->format, 128, 128, 0 );
-               SDL_Rect hiRect;
-               hiRect.x = 10;
-               hiRect.y = top+(10+roms_surface[0]->h)*i - 5;
-               hiRect.h = roms_surface[index]->h+5;
-               hiRect.w = surface->w - 20;
-               SDL_FillRect( surface, &hiRect, hiColor );
-           }
-           apply_surface( 20, top + (10+roms_surface[0]->h)*i, surface->w - 40, roms_surface[index], surface );
-        }
-
-        //Update screen.
-        SDL_UpdateRect( surface, 0, 0, 0, 0 );
-        if ( romSelected != -1 )
-        {
-            SDL_Delay( 20 );
-        }
-    }
-    SDL_FreeSurface( title );
-    SDL_FreeSurface( author );
-
-    char * rom_base = roms[romSelected]->d_name;
-    char * rom_full_path = (char *)malloc( strlen( ROM_PATH ) + strlen( rom_base ) + 2 );
-    strcpy( rom_full_path, ROM_PATH );
-    rom_full_path[strlen(ROM_PATH)] = '/';
-    strcpy( rom_full_path + strlen( ROM_PATH ) + 1, rom_base );
-    return rom_full_path;
-}
-
-void loadSkins()
-{
-    skin = NULL;
-
-    DIR * d = opendir( SKIN_PATH );
-    if ( !d )
-    {
-        perror( "Failed to open skin path!\n" );
-        return;
-    }
-    //Note: this code isn't super portable, mostly because I don't care right now :).
-    //Should work on most/all linux boxes...
-    //(including of course the pre :))
-
-    struct dirent * dp;
-    //For each entry in this directory..
-    while ( dp = readdir( d ) )
-    {
-        //If this is a directory
-        if ( dp->d_type == DT_DIR && dp->d_name[0] != '.' )
-        {
-            char * skin_name = dp->d_name;
-            int folderlen = strlen( skin_name ) + strlen( SKIN_PATH ) + 2;
-
-            //build full path
-            char skin_folder[folderlen];
-            strcpy( skin_folder, SKIN_PATH );
-            strcpy( skin_folder + strlen( SKIN_PATH ), "/" );
-            strcpy( skin_folder + strlen( SKIN_PATH ) + 1, skin_name );
-
-            load_skin( SKIN_CFG_NAME, SKIN_IMG_NAME, skin_name, skin_folder, &skin );
-        }
-    }
-
-    closedir( d );
-
-    //As we build the list, the 'skin' always point to the last one in the list.
-    //Here we just wrap around to the first (circule ll) so we default to the 'first' one.
-    //XXX: Remember which one the user was using
-    //and go to it.
-    if ( skin )
-    {
-        skin = skin->next;
-
-        controller_skin * first = skin;
-        skin_count = 1;
-        while ( skin->next != first )
-        {
-            skin_count++;
-            skin = skin->next;
-        }
-        skin = first;
-    }
-    else
-    {
-        skin_count = 0;
-    }
-
-    //count 'skin_index' skins, this is the one we used last time.
-    //Nope, not very robust to adding/removing skins, but whatcha gonna do.
-    //Not sure it's worth implementing string support for in the cfg files.
-    for ( int i = 0; i < skin_index; i++ )
-    {
-        skin = skin->next;
-    }
-}
-
-void GL_Init()
-{
-    // setup 2D gl environment
-    checkError();
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );//black background
-    checkError();
-
-    glDisable(GL_DEPTH_TEST);
-    glDepthFunc( GL_ALWAYS );
-    checkError();
-    glDisable(GL_CULL_FACE);
-    checkError();
-
-    GLbyte vShaderStr[] =  
-        "attribute vec4 a_position;   \n"
-        "attribute vec2 a_texCoord;   \n"
-        "varying vec2 v_texCoord;     \n"
-        "void main()                  \n"
-        "{                            \n"
-        "   gl_Position = a_position; \n"
-        "   v_texCoord = a_texCoord;  \n"
-        "}                            \n";
-
-    GLbyte fShaderStr[] =  
-        "precision mediump float;                            \n"
-        "varying vec2 v_texCoord;                            \n"
-        "uniform sampler2D s_texture;                        \n"
-        "void main()                                         \n"
-        "{                                                   \n"
-        "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
-        "}                                                   \n";
-
-    // Load the shaders and get a linked program object
-    programObject = esLoadProgram ( ( char *)vShaderStr, (char *)fShaderStr );
-    checkError();
-
-    // Get the attribute locations
-    positionLoc = glGetAttribLocation ( programObject, "a_position" );
-    checkError();
-    texCoordLoc = glGetAttribLocation ( programObject, "a_texCoord" );
-    checkError();
-
-    // Get the sampler location
-    samplerLoc = glGetUniformLocation ( programObject, "s_texture" );
-    checkError();
-}
-
-
-void GL_InitTexture()
-{
-    //delete it if we already have one
-    if ( texture )
-    {
-        glDeleteTextures( 1, &texture );
-        texture = 0;
-    }
-    if ( controller_tex )
-    {
-        glDeleteTextures( 1, &controller_tex );
-        controller_tex = 0;
-    }
-
-    glGenTextures(1, &texture);
-    checkError();
-    glBindTexture(GL_TEXTURE_2D, texture);
-    checkError();
-    
-    //sanity check
-    int num;
-    glGetIntegerv( GL_TEXTURE_BINDING_2D, &num );
-    assert( num == texture );
-    glGetIntegerv( GL_ACTIVE_TEXTURE, &num );
-    assert( num == GL_TEXTURE0 );
-    checkError();
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
-    checkError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
-    checkError();
-
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    checkError();
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    checkError();
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, srcWidth, srcHeight, 0, GL_RGB,
-            GL_UNSIGNED_BYTE, NULL );
-    checkError();
-
-    if( !skin )
-    {
-        printf( "No skins found! Running without one...\n" );
-        return;
-    }
-
-    //Load controller
-    SDL_Surface * initial_surface = IMG_Load( skin->image_path );
-    if ( !initial_surface )
-    {
-        printf( "No controller image found!  Running without one...\n" );
-        return;
-    }
-    //Create RGB surface and copy controller into it
-    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
-            0x0000ff, 0x00ff00, 0xff0000, 0);
-    SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
-
-    glGenTextures(1, &controller_tex );
-    glBindTexture( GL_TEXTURE_2D, controller_tex );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter );
-    checkError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter );
-    checkError();
-
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    checkError();
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    checkError();
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, controller_surface->w, controller_surface->h, 0, GL_RGB,
-            GL_UNSIGNED_BYTE, controller_surface->pixels );
-    checkError();
-
-    SDL_FreeSurface( initial_surface );
-    SDL_FreeSurface( controller_surface );
-}
-
-void updateOrientation()
-{
-    //XXX: This function is a beast, make it less crazy.
-    //
-    float screenAspect = (float)destWidth/(float)destHeight;
-    float emulatedAspect = (float)srcWidth/(float)srcHeight;
-    
-    //XXX: 'orientation' is invariant as far the rendering loop goes; move
-    //the corresponding invariant results (vertexCoords, etc)
-    //to be calculated outside this method
-    switch( orientation )
-    {
-        case ORIENTATION_LANDSCAPE_R:
-            memcpy( vertexCoords, land_r_vertexCoords, 8*sizeof(float) );
-            break;
-        case ORIENTATION_LANDSCAPE_L:
-            memcpy( vertexCoords, land_l_vertexCoords, 8*sizeof(float) );
-            break;
-        default:
-            printf( "Unsupported orientation: %d!\n", orientation );
-            printf( "Defaulting to portrait orientation\n" );
-            //fall through
-            orientation = ORIENTATION_PORTRAIT;
-        case ORIENTATION_PORTRAIT:
-            memcpy( vertexCoords, portrait_vertexCoords, 8*sizeof(float) );
-            break;
-    }
-    if ( orientation != ORIENTATION_PORTRAIT )
-    {
-        emulatedAspect = 1/emulatedAspect;//landscape has reversed aspect ratio
-    }
-
-    for ( int i = 0; i < 4; i++ )
-    {
-        vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
-    }
-
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
-    {
-        float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
-        float scale_factor;
-        if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
-        {
-            //width is limiting factor
-            scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
-        }
-        else
-        {
-            //height is limiting factor
-            //'effectiveWidth' b/c we already scaled previously
-            //and we don't fill the screen due to aspect ratio
-            float effectiveWidth = (float)destWidth / emulatedAspect;
-            scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
-        }
-
-        for ( int i = 0; i < 4; i++ )
-        {
-            //scale
-            vertexCoords[2*i] *= scale_factor;
-            vertexCoords[2*i+1] *= scale_factor;
-        }
-
-        float y_offset = 1.0 - vertexCoords[0];
-        float x_offset = 1.0 - vertexCoords[1];
-
-        //push the screen to the coordinates indicated
-        y_offset -= ( (float)skin->controller_screen_y_offset / (float)destWidth ) * 2;
-        x_offset -= ( (float)skin->controller_screen_x_offset / (float)destHeight ) * 2;
-
-        for ( int i = 0; i < 4; i++ )
-        {
-            //translate
-            vertexCoords[2*i] += y_offset;
-            vertexCoords[2*i+1] += x_offset;
-        }
-    }
-
-    int notification_direction;
-    switch ( orientation )
-    {
-        case ORIENTATION_PORTRAIT:
-            notification_direction = PDL_ORIENTATION_BOTTOM;
-            break;
-        case ORIENTATION_LANDSCAPE_L:
-            notification_direction = PDL_ORIENTATION_RIGHT;
-            break;
-        case ORIENTATION_LANDSCAPE_R:
-            notification_direction = PDL_ORIENTATION_LEFT;
-            break;
-        default:
-            //o_O invalid orientation.
-            notification_direction = PDL_ORIENTATION_BOTTOM;
-            break;
-    }
-    PDL_SetOrientation( notification_direction );
+  //Write updated version back
+  f = fopen("version", "w");
+  fprintf( f, "%s\n", VERSION );
+  fclose(f);
 }
 
 int main(int argc, char **argv)
 {
+  freopen("vba.log", "w", stdout );
+  freopen("vba-err.log", "w", stderr );
   fprintf(stderr, "VisualBoyAdvance version %s [SDL]\n", VERSION);
 
   arg0 = argv[0];
@@ -2641,6 +998,7 @@ int main(int argc, char **argv)
 
   parseDebug = true;
 
+  migration();
   sdlReadPreferences();
   readOptions();
   loadSkins();
@@ -2679,9 +1037,6 @@ int main(int argc, char **argv)
         fclose(f);
       }
       break;
-    case 'd':
-      debugger = true;
-      break;
     case 'h':
       sdlPrintUsage = 1;
       break;
@@ -2718,44 +1073,8 @@ int main(int argc, char **argv)
       } else
         yuvType = SDL_YV12_OVERLAY;
       break;
-    case 'G':
-      dbgMain = remoteStubMain;
-      dbgSignal = remoteStubSignal;
-      dbgOutput = remoteOutput;
-      debugger = true;
-      debuggerStub = true;
-      if(optarg) {
-        char *s = optarg;
-        if(strncmp(s,"tcp:", 4) == 0) {
-          s+=4;
-          int port = atoi(s);
-          remoteSetProtocol(0);
-          remoteSetPort(port);
-        } else if(strcmp(s,"tcp") == 0) {
-          remoteSetProtocol(0);
-        } else if(strcmp(s, "pipe") == 0) {
-          remoteSetProtocol(1);
-        } else {
-          fprintf(stderr, "Unknown protocol %s\n", s);
-          exit(-1);
-        }
-      } else {
-        remoteSetProtocol(0);
-      }
-      break;
-    case 'N':
-      parseDebug = false;
-      break;
-    case 'D':
-      if(optarg) {
-        systemDebug = atoi(optarg);
-      } else {
-        systemDebug = 1;
-      }
-      break;
     case 'F':
       fullscreen = 1;
-      mouseCounter = 120;
       break;
     case 'f':
       if(optarg) {
@@ -2848,8 +1167,6 @@ int main(int argc, char **argv)
   //force RTC --doesn't hurt, and some games need it.
   rtcEnable( true );
 
-  agbPrintEnable(sdlAgbPrint ? true : false);
-
   if(filter) {
     sizeOption = 1;
   }
@@ -2863,6 +1180,51 @@ int main(int argc, char **argv)
 
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
+  int flags = SDL_INIT_VIDEO|SDL_INIT_AUDIO|
+    SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
+
+  if(soundOffFlag)
+    flags &= ~SDL_INIT_AUDIO;
+  
+  if(SDL_Init(flags)) {
+    systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
+    exit(-1);
+  }
+
+  if(SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
+    systemMessage(0, "Failed to init joystick support: %s", SDL_GetError());
+  }
+  
+  sdlCheckKeys();
+
+  if(!soundOffFlag)
+      soundInit();
+
+  GL_Init();
+
+  //Init SDL_TTF to print text to the screen...
+  if ( TTF_Init() )
+  {
+    fprintf( stderr, "Error initializing SDL_ttf!\n" );
+    exit ( 1 );
+  }
+
+  running = true;
+  // keep going until the user says quit.
+  // This lets you return to the rom selection :)
+  while(running)
+  {
+    pickRom();
+    runRom();
+  }
+
+  SDL_Quit();
+  return 0;
+}
+
+
+void pickRom()
+{
   printf( "Selecting rom...\n" );
   char * szFile = romSelector();
 
@@ -2935,24 +1297,6 @@ int main(int argc, char **argv)
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
   }
-//} else {
-//    cartridgeType = 0;
-//    strcpy(filename, "gnu_stub");
-//    rom = (u8 *)malloc(0x2000000);
-//    workRAM = (u8 *)calloc(1, 0x40000);
-//    bios = (u8 *)calloc(1,0x4000);
-//    internalRAM = (u8 *)calloc(1,0x8000);
-//    paletteRAM = (u8 *)calloc(1,0x400);
-//    vram = (u8 *)calloc(1, 0x20000);
-//    oam = (u8 *)calloc(1, 0x400);
-//    pix = (u8 *)calloc(1, 4 * 240 * 160);
-//    ioMem = (u8 *)calloc(1, 0x400);
-//
-//    emulator = GBASystem;
-//
-//    CPUInit(biosFileName, useBios);
-//    CPUReset();    
-//}
 
   sdlReadBattery();
 
@@ -2960,27 +1304,6 @@ int main(int argc, char **argv)
   {
     sdlReadState( AUTOSAVE_STATE );
   }
-
-  
-  if(debuggerStub) 
-    remoteInit();
-  
-  int flags = SDL_INIT_VIDEO|SDL_INIT_AUDIO|
-    SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
-
-  if(soundOffFlag)
-    flags ^= SDL_INIT_AUDIO;
-  
-  if(SDL_Init(flags)) {
-    systemMessage(0, "Failed to init SDL: %s", SDL_GetError());
-    exit(-1);
-  }
-
-  if(SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
-    systemMessage(0, "Failed to init joystick support: %s", SDL_GetError());
-  }
-  
-  sdlCheckKeys();
   
   if(cartridgeType == 0) {
     srcWidth = 240;
@@ -3008,79 +1331,21 @@ int main(int argc, char **argv)
   
   destWidth = 320;
   destHeight = 480;
-  
-  assert( !SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) );
-  assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 ) );
-  //assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 ) );
- //assert( !SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, -1 ) );
 
-  SDL_SetVideoMode( 480, 320, 32, SDL_FULLSCREEN | SDL_RESIZABLE );
-  surface = SDL_SetVideoMode( 320, 480, 32,
-                             SDL_OPENGLES|
-                             (fullscreen ? SDL_FULLSCREEN : 0));
-  
-  if(surface == NULL) {
-    systemMessage(0, "Failed to set video mode");
-    SDL_Quit();
-    exit(-1);
-  }
-
-  GL_Init();
   GL_InitTexture();
   updateOrientation();
   
-  // Here we are forcing the bitdepth and format to use.
-  // I chose 16 instead of 32 because it will be faster to work with cpu-wise (and sending to gpu)
-  // and let the gpu up-convert it. Also GBA doesn't have 32-bit color anyway.
- 
-  // Furthermore I chose 5-6-5 RGB encoding because
-  // a)we have no use for alpha in the main texture.
-  // b)I like blue. :P
-  //
-  // But really, of the GL_SHORT pixel formats I don't know that it matters.
-  // Small note: since the alpha bit is 'inverted' ('1' means opaque),
-  // the colormaps would have to be changed accordingly.  This is entirely untested.
-
-  //See above for the format, these are the shifts for each component
-  //RGB format
-  //
-  //Note that 5-6-5 has green at offset '5' not '6', but
-  //we only have 2^5 blue values to represent, so we shift it.
-  systemRedShift = 11;
-  systemGreenShift = 6;
-  systemBlueShift = 0;
-
   systemColorDepth = 16;
 
-  //I'm not sure that this matters anymore. XXX Find out and remove.
-  RGB_LOW_BITS_MASK = 0x821;
+  RGB_LOW_BITS_MASK = 0x842;
 
-  //Set the colormap using the shifts.
-  if(cartridgeType == 2) {
-      for(int i = 0; i < 0x10000; i++) {
-          systemColorMap16[i] = (((i >> 1) & 0x1f) << systemBlueShift) |
-              (((i & 0x7c0) >> 6) << systemGreenShift) |
-              (((i & 0xf800) >> 11) << systemRedShift);  
-      }      
-  } else {
-      for(int i = 0; i < 0x10000; i++) {
-          systemColorMap16[i] = ((i & 0x1f) << systemRedShift) |
-              (((i & 0x3e0) >> 5) << systemGreenShift) |
-              (((i & 0x7c00) >> 10) << systemBlueShift);  
-      }
-  }
+  //FEDCBA9876543210
+  //BBBBBGGGGGRRRRRA
+  systemRedShift = 1;
+  systemGreenShift = 6;
+  systemBlueShift = 11;
 
   srcPitch = srcWidth * 2;
-
-  //No filter support (should be implemented as part of the GL shader)
-  ifbFunction = NULL;
-  filterFunction = NULL;
 
   if(delta == NULL) {
       delta = (u8*)malloc(322*242*4);
@@ -3090,49 +1355,45 @@ int main(int argc, char **argv)
   emulating = 1;
   renderedFrames = 0;
 
-  if(!soundOffFlag)
-      soundInit();
+}
 
+void runRom()
+{
   autoFrameSkipLastTime = throttleLastTime = systemGetClock();
 
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
+  printf( "Flash size: %x\n", flashSize );
+  printf( "Save Type: %d\n", cpuSaveType ); 
+
   while(emulating) {
     if(!paused && active) {
-      if(debugger && emulator.emuHasDebugger)
-        dbgMain();
-      else {
-        emulator.emuMain(emulator.emuCount);
-        if(rewindSaveNeeded && rewindMemory && emulator.emuWriteMemState) {
-          rewindCount++;
-          if(rewindCount > 8)
-            rewindCount = 8;
-          if(emulator.emuWriteMemState &&
-             emulator.emuWriteMemState(&rewindMemory[rewindPos*REWIND_SIZE], 
-                                       REWIND_SIZE)) {
-            rewindPos = ++rewindPos & 7;
-            if(rewindCount == 8)
-              rewindTopPos = ++rewindTopPos & 7;
-          }
+      emulator.emuMain(emulator.emuCount);
+      if(rewindSaveNeeded && rewindMemory && emulator.emuWriteMemState) {
+        rewindCount++;
+        if(rewindCount > 8)
+          rewindCount = 8;
+        if(emulator.emuWriteMemState &&
+            emulator.emuWriteMemState(&rewindMemory[rewindPos*REWIND_SIZE], 
+              REWIND_SIZE)) {
+          rewindPos = ++rewindPos & 7;
+          if(rewindCount == 8)
+            rewindTopPos = ++rewindTopPos & 7;
         }
-
-        rewindSaveNeeded = false;
       }
+
+      rewindSaveNeeded = false;
     } else {
       SDL_Delay(500);
     }
     sdlPollEvents();
-    if ( keyBindingMode != NOT_BINDING )
-    {
-        //make sure the message stays up until binding is over
-        systemScreenMessage( bindingNames[keyBindingMode] );
-    }
+    
+    displayBindingMessage();
   }
   
   emulating = 0;
   fprintf(stderr,"Shutting down\n");
-  remoteCleanUp();
-  soundShutdown();
+  //soundShutdown();
 
   if(gbRom != NULL || rom != NULL) {
     sdlWriteBattery();
@@ -3144,8 +1405,6 @@ int main(int argc, char **argv)
     delta = NULL;
   }
   
-  SDL_Quit();
-  return 0;
 }
 
 void systemMessage(int num, const char *msg, ...)
@@ -3196,136 +1455,10 @@ void systemDrawScreen()
 {
     renderedFrames++;
 
-    glClear( GL_COLOR_BUFFER_BIT );
-    checkError();
-
-    /*-----------------------------------------------------------------------------
-     *  Overlay
-     *-----------------------------------------------------------------------------*/
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
-    {
-        // Use the program object
-        glUseProgram ( programObject );
-        checkError();
-
-        glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
-        checkError();
-        glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
-
-        checkError();
-
-        glEnableVertexAttribArray( positionLoc );
-        checkError();
-        glEnableVertexAttribArray( texCoordLoc );
-        checkError();
-
-        checkError();
-
-        //sampler texture unit to 0
-        glBindTexture(GL_TEXTURE_2D, controller_tex);
-        glUniform1i( samplerLoc, 0 );
-        checkError();
-
-        glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-        checkError();
-    }
-
-
-    /*-----------------------------------------------------------------------------
-     *  Draw the frame of the gb(c/a)
-     *-----------------------------------------------------------------------------*/
-
-    // Use the program object
-    glUseProgram ( programObject );
-    checkError();
-
-    glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), vertexCoords );
-    checkError();
-    glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
-
-    checkError();
-
-    glEnableVertexAttribArray( positionLoc );
-    checkError();
-    glEnableVertexAttribArray( texCoordLoc );
-    checkError();
-
     drawScreenText();
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D( GL_TEXTURE_2D,0,
-            0,0, srcWidth,srcHeight,
-            GL_RGB,GL_UNSIGNED_SHORT_5_6_5,pix);
-
-    checkError();
-
-    //sampler texture unit to 0
-    glUniform1i( samplerLoc, 0 );
-    checkError();
-
-    glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-    checkError();
-
-    
-    //Push to screen
-    SDL_GL_SwapBuffers();
-    checkError();
+    GL_RenderPix(pix);
 
     return;
-}
-
-bool systemReadJoypads()
-{
-  return true;
-}
-
-u32 systemReadJoypad(int which)
-{
-  if(which < 0 || which > 3)
-    which = sdlDefaultJoypad;
-  
-  u32 res = 0;
-  
-  if(sdlButtons[which][KEY_BUTTON_A])
-    res |= 1;
-  if(sdlButtons[which][KEY_BUTTON_B])
-    res |= 2;
-  if(sdlButtons[which][KEY_BUTTON_SELECT])
-    res |= 4;
-  if(sdlButtons[which][KEY_BUTTON_START])
-    res |= 8;
-  if(sdlButtons[which][KEY_RIGHT])
-    res |= 16;
-  if(sdlButtons[which][KEY_LEFT])
-    res |= 32;
-  if(sdlButtons[which][KEY_UP])
-    res |= 64;
-  if(sdlButtons[which][KEY_DOWN])
-    res |= 128;
-  if(sdlButtons[which][KEY_BUTTON_R])
-    res |= 256;
-  if(sdlButtons[which][KEY_BUTTON_L])
-    res |= 512;
-
-  // disallow L+R or U+D of being pressed at the same time
-  if((res & 48) == 48)
-    res &= ~16;
-  if((res & 192) == 192)
-    res &= ~128;
-
-  if(sdlButtons[which][KEY_BUTTON_SPEED])
-    res |= 1024;
-  if(sdlButtons[which][KEY_BUTTON_CAPTURE])
-    res |= 2048;
-
-  if(autoFire) {
-    res &= (~autoFire);
-    if(autoFireToggle)
-      res |= autoFire;
-    autoFireToggle = !autoFireToggle;
-  }
-  
-  return res;
 }
 
 void systemSetTitle(const char *title)
@@ -3578,53 +1711,6 @@ void systemSoundReset()
 u32 systemGetClock()
 {
   return SDL_GetTicks();
-}
-
-void systemUpdateMotionSensor()
-{
-  if(sdlMotionButtons[KEY_LEFT]) {
-    sensorX += 3;
-    if(sensorX > 2197)
-      sensorX = 2197;
-    if(sensorX < 2047)
-      sensorX = 2057;
-  } else if(sdlMotionButtons[KEY_RIGHT]) {
-    sensorX -= 3;
-    if(sensorX < 1897)
-      sensorX = 1897;
-    if(sensorX > 2047)
-      sensorX = 2037;
-  } else if(sensorX > 2047) {
-    sensorX -= 2;
-    if(sensorX < 2047)
-      sensorX = 2047;
-  } else {
-    sensorX += 2;
-    if(sensorX > 2047)
-      sensorX = 2047;
-  }
-
-  if(sdlMotionButtons[KEY_UP]) {
-    sensorY += 3;
-    if(sensorY > 2197)
-      sensorY = 2197;
-    if(sensorY < 2047)
-      sensorY = 2057;
-  } else if(sdlMotionButtons[KEY_DOWN]) {
-    sensorY -= 3;
-    if(sensorY < 1897)
-      sensorY = 1897;
-    if(sensorY > 2047)
-      sensorY = 2037;
-  } else if(sensorY > 2047) {
-    sensorY -= 2;
-    if(sensorY < 2047)
-      sensorY = 2047;
-  } else {
-    sensorY += 2;
-    if(sensorY > 2047)
-      sensorY = 2047;
-  }    
 }
 
 int systemGetSensorX()

@@ -1,0 +1,6 @@
+This is a port of VisualBoyAdvance.
+
+Original source is available here: http://vba.ngemu.com/downloads.shtml
+The source for the port is available here: http://git.webos-internals.org/?p=games/visualboyadvance.git
+
+See http://www.webos-internals.org/wiki/Application:VBA for the latest information on this port.

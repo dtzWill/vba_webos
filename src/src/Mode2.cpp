@@ -20,13 +20,13 @@
 #include "Globals.h"
 #include "Gfx.h"
 
-void mode2RenderLine()
+void mode2RenderLine(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     gfxLastVCOUNT = VCOUNT;
     return;
@@ -109,20 +109,20 @@ void mode2RenderLine()
       }      
     }
     
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
   gfxBG2Changed = 0;
   gfxBG3Changed = 0;
   gfxLastVCOUNT = VCOUNT;    
 }
 
-void mode2RenderLineNoWindow()
+void mode2RenderLineNoWindow(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     gfxLastVCOUNT = VCOUNT;
     return;
@@ -252,20 +252,20 @@ void mode2RenderLineNoWindow()
       }      
     }
     
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
   gfxBG2Changed = 0;
   gfxBG3Changed = 0;
   gfxLastVCOUNT = VCOUNT;  
 }
 
-void mode2RenderLineAll()
+void mode2RenderLineAll(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     gfxLastVCOUNT = VCOUNT;
     return;
@@ -470,7 +470,7 @@ void mode2RenderLineAll()
       }
     }
     
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
   gfxBG2Changed = 0;
   gfxBG3Changed = 0;

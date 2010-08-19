@@ -20,13 +20,13 @@
 #include "Globals.h"
 #include "Gfx.h"
 
-void mode0RenderLine()
+void mode0RenderLine(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     return;
   }
@@ -123,17 +123,17 @@ void mode0RenderLine()
         }      
     }
 
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
 }
 
-void mode0RenderLineNoWindow()
+void mode0RenderLineNoWindow(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     return;
   }
@@ -293,17 +293,17 @@ void mode0RenderLineNoWindow()
       }
     }
 
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
 }
 
-void mode0RenderLineAll()
+void mode0RenderLineAll(u16* lineMix)
 {
   u16 *palette = (u16 *)paletteRAM;
 
   if(DISPCNT & 0x80) {
     for(int x = 0; x < 240; x++) {
-      lineMix[x] = 0x7fff;
+      lineMix[x] = convertColor(0x7fff);
     }
     return;
   }
@@ -547,6 +547,6 @@ void mode0RenderLineAll()
       }
     }
     
-    lineMix[x] = color;
+    lineMix[x] = convertColor(color);
   }
 }
