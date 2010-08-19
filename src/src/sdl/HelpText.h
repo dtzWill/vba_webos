@@ -101,13 +101,13 @@ line helpControls[][14] =
 line helpSettings[][14] =
 {
 {
-    {"How do I play?",                              textColor },
+    {"What do the settings mean?",                  textColor },
     {" ",                                           textColor },
-    {"VBA initially gives you onscreen controls.",  textColor },
-    {"You can also use the physical keyboard.",     textColor },
-    {"W/A/S/D --- up/down/left/right (d-pad)",      textColor },
-    {"K/L --- B/A (action buttons)",                textColor },
-    {"Q/P --- L/R (trigger buttons) folder called", textColor },
+    {"VBA gives you a number of options to",        textColor },
+    {"configure your gaming experience.",           textColor },
+    {"Here are brief description of what",          textColor },
+    {"the various options mean.",                   textColor },
+    {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
@@ -115,5 +115,53 @@ line helpSettings[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {"(Tap to go to next screen)",                  linkColor }
+},
+{
+    {"What do the settings mean?",                  textColor },
+    {" ",                                           textColor },
+    {"Orientation:",                                linkColor },
+    {"Show screen in Portrait or Landscape.",       textColor },
+    {"Note that skins only work in Landscape.",     textColor },
+    {"Sound:",                                      linkColor },
+    {"Determines if sound is enabled or not.",      textColor },
+    {"Turning sound off can make games faster.",    textColor },
+    {"Filter:"    ,                                 linkColor },
+    {"When scaling the screen to fit your device",  textColor },
+    {"should we make things smooth or sharp?",      textColor },
+    {"Smooth looks nicer but can be blurry.",       textColor },
+    {"Sharp can look worse, but is more clear.",    textColor },
+    {"(Tap to go to next screen)",                  linkColor }
+},
+{
+    {"What do the settings mean?",                  textColor },
+    {" ",                                           textColor },
+    {"Show Speed:",                                 linkColor },
+    {"Display emulation speed.",                    textColor },
+    {"Autosave:",                                   linkColor },
+    {"Autosave saves your game automatically:",     textColor },
+    {"periodically and when you pause or exit.",    textColor },
+    {"It can make starting/quitting much easier.",  textColor },
+    {"Try it to see if you find it useful.",        textColor },
+    {"Autoframeskip:",                              linkColor },
+    {"Turning this on tells VBA to 'skip' drawing", textColor },
+    {"to make things run at 100% speed." ,          textColor },
+    {"This can makes games appear 'choppy'.",       textColor },
+    {"(Tap to go to next screen)",                  linkColor }
+},
+{
+    {"What do the settings mean?",                  textColor },
+    {" ",                                           textColor },
+    {"Turbo Toggles:",                              linkColor },
+    {"This determines what happens when you",       textColor },
+    {"press the turbo button.",                     textColor },
+    {"Off (default) makes the game run turbo",      textColor },
+    {"while you hold it down. On makes the ",       textColor },
+    {"button toggle whether or not turbo is on.",   textColor },
+    {"Skins",                                       linkColor },
+    {"Pick which visual controller skin is used",   textColor },
+    {"if any at all. Try them all and pick",        textColor },
+    {"your favorite one.",                          textColor },
+    {"Remember skins only work in landscape.",      textColor },
+    {"(Tap to go to return to help)",               linkColor }
 }
 };
