@@ -1218,6 +1218,7 @@ int main(int argc, char **argv)
     runRom();
   }
 
+  PDL_Quit();
   SDL_Quit();
   return 0;
 }
