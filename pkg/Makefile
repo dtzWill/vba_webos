@@ -31,3 +31,7 @@ pkg: update
 	rm -rf pkg_build
 	mkdir -p ipk
 	mv *.ipk ipk
+
+clean:
+	-rm -rf pkg_build
+	-rm -rf ipk
