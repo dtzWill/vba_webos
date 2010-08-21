@@ -341,12 +341,20 @@ void menuSetOrientation( bool portrait )
   updateOrientation();
 }
 
+void menuSetAutoSkip( bool on )
+{
+  //Update autoframeskip
+  autoFrameSkip = on;
+  //Reset frameskip-related variables
+  systemFrameSkip = 0;
+  frameskipadjust = 0;
+}
+
 void menuSetSound( bool sound )   { soundMute = !sound;                          }
 void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST;
                                     GL_InitTexture();                            }
 void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
 void menuSetAutoSave( bool on )   { autosave = on;                               }
-void menuSetAutoSkip( bool on )   { autoFrameSkip = on;                          }
 void menuSetOnscreen( bool on )   { use_on_screen = on; updateOrientation();     }
 void menuSetTurboToggle( bool on ){ turbo_toggle = on;                           }
 
