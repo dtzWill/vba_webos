@@ -28,6 +28,6 @@ typedef enum menuResponse
 eMenuResponse optionsMenu();
 
 //Show help screen!
-void doHelp( SDL_Surface * s );
+void doHelpExternal( SDL_Surface * s );
 
 #endif //_OPTIONS_MENU_H_

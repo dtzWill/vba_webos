@@ -126,6 +126,7 @@ static eMenuResponse menuResponse;
 
 void initializeMenu();
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions );
+void doHelp( SDL_Surface * s );
 bool optionHitCheck( menuOption * opt, int x, int y );
 void freeMenu();
 bool showLines( SDL_Surface * s, line * lines, int numlines, bool center );
@@ -287,6 +288,23 @@ void updateSkinSurface( menuOption * opt )
   {
     //Scale the image by half:
     skin_preview = SDL_Resize( skin_preview, 0.5f, true, 1 );
+
+    //Convert to BGR (d'oh)
+    SDL_Surface * rgb_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, skin_preview->w, skin_preview->h, 24,
+            0xff0000, 0x00ff00, 0x0000ff, 0);
+    SDL_Surface * bgr_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, skin_preview->w, skin_preview->h, 24,
+            0x0000ff, 0x00ff00, 0xff0000, 0);
+
+    SDL_BlitSurface( skin_preview, NULL, rgb_surface, NULL );
+    int pixels_size = 320*480 /* resolution */
+                     / 4      /* scaling */
+                     * 3;     /* bpp */
+    memcpy( bgr_surface->pixels, rgb_surface->pixels, pixels_size );
+    SDL_FreeSurface( rgb_surface );
+    SDL_FreeSurface( skin_preview );
+    skin_preview = bgr_surface;
+
+    //Draw it
     int w = OPTION_WIDTH/2 - skin_preview->w/2;
     int h = OPTION_SIZE + 10 + SKIN_PREVIEW_HEIGHT/2 - skin_preview->h/2;
     apply_surface( w, h, skin_preview, opt->surface );
@@ -487,9 +505,9 @@ void freeMenu( menuOption ** opt, int numOptions )
 void freeMenu()
 {
   freeMenu( &topMenu, emulating ? 6 : 4 );
-  freeMenu( &saveMenu, 4 );
-  freeMenu( &skinMenu, 3 );
-  freeMenu( &helpMenu, 5 );
+  freeMenu( &saveMenu,   4 );
+  freeMenu( &skinMenu,   3 );
+  freeMenu( &helpMenu,   5 );
   freeMenu( &optionMenu, 8 );
 }
 
@@ -608,6 +626,14 @@ void doHelp( SDL_Surface * s )
     //Okay, done showing the help topic the user selected,
     //loop back and let them pick again.
   }
+}
+
+void doHelpExternal( SDL_Surface * s )
+{
+  initializeMenu();
+  menuState = MENU_HELP;
+  doHelp( s );
+  freeMenu();
 }
 
 //Determine if this click hits this option... if so, take the right action!

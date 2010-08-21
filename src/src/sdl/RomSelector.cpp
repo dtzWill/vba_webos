@@ -216,11 +216,11 @@ char * romSelector()
             SDL_DrawSurfaceAsGLTexture( selector, portrait_vertexCoords );
             while ( SDL_PollEvent( &event ) )
             {
-                if ( event.type == SDL_MOUSEBUTTONDOWN )
+                if ( event.type == SDL_MOUSEBUTTONUP )
                 {
                   //Regardless of what the text says, if the user clicks, launch the help...
                   //PDL_LaunchBrowser( VBA_WIKI );
-                  doHelp( selector );
+                  doHelpExternal( selector );
                 }
 
             }
