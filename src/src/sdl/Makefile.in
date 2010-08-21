@@ -37,7 +37,7 @@ host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = VisualBoyAdvance$(EXEEXT)
 subdir = src/sdl
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.in
@@ -50,13 +50,13 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
 	RomSelector.$(OBJEXT) Options.$(OBJEXT) GLUtil.$(OBJEXT) \
-	OptionMenu.$(OBJEXT) SDL.$(OBJEXT) Cheats.$(OBJEXT) \
-	EEprom.$(OBJEXT) Flash.$(OBJEXT) GBA.$(OBJEXT) Gfx.$(OBJEXT) \
-	Globals.$(OBJEXT) Mode0.$(OBJEXT) Mode1.$(OBJEXT) \
-	Mode2.$(OBJEXT) Mode3.$(OBJEXT) Mode4.$(OBJEXT) \
-	Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) Sram.$(OBJEXT) \
-	Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) bios.$(OBJEXT) \
-	elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
+	OptionMenu.$(OBJEXT) resize++.$(OBJEXT) SDL.$(OBJEXT) \
+	Cheats.$(OBJEXT) EEprom.$(OBJEXT) Flash.$(OBJEXT) \
+	GBA.$(OBJEXT) Gfx.$(OBJEXT) Globals.$(OBJEXT) Mode0.$(OBJEXT) \
+	Mode1.$(OBJEXT) Mode2.$(OBJEXT) Mode3.$(OBJEXT) \
+	Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) \
+	Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) \
+	bios.$(OBJEXT) elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
 	exprNode.$(OBJEXT) getopt.$(OBJEXT) getopt1.$(OBJEXT) \
 	interframe.$(OBJEXT) memgzio.$(OBJEXT) pixel.$(OBJEXT) \
 	unzip.$(OBJEXT)
@@ -236,6 +236,8 @@ VisualBoyAdvance_SOURCES = \
 	OptionMenu.cpp \
 	HelpText.h \
 	VBA.h \
+	resize++.h \
+	resize++.cpp \
 	SDL.cpp			\
 	esFunc.h		\
 	../AutoBuild.h		\
@@ -421,6 +423,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interframe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memgzio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pixel.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/resize++.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unzip.Po@am__quote@
 
 .c.o:

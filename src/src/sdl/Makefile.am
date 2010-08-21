@@ -15,6 +15,8 @@ VisualBoyAdvance_SOURCES = \
 	OptionMenu.cpp \
 	HelpText.h \
 	VBA.h \
+	resize++.h \
+	resize++.cpp \
 	SDL.cpp			\
 	esFunc.h		\
 	../AutoBuild.h		\

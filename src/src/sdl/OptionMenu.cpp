@@ -22,6 +22,7 @@
 #include "Options.h"
 #include "Controller.h"
 #include "pdl.h"
+#include "resize++.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -40,6 +41,9 @@
 #define SKIN_TXT_X TOGGLE_TXT_X
 #define SKIN_NUM_X TOGGLE_ON_X
 #define SKIN_Y TOGGLE_Y
+#define SKIN_PREVIEW_HEIGHT (320/2 + 20)
+#define SKIN_PREVIEW_WIDTH (480/2 + 20)
+#define SKIN_SPACING (SKIN_PREVIEW_HEIGHT + 10)
 
 //Colors (BGR format)
 static SDL_Color textColor = { 255, 255, 255 };
@@ -262,20 +266,37 @@ void updateSkinSurface( menuOption * opt )
   skin_num[sizeof(skin_num)-1] = '\0';
 
   //Black rectangle
-  opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
+  SDL_Surface * rect_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
       0xff0000, 0x00ff00, 0x0000ff, 0);
-  int black = SDL_MapRGB( opt->surface->format, 0, 0, 0);
-  SDL_FillRect( opt->surface, NULL, black );
+  int black = SDL_MapRGB(rect_surface->format, 0, 0, 0);
+  SDL_FillRect( rect_surface, NULL, black );
 
   //Render each piece...
   SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, opt->text, textColor );
   SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
 
-  apply_surface( SKIN_TXT_X, TOGGLE_Y, s_txt,  opt->surface );
-  apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, opt->surface );
+  apply_surface( SKIN_TXT_X, TOGGLE_Y, s_txt,  rect_surface );
+  apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, rect_surface );
+
+  opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, 
+      OPTION_SIZE + 10 + SKIN_PREVIEW_HEIGHT, 24, 
+      0xff0000, 0x00ff00, 0x0000ff, 0);
+
+  SDL_Surface * skin_preview = IMG_Load( skin->image_path );
+  if ( skin_preview )
+  {
+    //Scale the image by half:
+    skin_preview = SDL_Resize( skin_preview, 0.5f, true, 1 );
+    int w = OPTION_WIDTH/2 - skin_preview->w/2;
+    int h = OPTION_SIZE + 10 + SKIN_PREVIEW_HEIGHT/2 - skin_preview->h/2;
+    apply_surface( w, h, skin_preview, opt->surface );
+    SDL_FreeSurface( skin_preview);
+  }
+  apply_surface( 0, 0, rect_surface, opt->surface );
 
   SDL_FreeSurface( s_txt );
   SDL_FreeSurface( s_num  );
+  SDL_FreeSurface( rect_surface );
 }
 
 /*-----------------------------------------------------------------------------
@@ -424,7 +445,7 @@ void initializeMenu()
   skinMenu[x++] = createToggle( "Display skin",   "On",     "Off",   100+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
   skinMenu[x++] = createSkinWidget( 100+x*OPTION_SPACING );
-  skinMenu[x++] = createButton( "Return", changeToMainState, 100+x*OPTION_SPACING );
+  skinMenu[x++] = createButton( "Return", changeToMainState, 100+x*OPTION_SPACING+SKIN_SPACING );
 
   //Help menu
   x = 0;
