@@ -124,7 +124,7 @@ void GL_Init()
     assert( !SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 ) );
     assert( !SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 ) );
 
-    surface = SDL_SetVideoMode( 320, 480, 32,
+    surface = SDL_SetVideoMode( NATIVE_RES_WIDTH, NATIVE_RES_HEIGHT, 32,
         SDL_OPENGL|
         (fullscreen ? SDL_FULLSCREEN : 0));
 
