@@ -426,13 +426,18 @@ void initializeMenu()
 
   //Static initializers for all this is a PITA, so do it dynamically.
   
+  //Tell the user they have skins, and how many.
+  char skins_label[1024];
+  snprintf( skins_label, 1024, "Skins (%d)", skin_count );
+  skins_label[1024]='\0';
+
   //Top-level menu
   int x = 0;
   topMenu = (menuOption*)malloc( ( emulating ? 6 : 4 )*sizeof(menuOption));
   if (emulating)
     topMenu[x++] = createButton( "Save states",           changeToSaveState,   100+x*OPTION_SPACING);
   topMenu[x++] =   createButton( "Options",               changeToOptionsState,100+x*OPTION_SPACING);
-  topMenu[x++] =   createButton( "Skins",                 changeToSkinState,   100+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( skins_label,             changeToSkinState,   100+x*OPTION_SPACING);
   topMenu[x++] =   createButton( "Help",                  changeToHelpState,   100+x*OPTION_SPACING);
   if (emulating)
     topMenu[x++] = createButton( "Choose different game", moveToRomSelector,   100+x*OPTION_SPACING);
