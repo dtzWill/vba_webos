@@ -6,4 +6,5 @@ export CFLAGS="-O3 $PIXI_FLAGS -ftree-vectorize -ffast-math -DFINAL_VERSION"
 export CPPFLAGS=$CFLAGS
 export CXXFLAGS=$CFLAGS
 export LIBS='-L/usr/local/lib -L/usr/lib -lGLESv2 -lSDL_ttf -lSDL_image -lpdl -Wl,-rpath,/usr/local/lib'
+export LDFLAGS='-Wl,--allow-shlib-undefined'
 ./configure --disable-dev --disable-profiling
