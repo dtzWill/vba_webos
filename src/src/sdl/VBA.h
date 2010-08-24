@@ -44,7 +44,7 @@
 
 #ifdef PALM_PIXI
 #define NATIVE_RES_WIDTH 320
-#define NATIVE_RES_HEIGHT 480
+#define NATIVE_RES_HEIGHT 400
 #endif
 
 #define OPTIONS_CFG "options.cfg"
