@@ -151,6 +151,10 @@ void GL_Init()
     glDisable(GL_CULL_FACE);
     checkError();
 
+    //Enable alpha blending
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+
     GLbyte vShaderStr[] =  
         "attribute vec4 a_position;   \n"
         "attribute vec2 a_texCoord;   \n"
@@ -171,7 +175,7 @@ void GL_Init()
         "  gl_FragColor.r = color.b;                         \n"
         "  gl_FragColor.g = color.g;                         \n"
         "  gl_FragColor.b = color.r;                         \n"
-        "  gl_FragColor.a = 1.0;                             \n"
+        "  gl_FragColor.a = color.a;                         \n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -246,8 +250,10 @@ void GL_InitTexture()
         return;
     }
     //Create RGB surface and copy controller into it
-    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
-            0xff0000, 0x00ff00, 0x0000ff, 0);
+    //Make sure the surface is the right format...
+    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 32,
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    SDL_SetAlpha(initial_surface, 0, 0);
     SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
 
     glGenTextures(1, &controller_tex );
@@ -262,7 +268,7 @@ void GL_InitTexture()
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     checkError();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, controller_surface->w, controller_surface->h, 0, GL_RGB,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, controller_surface->w, controller_surface->h, 0, GL_RGBA,
             GL_UNSIGNED_BYTE, controller_surface->pixels );
     checkError();
 
@@ -277,9 +283,6 @@ void updateOrientation()
     float screenAspect = (float)destWidth/(float)destHeight;
     float emulatedAspect = (float)srcWidth/(float)srcHeight;
     
-    //XXX: 'orientation' is invariant as far the rendering loop goes; move
-    //the corresponding invariant results (vertexCoords, etc)
-    //to be calculated outside this method
     switch( orientation )
     {
         case ORIENTATION_LANDSCAPE_R:
@@ -367,40 +370,46 @@ void updateOrientation()
     PDL_SetOrientation( notification_direction );
 }
 
+void drawSkin()
+{
+  // Use the program object
+  glUseProgram ( programObject );
+  checkError();
+
+  glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+  checkError();
+  glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+  checkError();
+
+  glEnableVertexAttribArray( positionLoc );
+  checkError();
+  glEnableVertexAttribArray( texCoordLoc );
+  checkError();
+
+  checkError();
+
+  //sampler texture unit to 0
+  glBindTexture(GL_TEXTURE_2D, controller_tex);
+  glUniform1i( samplerLoc, 0 );
+  checkError();
+
+  glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+  checkError();
+
+}
+
 void GL_RenderPix(u8 * pix)
 {
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
 
     /*-----------------------------------------------------------------------------
-     *  Overlay
+     *  Background Skin
      *-----------------------------------------------------------------------------*/
     if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
     {
-        // Use the program object
-        glUseProgram ( programObject );
-        checkError();
-
-        glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
-        checkError();
-        glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
-
-        checkError();
-
-        glEnableVertexAttribArray( positionLoc );
-        checkError();
-        glEnableVertexAttribArray( texCoordLoc );
-        checkError();
-
-        checkError();
-
-        //sampler texture unit to 0
-        glBindTexture(GL_TEXTURE_2D, controller_tex);
-        glUniform1i( samplerLoc, 0 );
-        checkError();
-
-        glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-        checkError();
+      drawSkin();
     }
 
 
@@ -436,6 +445,14 @@ void GL_RenderPix(u8 * pix)
 
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
     checkError();
+
+    /*-----------------------------------------------------------------------------
+     *  Skin Overlay
+     *-----------------------------------------------------------------------------*/
+    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin && skin->transparent)
+    {
+      drawSkin();
+    }
 
     //Push to screen
     SDL_GL_SwapBuffers();
