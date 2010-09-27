@@ -338,6 +338,7 @@ void changeToHelpWikiState(void)     { helpState = HELP_WIKI;     }
 void menuSetOrientation( bool portrait )
 {
   orientation = portrait ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE_R;
+  if ( portrait ) use_on_screen = false;
   updateOrientation();
 }
 
