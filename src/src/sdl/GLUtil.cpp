@@ -331,8 +331,20 @@ void updateOrientation()
         float scale_max_csw = csw/effectiveWidth;
         float scale_max_csh = csh/effectiveHeight;
 
-        // Pick the leser
-        float scale_factor = scale_max_csw < scale_max_csh ? scale_max_csw : scale_max_csh;
+        // Pick the leser, and use that to calculate centering offsets
+        float scale_factor;
+        if ( scale_max_csw < scale_max_csh )
+        {
+          scale_factor = scale_max_csw;
+          //We're scaling to the width, so we need to center the height:
+          y_offset_center = (effectiveHeight * scale_max_csh - effectiveHeight * scale_max_csw) / 2;
+        }
+        else
+        {
+          scale_factor = scale_max_csh;
+          //We're scaling to the height, so we need to center the width:
+          x_offset_center = (effectiveWidth * scale_max_csw - effectiveWidth * scale_max_csh) / 2;
+        }
 
         for ( int i = 0; i < 4; i++ )
         {
@@ -347,6 +359,10 @@ void updateOrientation()
         //push the screen to the coordinates indicated
         y_offset -= ( (float)skin->controller_screen_y_offset / (float)destWidth ) * 2;
         x_offset -= ( (float)skin->controller_screen_x_offset / (float)destHeight ) * 2;
+
+        //And account for centering...
+        y_offset -= ( y_offset_center / (float)destWidth ) * 2;
+        x_offset -= ( x_offset_center / (float)destHeight ) * 2;
 
         for ( int i = 0; i < 4; i++ )
         {
