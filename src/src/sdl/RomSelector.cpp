@@ -19,7 +19,8 @@
 #include "GLUtil.h"
 #include "OptionMenu.h"
 #include "pdl.h"
-
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <dirent.h>
 
 //In 'BGR' format...
@@ -144,17 +145,20 @@ char * romSelector()
     }
 
     //Don't bail here, we can't write to /media/internal on 1.4.5
-#if 0
+#define FSTAB_BUG 1
     //Make sure rom dir exists
     //XXX: This assumes /media/internal (parent directory) already exists
     int mode = S_IRWXU | S_IRWXG | S_IRWXO;
     int result = mkdir( VBA_HOME, mode );
+#ifndef FSTAB_BUG
     if ( result && ( errno != EEXIST ) )
     {
         fprintf( stderr, "Error creating directory %s!\n", VBA_HOME );
         exit( 1 );
     }
+#endif
     result = mkdir( ROM_PATH, mode );
+#ifndef FSTAB_BUG
     if ( result && ( errno != EEXIST ) )
     {
         fprintf( stderr, "Error creating directory %s for roms!\n", ROM_PATH );
