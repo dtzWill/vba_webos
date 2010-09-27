@@ -252,7 +252,7 @@ void GL_InitTexture()
     //Create RGB surface and copy controller into it
     //Make sure the surface is the right format...
     SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 32,
-            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+            0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
     SDL_SetAlpha(initial_surface, 0, 0);
     SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
 
