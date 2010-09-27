@@ -23,7 +23,7 @@
 #include <assert.h>
 #include "GBA.h"
 
-#define VERSION "1.3.2"
+#define VERSION "1.3.3"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
