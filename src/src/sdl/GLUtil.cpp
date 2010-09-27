@@ -318,21 +318,21 @@ void updateOrientation()
 
       if ( use_on_screen && skin )
       {
-        float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
-        float scale_factor;
-        if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
-        {
-          //width is limiting factor
-          scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
-        }
-        else
-        {
-          //height is limiting factor
-          //'effectiveWidth' b/c we already scaled previously
-          //and we don't fill the screen due to aspect ratio
-          float effectiveWidth = (float)destWidth / emulatedAspect;
-          scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
-        }
+        float csw = skin->controller_screen_width,
+              csh = skin->controller_screen_height;
+        float controller_aspect = csw / csh;
+        int x_offset_center = 0, y_offset_center = 0;
+
+        // Forcing b/c I know aspect ratios > 1 :(
+        float effectiveHeight = destWidth;
+        float effectiveWidth = effectiveHeight / emulatedAspect;
+
+        // So, given these, we need to scale to max csw and csh.
+        float scale_max_csw = csw/effectiveWidth;
+        float scale_max_csh = csh/effectiveHeight;
+
+        // Pick the leser
+        float scale_factor = scale_max_csw < scale_max_csh ? scale_max_csw : scale_max_csh;
 
         for ( int i = 0; i < 4; i++ )
         {
