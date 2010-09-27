@@ -1759,3 +1759,8 @@ void systemGbBorderOn()
   printf( "Not supported!\n" );
   exit( -1 );
 }
+
+void sdlRestart(void)
+{
+  emulator.emuReset();
+}

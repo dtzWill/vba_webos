@@ -185,4 +185,6 @@ extern void sdlReadBattery();
 extern void sdlWriteState(int num);
 extern void sdlReadState(int num);
 
+extern void sdlRestart(void);
+
 #endif // _VBA_H_
