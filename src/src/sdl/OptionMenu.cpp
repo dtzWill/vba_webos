@@ -46,7 +46,7 @@
 #define SKIN_SPACING (SKIN_PREVIEW_HEIGHT + 10)
 
 #define TOP_LEVEL_COUNT ( emulating ? 7 : 4 )
-#define OPTIONS_COUNT 8
+#define OPTIONS_COUNT 9
 #define HELP_COUNT 5
 
 //Colors (BGR format)
@@ -359,6 +359,7 @@ void menuSetAutoSkip( bool on )
 void menuSetSound( bool sound )   { soundMute = !sound;                          }
 void menuSetFilter( bool smooth ) { gl_filter = smooth ? GL_LINEAR : GL_NEAREST;
                                     GL_InitTexture();                            }
+void menuSetStretch( bool on )    { stretch = on; updateOrientation();           }
 void menuSetSpeed( bool show )    { showSpeed = show ? 1 : 0;                    }
 void menuSetAutoSave( bool on )   { autosave = on;                               }
 void menuSetOnscreen( bool on )   { use_on_screen = on; updateOrientation();     }
@@ -368,6 +369,7 @@ bool menuGetOrientation() { return orientation == ORIENTATION_PORTRAIT; }
 bool menuGetSound()       { return !soundMute;                          }
 bool menuGetFilter()      { return gl_filter == GL_LINEAR;              }
 bool menuGetSpeed()       { return showSpeed != 0;                      }
+bool menuGetStretch()     { return stretch;                             }
 bool menuGetAutoSave()    { return autosave;                            }
 bool menuGetAutoSkip()    { return autoFrameSkip;                       }
 bool menuGetOnscreen()    { return use_on_screen;                       }
@@ -473,6 +475,8 @@ void initializeMenu()
       menuSetSound, menuGetSound );
   optionMenu[x++] = createToggle( "Filter",        "Smooth", "Sharp", base+x*OPTION_SPACING,
       menuSetFilter, menuGetFilter );
+  optionMenu[x++] = createToggle( "Stretch",       "On",     "Off",   base+x*OPTION_SPACING,
+      menuSetStretch, menuGetStretch );
   optionMenu[x++] = createToggle( "Show Speed",    "On",     "Off",   base+x*OPTION_SPACING,
       menuSetSpeed, menuGetSpeed );
   optionMenu[x++] = createToggle( "Autosave",      "On",     "Off",   base+x*OPTION_SPACING,

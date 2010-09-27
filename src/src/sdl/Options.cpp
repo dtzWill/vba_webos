@@ -29,6 +29,7 @@ vba_option state_options[] =
     { "autosave", &autosave },
     { "autoframeskip", &autoFrameSkip },
     { "skin", &skin_index },
+    { "stretch", &stretch },
     { "turbo_toggle", &turbo_toggle }
 };
 

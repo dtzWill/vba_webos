@@ -126,6 +126,7 @@ extern int use_on_screen;
 extern int autosave;
 extern int running;
 extern int turbo_toggle;
+extern int stretch;
 
 extern int turbo_on;
 

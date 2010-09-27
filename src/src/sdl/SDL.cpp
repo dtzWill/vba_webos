@@ -159,6 +159,8 @@ int running = true;
 
 int turbo_toggle = false;
 
+int stretch = false;
+
 
 int turbo_on = false;
 

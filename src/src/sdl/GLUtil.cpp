@@ -305,34 +305,36 @@ void updateOrientation()
         emulatedAspect = 1/emulatedAspect;//landscape has reversed aspect ratio
     }
 
-    for ( int i = 0; i < 4; i++ )
+    if (!stretch)
     {
+      for ( int i = 0; i < 4; i++ )
+      {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
-    }
+      }
 
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
-    {
+      if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
+      {
         float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
         float scale_factor;
         if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
         {
-            //width is limiting factor
-            scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
+          //width is limiting factor
+          scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
         }
         else
         {
-            //height is limiting factor
-            //'effectiveWidth' b/c we already scaled previously
-            //and we don't fill the screen due to aspect ratio
-            float effectiveWidth = (float)destWidth / emulatedAspect;
-            scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
+          //height is limiting factor
+          //'effectiveWidth' b/c we already scaled previously
+          //and we don't fill the screen due to aspect ratio
+          float effectiveWidth = (float)destWidth / emulatedAspect;
+          scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
         }
 
         for ( int i = 0; i < 4; i++ )
         {
-            //scale
-            vertexCoords[2*i] *= scale_factor;
-            vertexCoords[2*i+1] *= scale_factor;
+          //scale
+          vertexCoords[2*i] *= scale_factor;
+          vertexCoords[2*i+1] *= scale_factor;
         }
 
         float y_offset = 1.0 - vertexCoords[0];
@@ -344,10 +346,11 @@ void updateOrientation()
 
         for ( int i = 0; i < 4; i++ )
         {
-            //translate
-            vertexCoords[2*i] += y_offset;
-            vertexCoords[2*i+1] += x_offset;
+          //translate
+          vertexCoords[2*i] += y_offset;
+          vertexCoords[2*i+1] += x_offset;
         }
+      }
     }
 
     int notification_direction;
