@@ -70,7 +70,7 @@ static void drawTextInternal(u8 *screen, int pitch, int x, int y,
                   ((*s & mask) >>1);
             } else {
               if(on)
-                *s = (0x1f) << systemRedShift;
+                *s = (0x1f) << systemRedShift | 1;
             }
           }
           scr += pitch;
