@@ -38,7 +38,7 @@
 
 char * strip_rom_name( char * rom_name );
 SDL_Surface * getSurfaceFor( char * filename );
-int rom_selector_event_filter( const SDL_Event * event );
+int rom_selector_event_handler( const SDL_Event * event );
 
 //In 'BGR' format...
 static SDL_Color textColor = { 255, 255, 255 };
@@ -282,7 +282,6 @@ char * romSelector()
 
     SDL_EnableUNICODE( 1 );
 
-
     // Initialize are unnecessarily long set of globals...
     tap = false;
     down = false;
@@ -295,22 +294,16 @@ char * romSelector()
     scroll_mouse_y = 0;
     selector_w = selector->w;
 
-    //Use this functor to process events as they come in!
-    SDL_SetEventFilter(rom_selector_event_filter);
-
     while( romSelected == -1 )
     {
-        SDL_PumpEvents();
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
+        {
+          rom_selector_event_handler(&e);
+        }
 
         if (autoscrolling)
         {
-          //int mouse_y;
-          //SDL_GetMouseState( NULL, &mouse_y );
-          //if ( !down )
-          //{
-          //  scroll_speed = ((float)scroll_mouse_y - mouse_y) / ((float)rom_height);
-          //  scroll_mouse_y = mouse_y;
-          //}
           scroll_offset_actual += scroll_speed;
           scroll_offset = (int)scroll_offset_actual;
           if ( scroll_offset > filecount - num_roms_display )
@@ -332,6 +325,7 @@ char * romSelector()
               scroll_speed > MIN_SCROLL_SPEED )
             autoscrolling = false;
         }
+
         if ( scroll_offset + num_roms_display > filecount )
         {
             num_roms_display = filecount - scroll_offset;
@@ -384,8 +378,7 @@ char * romSelector()
         //Update screen.
         SDL_DrawSurfaceAsGLTexture( selector, portrait_vertexCoords );
     }
-    SDL_SetEventFilter(NULL);
-    SDL_Delay(20);
+    SDL_Delay(100);
     SDL_FreeSurface( title );
     SDL_FreeSurface( author );
     SDL_FreeSurface( options );
@@ -511,7 +504,7 @@ char * strip_rom_name( char * rom_name )
   return strdup(buffer);
 }
 
-int rom_selector_event_filter( const SDL_Event * event )
+int rom_selector_event_handler( const SDL_Event * event )
 {
   switch( event->type )
   {

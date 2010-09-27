@@ -283,6 +283,10 @@ void updateOrientation()
     float screenAspect = (float)destWidth/(float)destHeight;
     float emulatedAspect = (float)srcWidth/(float)srcHeight;
     
+    //XXX: Hack until skins support setting their orientation
+    if ( use_on_screen && skin )
+      orientation = ORIENTATION_LANDSCAPE_R;
+    
     switch( orientation )
     {
         case ORIENTATION_LANDSCAPE_R:
@@ -312,7 +316,7 @@ void updateOrientation()
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
       }
 
-      if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
+      if ( use_on_screen && skin )
       {
         float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
         float scale_factor;
@@ -410,11 +414,10 @@ void GL_RenderPix(u8 * pix)
     /*-----------------------------------------------------------------------------
      *  Background Skin
      *-----------------------------------------------------------------------------*/
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
+    if ( use_on_screen && skin && !skin->transparent)
     {
       drawSkin();
     }
-
 
     /*-----------------------------------------------------------------------------
      *  Draw the frame of the gb(c/a)
@@ -452,10 +455,11 @@ void GL_RenderPix(u8 * pix)
     /*-----------------------------------------------------------------------------
      *  Skin Overlay
      *-----------------------------------------------------------------------------*/
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin && skin->transparent)
+    if ( use_on_screen && skin && skin->transparent)
     {
       drawSkin();
     }
+
 
     //Push to screen
     SDL_GL_SwapBuffers();
