@@ -371,7 +371,9 @@ char * romSelector()
         scrollTab.w = scrollTab.h = 20;
         scrollTab.x = scrollRect.x + scrollRect.w/2 - 10;
         scrollTab.y = scrollRect.y;
-        float percent = ((float)scroll_offset)/((float)(filecount - num_roms_display));
+        float percent = 0.0f;
+        if ( filecount > num_roms_display )
+          percent = ((float)scroll_offset)/((float)(filecount - num_roms_display));
         scrollTab.y += ((float)(scrollRect.h - scrollTab.h))*percent;
         SDL_FillRect(selector, &scrollTab, tabColor);
 
