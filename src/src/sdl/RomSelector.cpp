@@ -125,6 +125,9 @@ char * romSelector()
     SDL_Surface * selector = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w, surface->h, 24, 
       0x0000ff, 0x00ff00, 0xff0000, 0);
 
+    // Portrait Orientation
+    PDL_SetOrientation( PDL_ORIENTATION_BOTTOM );
+
     if (!selector )
     {
         fprintf( stderr, "Error creating rom selector buffer!\n" );
