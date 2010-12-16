@@ -15,8 +15,11 @@ cat_beta:
 cat:
 	$(MAKE) pkg ID=org.webosinternals.visualboyadvance.official
 
-preware:
-	$(MAKE) pkg ID=org.webosinternals.visualboyadvance
+cat_pixi:
+	$(MAKE) pkg ID=org.webosinternals.visualboyadvance.official.pixi
+
+preware_pixi:
+	$(MAKE) pkg ID=org.webosinternals.visualboyadvance.pixi
 
 #Build a pkg with the specified 'ID'
 pkg: update

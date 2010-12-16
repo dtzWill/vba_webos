@@ -1333,8 +1333,8 @@ void pickRom()
     srcHeight = 240;
   }
   
-  destWidth = 320;
-  destHeight = 480;
+  destWidth = NATIVE_RES_WIDTH;
+  destHeight = NATIVE_RES_HEIGHT;
 
   GL_InitTexture();
   updateOrientation();
