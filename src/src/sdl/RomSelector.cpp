@@ -282,7 +282,7 @@ char * romSelector()
 
     SDL_EnableUNICODE( 1 );
 
-    // Initialize are unnecessarily long set of globals...
+    // Initialize our unnecessarily long set of globals...
     tap = false;
     down = false;
     autoscrolling = false;
