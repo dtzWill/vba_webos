@@ -74,7 +74,7 @@ line helpROMs[][14] =
     {"Watch the capitalization, all lower case.",   textColor },
     {"Once you have the ROMs there, restart VBA",   textColor },
     {"and then just tap them to play.",             textColor },
-    {"(Tap to go to return to help)",               linkColor }
+    {"(Tap to return to help)",                     linkColor }
 }
 };
 
@@ -174,7 +174,7 @@ line helpControls[][14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {" ",                                           textColor },
-    {"(Tap to go to next screen)",                  linkColor }
+    {"(Tap to return to help)",                     linkColor }
 }
 };
 
@@ -242,7 +242,7 @@ line helpSettings[][14] =
     {"if any at all. Try them all and pick",        textColor },
     {"your favorite one.",                          textColor },
     {"Remember skins only work in landscape.",      textColor },
-    {"(Tap to go to return to help)",               linkColor }
+    {"(Tap to return to help)",                     linkColor }
 }
 };
 
@@ -261,6 +261,6 @@ line helpWiki[14] =
     {" ",                                           textColor },
     {" ",                                           textColor },
     {"(Back gesture to return to help)",            linkColor },
-    {"(Tap to go to launch wiki)",                  linkColor }
+    {"(Tap to launch wiki)",                        linkColor }
 };
 

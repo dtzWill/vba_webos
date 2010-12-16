@@ -159,6 +159,8 @@ int running = true;
 
 int turbo_toggle = false;
 
+int stretch = false;
+
 
 int turbo_on = false;
 
@@ -1298,6 +1300,7 @@ void pickRom()
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
   }
+  free(szFile);
 
   sdlReadBattery();
 
@@ -1758,4 +1761,9 @@ void systemGbBorderOn()
 {
   printf( "Not supported!\n" );
   exit( -1 );
+}
+
+void sdlRestart(void)
+{
+  emulator.emuReset();
 }

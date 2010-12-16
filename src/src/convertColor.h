@@ -19,7 +19,7 @@
 
 inline u16 convertColor( u16 color )
 {
-    return color << 1;
+    return ( color << 1 ) | 1;
 }
 
 #endif // _CONVERT_COLOR_H_

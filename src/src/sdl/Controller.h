@@ -82,6 +82,8 @@ int ab_x;
 int ab_y;
 int ab_radius;
 
+int transparent;
+
 //circular linked list
 controller_skin * next;
 

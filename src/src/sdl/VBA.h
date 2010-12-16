@@ -23,7 +23,7 @@
 #include <assert.h>
 #include "GBA.h"
 
-#define VERSION "1.3.1"
+#define VERSION "1.3.4"
 
 #define VBA_WIKI "http://www.webos-internals.org/wiki/Application:VBA"
 #define VBA_HOME "/media/internal/vba"
@@ -136,6 +136,7 @@ extern int use_on_screen;
 extern int autosave;
 extern int running;
 extern int turbo_toggle;
+extern int stretch;
 
 extern int turbo_on;
 
@@ -194,5 +195,7 @@ extern void sdlReadBattery();
 
 extern void sdlWriteState(int num);
 extern void sdlReadState(int num);
+
+extern void sdlRestart(void);
 
 #endif // _VBA_H_

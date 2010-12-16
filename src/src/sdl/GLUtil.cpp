@@ -151,6 +151,10 @@ void GL_Init()
     glDisable(GL_CULL_FACE);
     checkError();
 
+    //Enable alpha blending
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+
     GLbyte vShaderStr[] =  
         "attribute vec4 a_position;   \n"
         "attribute vec2 a_texCoord;   \n"
@@ -171,7 +175,7 @@ void GL_Init()
         "  gl_FragColor.r = color.b;                         \n"
         "  gl_FragColor.g = color.g;                         \n"
         "  gl_FragColor.b = color.r;                         \n"
-        "  gl_FragColor.a = 1.0;                             \n"
+        "  gl_FragColor.a = color.a;                         \n"
         "}                                                   \n";
 
     // Load the shaders and get a linked program object
@@ -246,8 +250,10 @@ void GL_InitTexture()
         return;
     }
     //Create RGB surface and copy controller into it
-    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 24,
-            0xff0000, 0x00ff00, 0x0000ff, 0);
+    //Make sure the surface is the right format...
+    SDL_Surface * controller_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, initial_surface->w, initial_surface->h, 32,
+            0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+    SDL_SetAlpha(initial_surface, 0, 0);
     SDL_BlitSurface( initial_surface, NULL, controller_surface, NULL );
 
     glGenTextures(1, &controller_tex );
@@ -262,7 +268,7 @@ void GL_InitTexture()
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     checkError();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, controller_surface->w, controller_surface->h, 0, GL_RGB,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, controller_surface->w, controller_surface->h, 0, GL_RGBA,
             GL_UNSIGNED_BYTE, controller_surface->pixels );
     checkError();
 
@@ -277,9 +283,10 @@ void updateOrientation()
     float screenAspect = (float)destWidth/(float)destHeight;
     float emulatedAspect = (float)srcWidth/(float)srcHeight;
     
-    //XXX: 'orientation' is invariant as far the rendering loop goes; move
-    //the corresponding invariant results (vertexCoords, etc)
-    //to be calculated outside this method
+    //XXX: Hack until skins support setting their orientation
+    if ( use_on_screen && skin )
+      orientation = ORIENTATION_LANDSCAPE_R;
+    
     switch( orientation )
     {
         case ORIENTATION_LANDSCAPE_R:
@@ -302,34 +309,48 @@ void updateOrientation()
         emulatedAspect = 1/emulatedAspect;//landscape has reversed aspect ratio
     }
 
-    for ( int i = 0; i < 4; i++ )
+    if (!stretch)
     {
+      for ( int i = 0; i < 4; i++ )
+      {
         vertexCoords[2*i+1] *= screenAspect / emulatedAspect;
-    }
+      }
 
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
-    {
-        float controller_aspect = (float)skin->controller_screen_width / (float)skin->controller_screen_height;
+      if ( use_on_screen && skin )
+      {
+        float csw = skin->controller_screen_width,
+              csh = skin->controller_screen_height;
+        float controller_aspect = csw / csh;
+        int x_offset_center = 0, y_offset_center = 0;
+
+        // Forcing b/c I know aspect ratios > 1 :(
+        float effectiveHeight = destWidth;
+        float effectiveWidth = effectiveHeight / emulatedAspect;
+
+        // So, given these, we need to scale to max csw and csh.
+        float scale_max_csw = csw/effectiveWidth;
+        float scale_max_csh = csh/effectiveHeight;
+
+        // Pick the leser, and use that to calculate centering offsets
         float scale_factor;
-        if ( (float)srcHeight * controller_aspect  > (float)skin->controller_screen_height )
+        if ( scale_max_csw < scale_max_csh )
         {
-            //width is limiting factor
-            scale_factor = ( (float)skin->controller_screen_height / (float)destWidth );
+          scale_factor = scale_max_csw;
+          //We're scaling to the width, so we need to center the height:
+          y_offset_center = (effectiveHeight * scale_max_csh - effectiveHeight * scale_max_csw) / 2;
         }
         else
         {
-            //height is limiting factor
-            //'effectiveWidth' b/c we already scaled previously
-            //and we don't fill the screen due to aspect ratio
-            float effectiveWidth = (float)destWidth / emulatedAspect;
-            scale_factor = ( (float)skin->controller_screen_width / effectiveWidth );
+          scale_factor = scale_max_csh;
+          //We're scaling to the height, so we need to center the width:
+          x_offset_center = (effectiveWidth * scale_max_csw - effectiveWidth * scale_max_csh) / 2;
         }
 
         for ( int i = 0; i < 4; i++ )
         {
-            //scale
-            vertexCoords[2*i] *= scale_factor;
-            vertexCoords[2*i+1] *= scale_factor;
+          //scale
+          vertexCoords[2*i] *= scale_factor;
+          vertexCoords[2*i+1] *= scale_factor;
         }
 
         float y_offset = 1.0 - vertexCoords[0];
@@ -339,12 +360,17 @@ void updateOrientation()
         y_offset -= ( (float)skin->controller_screen_y_offset / (float)destWidth ) * 2;
         x_offset -= ( (float)skin->controller_screen_x_offset / (float)destHeight ) * 2;
 
+        //And account for centering...
+        y_offset -= ( y_offset_center / (float)destWidth ) * 2;
+        x_offset -= ( x_offset_center / (float)destHeight ) * 2;
+
         for ( int i = 0; i < 4; i++ )
         {
-            //translate
-            vertexCoords[2*i] += y_offset;
-            vertexCoords[2*i+1] += x_offset;
+          //translate
+          vertexCoords[2*i] += y_offset;
+          vertexCoords[2*i+1] += x_offset;
         }
+      }
     }
 
     int notification_direction;
@@ -367,42 +393,47 @@ void updateOrientation()
     PDL_SetOrientation( notification_direction );
 }
 
+void drawSkin()
+{
+  // Use the program object
+  glUseProgram ( programObject );
+  checkError();
+
+  glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
+  checkError();
+  glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
+
+  checkError();
+
+  glEnableVertexAttribArray( positionLoc );
+  checkError();
+  glEnableVertexAttribArray( texCoordLoc );
+  checkError();
+
+  checkError();
+
+  //sampler texture unit to 0
+  glBindTexture(GL_TEXTURE_2D, controller_tex);
+  glUniform1i( samplerLoc, 0 );
+  checkError();
+
+  glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
+  checkError();
+
+}
+
 void GL_RenderPix(u8 * pix)
 {
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
 
     /*-----------------------------------------------------------------------------
-     *  Overlay
+     *  Background Skin
      *-----------------------------------------------------------------------------*/
-    if ( use_on_screen && orientation == ORIENTATION_LANDSCAPE_R && skin )
+    if ( use_on_screen && skin && !skin->transparent)
     {
-        // Use the program object
-        glUseProgram ( programObject );
-        checkError();
-
-        glVertexAttribPointer( positionLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), controller_coords );
-        checkError();
-        glVertexAttribPointer( texCoordLoc, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GLfloat), texCoords );
-
-        checkError();
-
-        glEnableVertexAttribArray( positionLoc );
-        checkError();
-        glEnableVertexAttribArray( texCoordLoc );
-        checkError();
-
-        checkError();
-
-        //sampler texture unit to 0
-        glBindTexture(GL_TEXTURE_2D, controller_tex);
-        glUniform1i( samplerLoc, 0 );
-        checkError();
-
-        glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-        checkError();
+      drawSkin();
     }
-
 
     /*-----------------------------------------------------------------------------
      *  Draw the frame of the gb(c/a)
@@ -436,6 +467,15 @@ void GL_RenderPix(u8 * pix)
 
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
     checkError();
+
+    /*-----------------------------------------------------------------------------
+     *  Skin Overlay
+     *-----------------------------------------------------------------------------*/
+    if ( use_on_screen && skin && skin->transparent)
+    {
+      drawSkin();
+    }
+
 
     //Push to screen
     SDL_GL_SwapBuffers();
