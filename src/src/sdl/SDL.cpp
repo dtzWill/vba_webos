@@ -1300,6 +1300,7 @@ void pickRom()
       systemMessage(0, "Failed to load file %s", szFile);
       exit(-1);
   }
+  free(szFile);
 
   sdlReadBattery();
 
