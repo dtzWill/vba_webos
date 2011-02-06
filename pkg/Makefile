@@ -1,5 +1,5 @@
 #Build various ipk's
-.PHONY: cat_beta cat preware pkg update
+.PHONY: cat_beta cat preware pkg update install-%
 
 all: cat_beta cat preware
 
@@ -17,6 +17,12 @@ cat:
 
 preware:
 	$(MAKE) pkg ID=org.webosinternals.visualboyadvance
+
+install-%:
+	$(MAKE) $(subst install-,,$@)
+	@palm-install -r org.webosinternals.visualboyadvance
+	palm-install ipk/org.webosinternals.visualboyadvance_1.3.4_all.ipk
+	palm-launch org.webosinternals.visualboyadvance
 
 #Build a pkg with the specified 'ID'
 pkg: update
