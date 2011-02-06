@@ -1,5 +1,9 @@
-#Build various ipk's
+# Build various ipk's
 .PHONY: cat_beta cat preware pkg update install-%
+
+# Extra the version from appinfo.json
+# Not hacky at all.
+VERSION = $(shell sed -n -e 's/.*version\".*\"\(.*\)\",/\1/p' pkg_base/appinfo.json)
 
 all: cat_beta cat preware
 
@@ -18,11 +22,15 @@ cat:
 preware:
 	$(MAKE) pkg ID=org.webosinternals.visualboyadvance
 
-install-%:
-	$(MAKE) $(subst install-,,$@)
-	@palm-install -r org.webosinternals.visualboyadvance
-	palm-install ipk/org.webosinternals.visualboyadvance_1.3.4_all.ipk
-	palm-launch org.webosinternals.visualboyadvance
+testing:
+	$(MAKE) pkg ID=org.webosinternals.visualboyadvance.testing
+
+# Install with the testing ID
+install:
+	$(MAKE) testing
+	-@palm-install -r org.webosinternals.visualboyadvance.testing
+	palm-install ipk/org.webosinternals.visualboyadvance.testing_$(VERSION)_all.ipk
+	palm-launch org.webosinternals.visualboyadvance.testing
 
 #Build a pkg with the specified 'ID'
 pkg: update
