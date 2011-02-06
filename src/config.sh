@@ -6,4 +6,4 @@ export CFLAGS="-O3 $PRE_FLAGS -ftree-vectorize -ffast-math -DARM_CORE -DFINAL_VE
 export CPPFLAGS=$CFLAGS
 export CXXFLAGS=$CFLAGS
 export LIBS='-L/usr/local/lib -L/usr/lib -lGLESv2 -lSDL_ttf -lSDL_image -lpdl -Wl,-rpath,/usr/local/lib /usr/lib/libstdc++.a'
-./configure --disable-dev --disable-profiling
+./configure --disable-dev --disable-profiling --with-sdl-prefix=/usr/local
