@@ -8,4 +8,4 @@ export CXXFLAGS=$CFLAGS
 
 export LIBS='-L/usr/local/lib -L/usr/lib -lGLESv2 -lSDL_ttf -lSDL_image -lpdl -Wl,-rpath,/usr/local/lib /usr/lib/libstdc++.a'
 export LDFLAGS='-Wl,--allow-shlib-undefined'
-./configure --disable-dev --disable-profiling
+./configure --disable-dev --disable-profiling --with-sdl-prefix=/usr/local

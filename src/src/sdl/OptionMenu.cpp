@@ -65,7 +65,8 @@ enum menuState
   MENU_SAVES,
   MENU_OPTIONS,
   MENU_SKINS,
-  MENU_HELP
+  MENU_HELP,
+  MENU_CONFIRM_RESET
 };
 
 enum optionType {
@@ -121,6 +122,7 @@ static menuOption * saveMenu = NULL;
 static menuOption * optionMenu = NULL;
 static menuOption * helpMenu = NULL;
 static menuOption * skinMenu = NULL;
+static menuOption * confirmMenu = NULL;
 static TTF_Font * menu_font = NULL;
 
 static enum menuState menuState;
@@ -324,11 +326,12 @@ void updateSkinSurface( menuOption * opt )
 /*-----------------------------------------------------------------------------
  *  Functors for menu options...
  *-----------------------------------------------------------------------------*/
-void changeToMainState(void)     { menuState = MENU_MAIN;    }
-void changeToSaveState(void)     { menuState = MENU_SAVES;   }
-void changeToSkinState(void)     { menuState = MENU_SKINS;   }
-void changeToOptionsState(void)  { menuState = MENU_OPTIONS; }
-void changeToHelpState(void)     { menuState = MENU_HELP;    }
+void changeToMainState(void)     { menuState = MENU_MAIN;          }
+void changeToSaveState(void)     { menuState = MENU_SAVES;         }
+void changeToSkinState(void)     { menuState = MENU_SKINS;         }
+void changeToOptionsState(void)  { menuState = MENU_OPTIONS;       }
+void changeToHelpState(void)     { menuState = MENU_HELP;          }
+void changeToConfirmState(void)  { menuState = MENU_CONFIRM_RESET; }
 
 void exitMenu(void)              { menuDone = true;          }
 void moveToRomSelector(void);
@@ -416,6 +419,9 @@ eMenuResponse optionsMenu()
       case MENU_SAVES:
         doMenu( options_screen, saveMenu, 4 );
         break;
+      case MENU_CONFIRM_RESET:
+        doMenu( options_screen, confirmMenu, 2 );
+        break;
       case MENU_HELP:
         doHelp( options_screen );
         break;
@@ -447,15 +453,15 @@ void initializeMenu()
   int base = ( NATIVE_RES_HEIGHT - TOP_LEVEL_COUNT * OPTION_SPACING ) / 2;
   topMenu = (menuOption*)malloc( TOP_LEVEL_COUNT*sizeof(menuOption));
   if (emulating)
-    topMenu[x++] = createButton( "Save states",           changeToSaveState,   base+x*OPTION_SPACING);
-  topMenu[x++] =   createButton( "Options",               changeToOptionsState,base+x*OPTION_SPACING);
-  topMenu[x++] =   createButton( skins_label,             changeToSkinState,   base+x*OPTION_SPACING);
-  topMenu[x++] =   createButton( "Help",                  changeToHelpState,   base+x*OPTION_SPACING);
+    topMenu[x++] = createButton( "Save states",           changeToSaveState,    base+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Options",               changeToOptionsState, base+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( skins_label,             changeToSkinState,    base+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Help",                  changeToHelpState,    base+x*OPTION_SPACING);
   if (emulating)
-    topMenu[x++] = createButton( "Choose different game", moveToRomSelector,   base+x*OPTION_SPACING);
+    topMenu[x++] = createButton( "Choose different game", moveToRomSelector,    base+x*OPTION_SPACING);
   if (emulating)
-    topMenu[x++] = createButton( "Reset game",            resetGame,           base+x*OPTION_SPACING);
-  topMenu[x++] =   createButton( "Return",                exitMenu,            base+x*OPTION_SPACING);
+    topMenu[x++] = createButton( "Reset game",            changeToConfirmState, base+x*OPTION_SPACING);
+  topMenu[x++] =   createButton( "Return",                exitMenu,             base+x*OPTION_SPACING);
 
   //Save menu
   x = 0;
@@ -500,11 +506,15 @@ void initializeMenu()
   x = 0;
   base = ( NATIVE_RES_HEIGHT - HELP_COUNT * OPTION_SPACING ) / 2;
   helpMenu = (menuOption*)malloc(HELP_COUNT*sizeof(menuOption));
-  helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     base+x*OPTION_SPACING);
-  helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, base+x*OPTION_SPACING);
-  helpMenu[x++] = createButton( "Settings",        changeToHelpSettingsState, base+x*OPTION_SPACING);
-  helpMenu[x++] = createButton( "Wiki",            changeToHelpWikiState,     base+x*OPTION_SPACING);
+  helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     base+x*OPTION_SPACING );
+  helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, base+x*OPTION_SPACING );
+  helpMenu[x++] = createButton( "Settings",        changeToHelpSettingsState, base+x*OPTION_SPACING );
+  helpMenu[x++] = createButton( "Wiki",            changeToHelpWikiState,     base+x*OPTION_SPACING );
   helpMenu[x++] = createButton( "Return",          changeToMainState,         base+x*OPTION_SPACING );
+
+  confirmMenu = (menuOption*)malloc(2*sizeof(menuOption));
+  confirmMenu[0] = createButton( "Yes, reset game!", resetGame, 200 );
+  confirmMenu[1] = createButton( "No, don't reset!", changeToMainState, 200+OPTION_SPACING );
 }
 
 void freeMenu( menuOption ** opt, int numOptions )
@@ -541,6 +551,7 @@ void freeMenu()
   freeMenu( &skinMenu,   3 );
   freeMenu( &helpMenu,   HELP_COUNT );
   freeMenu( &optionMenu, OPTIONS_COUNT );
+  freeMenu( &confirmMenu, 2 );
 }
 
 void doMenu( SDL_Surface * s, menuOption * options, int numOptions )
