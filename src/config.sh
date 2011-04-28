@@ -1,3 +1,5 @@
+autoreconf --install --symlink
+
 #Note that I am using 2010q1 toolchain here, fwiw
 export PRE_FLAGS='-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp'
 export PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp -DPIXI'
