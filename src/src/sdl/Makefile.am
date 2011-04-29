@@ -78,7 +78,7 @@ VisualBoyAdvance_SOURCES = \
 VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@
 
 #strip the binary
-VisualBoyAdvance_LDFLAGS = -s -Wl,--allow-shlib-undefined
+VisualBoyAdvance_LDFLAGS = -Wl,-S -Wl,--allow-shlib-undefined
 
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 
