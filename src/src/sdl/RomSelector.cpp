@@ -53,7 +53,7 @@ typedef struct
   char * msg;
   SDL_Color color;
 } line;
-static line no_roms[] {
+static line no_roms[] = {
 { "Welcome to VBA!",                     textColor},
 { "Looks like you don't have any ROMs.", textColor},
 { "To play games, put the roms in ",     textColor},
