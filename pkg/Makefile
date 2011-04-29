@@ -9,6 +9,7 @@ all: cat_beta cat preware
 
 #Make sure the binary is up-to-date
 ../binaries/armv7/vba: ../src/src/sdl/VisualBoyAdvance
+	mkdir -p ../binaries/armv7
 	cp $< $@
 
 update: ../binaries/armv7/vba
