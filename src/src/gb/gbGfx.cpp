@@ -71,12 +71,15 @@ void gbRenderLine()
     bank1 = NULL;
   }
   
+  // Address of the background tile map, relative to the start of video memory.
+  // See "VRAM Background Maps" in the Pan Docs
   int tile_map = 0x1800;
   if((register_LCDC & 8) != 0)
     tile_map = 0x1c00;
 
+  // Address of the tile pattern table containing the actual 4 color 8x8 tile
+  // images, each of which occupies 16 bytes.
   int tile_pattern = 0x0800;
-
   if((register_LCDC & 16) != 0)
     tile_pattern = 0x0000;
     
@@ -88,6 +91,7 @@ void gbRenderLine()
 
   //  int yLine = (y + gbBorderRowSkip) * gbBorderLineSkip;
 
+  // Scrolling offset used when displaying the BG Map
   int sx = register_SCX;
   int sy = register_SCY;
 
@@ -95,9 +99,15 @@ void gbRenderLine()
 
   sy &= 255;
     
+  // The tile component of the scrolling offset
   int tx = sx >> 3;
   int ty = sy >> 3;
 
+  // The pixel component of the scrolling offset. Each line of 8 pixels is
+  // stored in two adjacent bytes. The least significant bit of each pixel is
+  // in the first byte, while the MSB is in the second. The rightmost pixel in
+  // the line is stored in the least significant bit of each byte, i.e. the
+  // significance increases from right to left.
   int bx = 1 << (7 - (sx & 7));
   int by = sy & 7;
 
@@ -109,6 +119,7 @@ void gbRenderLine()
   if(bank1 != NULL)
     attrs = bank1[tile_map_address];
   
+  // Number of the first tile being rendered in this line
   u8 tile = bank0[tile_map_address];
   
   tile_map_address++;
