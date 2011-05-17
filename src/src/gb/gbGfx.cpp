@@ -179,8 +179,7 @@ void gbRenderLine()
               c = c + 4*palette;
             }
           }
-          gbLineMix[x] = gbColorOption ? gbColorFilter[gbPalette[c]] :
-            gbPalette[c];
+          gbLineMix[x] = gbPalette[c];
           x++;
           if(x >= 160)
             break;
@@ -201,6 +200,11 @@ void gbRenderLine()
           else tile -= 128;
         }
         tile_pattern_address = tile_pattern + tile * 16 + by * 2;
+      }
+      if (gbColorOption)
+      {
+        for (int i = 0; i < 160; ++i)
+            gbLineMix[i] = gbColorFilter[gbLineMix[i]];
       }
     } else {
       for(int i = 0; i < 160; i++) {
@@ -304,8 +308,7 @@ void gbRenderLine()
                   c = c + 4*palette;            
                 }
               }
-              gbLineMix[x] = gbColorOption ? gbColorFilter[gbPalette[c]] :
-                gbPalette[c];
+              gbLineMix[x] = gbPalette[c];
               x++;
               if(x >= 160)
                 break;
@@ -326,6 +329,11 @@ void gbRenderLine()
             tile_pattern_address = tile_pattern + tile * 16 + by * 2;
           }
           gbWindowLine++;
+          if (gbColorOption)
+          {
+            for (int i = wx; i < 160; ++i)
+              gbLineMix[i] = gbColorFilter[gbLineMix[i]];
+          }
         }
       }
     }
