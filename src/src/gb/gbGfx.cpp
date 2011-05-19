@@ -59,6 +59,15 @@ u8 gbInvertTab[256] = {
 
 u16 gbLineMix[160];
 
+// Extract the two bit color stored in the nth bits of tile_high and tile_low.
+static u8 extract_color(u8 tile_high, u8 tile_low, u8 bit)
+{
+  int mask = 1 << bit;
+  u8 c = (tile_low & mask) ? 1 : 0;
+  c += ((tile_high & mask) ? 2 : 0);
+  return c;
+}
+
 void gbRenderLine()
 {
   u8 * bank0;
@@ -108,7 +117,7 @@ void gbRenderLine()
   // in the first byte, while the MSB is in the second. The rightmost pixel in
   // the line is stored in the least significant bit of each byte, i.e. the
   // significance increases from right to left.
-  int bx = 1 << (7 - (sx & 7));
+  int bx = 7 - (sx & 7);
   int by = sy & 7;
 
   int tile_map_line_y = tile_map + ty * 32;
@@ -154,9 +163,8 @@ void gbRenderLine()
           tile_b = gbInvertTab[tile_b];
         }
         
-        while(bx > 0) {
-          u8 c = (tile_a & bx) ? 1 : 0;
-          c += ((tile_b & bx) ? 2 : 0);
+        while(bx >= 0) {
+          u8 c = extract_color(tile_b, tile_a, bx);
           
           gbLineBuffer[x] = c; // mark the gbLineBuffer color
           
@@ -181,14 +189,14 @@ void gbRenderLine()
           }
           gbLineMix[x] = gbPalette[c];
           x++;
+          --bx;
           if(x >= 160)
             break;
-          bx >>= 1;
         }
         tx++;
         if(tx == 32)
           tx = 0;
-        bx = 128;
+        bx = 7;
         
         if(bank1)
           attrs = bank1[tile_map_line_y + tx];
@@ -235,11 +243,11 @@ void gbRenderLine()
           tx = 0;
           ty = gbWindowLine >> 3;
           
-          bx = 128;
+          bx = 7;
           by = gbWindowLine & 7;
           
           if(wx < 0) {
-            bx >>= (-wx);
+            bx -= (-wx);
             wx = 0;
           }
           
@@ -283,9 +291,8 @@ void gbRenderLine()
               tile_b = gbInvertTab[tile_b];
             }
             
-            while(bx > 0) {
-              u8 c = (tile_a & bx) != 0 ? 1 : 0;
-              c += ((tile_b & bx) != 0 ? 2 : 0);
+            while(bx >= 0) {
+              u8 c = extract_color(tile_b, tile_a, bx);
 
               if(attrs & 0x80)
                 gbLineBuffer[x] = 0x300 + c;
@@ -310,14 +317,14 @@ void gbRenderLine()
               }
               gbLineMix[x] = gbPalette[c];
               x++;
+              --bx;
               if(x >= 160)
                 break;
-              bx >>= 1;
             }
             tx++;
             if(tx == 32)
               tx = 0;
-            bx = 128;
+            bx = 7;
             tile = bank0[tile_map_line_y + tx];
             if(bank1)
               attrs = bank1[tile_map_line_y + tx];
