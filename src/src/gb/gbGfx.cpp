@@ -152,6 +152,7 @@ void gbRenderLine()
 
   if(register_LCDC & 0x80) {
     if((register_LCDC & 0x01 || gbCgbMode) && (layerSettings & 0x0100)) {
+      int palette = 0;
       while(x < 160) {
         u8 tile_a = 0;
         u8 tile_b = 0;
@@ -188,15 +189,14 @@ void gbRenderLine()
           } else {
             c = gbBgp[c];         
             if(gbSgbMode && !gbCgbMode) {
-              int dx = x >> 3;
-              int dy = y >> 3;
-              
-              int palette = gbSgbATF[dy * 20 + dx];
-              
-              if(c == 0)
-                palette = 0;
-              
-              c = c + 4*palette;
+              if (x % 8 == 0)
+              {
+                int dx = x >> 3;
+                int dy = y >> 3;
+                palette = gbSgbATF[dy * 20 + dx];
+              }
+              if(c != 0)
+                c = c + 4*palette;
             }
           }
           gbLineMix[x] = gbPalette[c];
@@ -282,6 +282,8 @@ void gbRenderLine()
           
           tile_pattern_address = tile_pattern + tile * 16 + by*2;
 
+          int palette = 0;
+
           while(x < 160) {
             u8 tile_a = 0;
             u8 tile_b = 0;
@@ -318,15 +320,14 @@ void gbRenderLine()
               } else {
                 c = gbBgp[c];         
                 if(gbSgbMode && ! gbCgbMode) {
-                  int dx = x >> 3;
-                  int dy = y >> 3;
-                  
-                  int palette = gbSgbATF[dy * 20 + dx];
-                  
-                  if(c == 0)
-                    palette = 0;
-                  
-                  c = c + 4*palette;            
+                  if (x % 8 == 0)
+                  {
+                    int dx = x >> 3;
+                    int dy = y >> 3;
+                    palette = gbSgbATF[dy * 20 + dx];
+                  }
+                  if(c != 0)
+                    c = c + 4*palette;
                 }
               }
               gbLineMix[x] = gbPalette[c];
