@@ -65,7 +65,7 @@ uint16_t repackTable[256] = {
 };
 // Interleaves the high and low bits in the tile row, returning 8 contiguous
 // 2-bit numbers packed into a 16-bit variable.
-static u16 repack_colors(u8 tile_high, u8 tile_low)
+static unsigned repack_colors(u8 tile_high, u8 tile_low)
 {
   return (repackTable[tile_high] << 1) | repackTable[tile_low];
 }
@@ -73,7 +73,7 @@ static u16 repack_colors(u8 tile_high, u8 tile_low)
 // Colors is 8 2-bit numbers packed into a u16. Extract the color for pixel x,
 // where x counts from right to left (since thats how tile data is stored in GB
 // VRAM).
-static u8 extract_color(u16 colors, u8 x_rtl)
+static unsigned extract_color(unsigned colors, int x_rtl)
 {
   return (colors >> 2*x_rtl) & 0x3;
 }
@@ -173,10 +173,10 @@ void gbRenderLine()
           tile_b = gbInvertTab[tile_b];
         }
 
-        u16 colors = repack_colors(tile_b, tile_a);
+        unsigned colors = repack_colors(tile_b, tile_a);
 
         while(bx >= 0) {
-          u8 c = extract_color(colors, bx);
+          unsigned c = extract_color(colors, bx);
           
           gbLineBuffer[x] = c; // mark the gbLineBuffer color
           
@@ -303,10 +303,10 @@ void gbRenderLine()
               tile_b = gbInvertTab[tile_b];
             }
 
-            u16 colors = repack_colors(tile_b, tile_a);
+            unsigned colors = repack_colors(tile_b, tile_a);
 
             while(bx >= 0) {
-              u8 c = extract_color(colors, bx);
+              unsigned c = extract_color(colors, bx);
 
               if(attrs & 0x80)
                 gbLineBuffer[x] = 0x300 + c;
@@ -418,7 +418,7 @@ void gbDrawSpriteTile(int tile, int x,int y,int t, int flags,
 
   for(int xx = 0; xx < 8; xx++) {
     u8 i = (7-xx);
-    u8 c = extract_color(colors, i);
+    unsigned c = extract_color(colors, i);
     
     if(c==0) continue;
 
