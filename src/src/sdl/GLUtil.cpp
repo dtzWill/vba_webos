@@ -15,6 +15,7 @@
  */
 
 #include "GLUtil.h"
+#include <GLES2/gl2ext.h>
 #include "Types.h"
 #include "esFunc.h"
 #include "VBA.h"
@@ -154,6 +155,8 @@ void GL_Init()
     //Enable alpha blending
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
+
+    glEnable(GL_WRITEONLY_RENDERING_QCOM);
 
     GLbyte vShaderStr[] =  
         "attribute vec4 a_position;   \n"
