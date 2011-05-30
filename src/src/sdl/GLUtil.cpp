@@ -435,7 +435,11 @@ void GL_RenderPix(u8 * pix)
 
     checkError();
 
-    glClear( GL_COLOR_BUFFER_BIT );
+    // Sometimes an OpenGL driver (e.g. Qualcomm's) can spend extra work
+    // copying and preserving the previous contents of the depth buffer.
+    // Clearing the depth buffer may improve performance, by hinting to the
+    // OpenGL driver that it doesn't need do this.
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkError();
 
     /*-----------------------------------------------------------------------------
