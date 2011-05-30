@@ -424,6 +424,17 @@ void drawSkin()
 
 void GL_RenderPix(u8 * pix)
 {
+    // For Qualcomm's Adreno GPUs, the developer guide included with the Adreno
+    // SDK recommends performing texture uploads before glClear. Without this
+    // hint, the driver preserves the previous contents of the texture, which
+    // results in an unnecessary copy.
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D( GL_TEXTURE_2D,0,
+            0,0, srcWidth,srcHeight,
+            GL_RGBA,GL_UNSIGNED_SHORT_5_5_5_1,pix);
+
+    checkError();
+
     glClear( GL_COLOR_BUFFER_BIT );
     checkError();
 
@@ -452,13 +463,6 @@ void GL_RenderPix(u8 * pix)
     glEnableVertexAttribArray( positionLoc );
     checkError();
     glEnableVertexAttribArray( texCoordLoc );
-    checkError();
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D( GL_TEXTURE_2D,0,
-            0,0, srcWidth,srcHeight,
-            GL_RGBA,GL_UNSIGNED_SHORT_5_5_5_1,pix);
-
     checkError();
 
     //sampler texture unit to 0
