@@ -1444,14 +1444,14 @@ void drawScreenText()
       sprintf(buffer, "%3d%%(%d, %d fps)", systemSpeed,
               systemFrameSkip,
               showRenderedFrames);
-      drawText(pix, srcPitch, 10, srcHeight - 20,
-               buffer); 
-      static int counter;
-      if ( counter++ > 10 )
-      {
-          printf( "SPEED: %s\n", buffer );
-          counter = 0;
-      }
+    drawText(pix, srcPitch, 10, srcHeight - 20,
+             buffer);
+    static int counter;
+    if ( counter++ > 10 )
+    {
+        printf( "SPEED: %s\n", buffer );
+        counter = 0;
+    }
   }  
 
 }
