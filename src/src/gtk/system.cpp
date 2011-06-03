@@ -308,7 +308,7 @@ void systemGbPrint(u8 * _puiData,
 {
 }
 
-void systemScreenMessage(const char * _csMsg)
+void systemScreenMessage(const char * _csMsg, ...)
 {
 }
 

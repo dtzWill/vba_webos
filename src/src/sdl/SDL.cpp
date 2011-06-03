@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -1731,15 +1732,16 @@ void systemGbPrint(u8 *data,int pages,int feed,int palette, int contrast)
 {
 }
 
-void systemScreenMessage(const char *msg)
+void systemScreenMessage(const char *fmt, ...)
 {
   screenMessage = true;
   screenMessageTime = systemGetClock();
-  if(strlen(msg) > 20) {
-    strncpy(screenMessageBuffer, msg, 20);
-    screenMessageBuffer[20] = 0;
-  } else
-    strcpy(screenMessageBuffer, msg);  
+
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(screenMessageBuffer, 21, fmt, ap);
+  va_end(ap);
+  screenMessageBuffer[20] = 0;
 }
 
 bool systemCanChangeSoundQuality()
