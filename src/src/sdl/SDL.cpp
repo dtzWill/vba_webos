@@ -1515,7 +1515,7 @@ void system10Frames(int rate)
       }
     } else {
       if(speed  < 80)
-        frameskipadjust -= (90 - speed)/5;
+        frameskipadjust -= 2;
       else if(systemFrameSkip < 9)
         frameskipadjust--;
 
