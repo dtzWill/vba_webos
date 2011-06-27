@@ -14,5 +14,13 @@ export LIBS="$LIBS -lGLESv2 -lSDL -lSDL_ttf -lSDL_image -lpdl -lstdc++"
 export LIBS="$LIBS -Wl,--allow-shlib-undefined"
 export LIBS="$LIBS $WEBOS_PDK/arm-gcc/arm-none-linux-gnueabi/libc/usr/lib/libstdc++.a"
 export PATH=$WEBOS_PDK/arm-gcc/bin:$PATH
+
+# LTO
+export CFLAGS="$CPPFLAGS -flto"
+export CPPFLAGS="$CPPFLAGS -flto"
+export CXXFLAGS="$CPPFLAGS -flto"
+
+export LIBS="$LIBS -flto -fwhole-program"
+
 arm-none-linux-gnueabi-gcc
 ./configure --disable-dev --disable-profiling --host=arm-none-linux-gnueabi
