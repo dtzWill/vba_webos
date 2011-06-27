@@ -58,11 +58,6 @@ VisualBoyAdvance_SOURCES = \
 	../bios.h		\
 	../elf.cpp		\
 	../elf.h		\
-	../expr-lex.cpp		\
-	../expr.cpp		\
-	../expr.cpp.h		\
-	../exprNode.cpp		\
-	../exprNode.h		\
 	../getopt.c		\
 	../getopt.h		\
 	../getopt1.c		\

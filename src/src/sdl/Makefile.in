@@ -56,10 +56,9 @@ am_VisualBoyAdvance_OBJECTS = Controller.$(OBJEXT) Event.$(OBJEXT) \
 	Mode1.$(OBJEXT) Mode2.$(OBJEXT) Mode3.$(OBJEXT) \
 	Mode4.$(OBJEXT) Mode5.$(OBJEXT) RTC.$(OBJEXT) Sound.$(OBJEXT) \
 	Sram.$(OBJEXT) Text.$(OBJEXT) Util.$(OBJEXT) admame.$(OBJEXT) \
-	bios.$(OBJEXT) elf.$(OBJEXT) expr-lex.$(OBJEXT) expr.$(OBJEXT) \
-	exprNode.$(OBJEXT) getopt.$(OBJEXT) getopt1.$(OBJEXT) \
-	interframe.$(OBJEXT) memgzio.$(OBJEXT) pixel.$(OBJEXT) \
-	unzip.$(OBJEXT)
+	bios.$(OBJEXT) elf.$(OBJEXT) getopt.$(OBJEXT) \
+	getopt1.$(OBJEXT) interframe.$(OBJEXT) memgzio.$(OBJEXT) \
+	pixel.$(OBJEXT) unzip.$(OBJEXT)
 VisualBoyAdvance_OBJECTS = $(am_VisualBoyAdvance_OBJECTS)
 VisualBoyAdvance_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
 	$(VisualBoyAdvance_LDFLAGS) $(LDFLAGS) -o $@
@@ -279,11 +278,6 @@ VisualBoyAdvance_SOURCES = \
 	../bios.h		\
 	../elf.cpp		\
 	../elf.h		\
-	../expr-lex.cpp		\
-	../expr.cpp		\
-	../expr.cpp.h		\
-	../exprNode.cpp		\
-	../exprNode.h		\
 	../getopt.c		\
 	../getopt.h		\
 	../getopt1.c		\
@@ -415,9 +409,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/admame.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expr-lex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expr.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exprNode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interframe.Po@am__quote@
@@ -775,48 +766,6 @@ elf.obj: ../elf.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../elf.cpp' object='elf.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o elf.obj `if test -f '../elf.cpp'; then $(CYGPATH_W) '../elf.cpp'; else $(CYGPATH_W) '$(srcdir)/../elf.cpp'; fi`
-
-expr-lex.o: ../expr-lex.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT expr-lex.o -MD -MP -MF $(DEPDIR)/expr-lex.Tpo -c -o expr-lex.o `test -f '../expr-lex.cpp' || echo '$(srcdir)/'`../expr-lex.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/expr-lex.Tpo $(DEPDIR)/expr-lex.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../expr-lex.cpp' object='expr-lex.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o expr-lex.o `test -f '../expr-lex.cpp' || echo '$(srcdir)/'`../expr-lex.cpp
-
-expr-lex.obj: ../expr-lex.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT expr-lex.obj -MD -MP -MF $(DEPDIR)/expr-lex.Tpo -c -o expr-lex.obj `if test -f '../expr-lex.cpp'; then $(CYGPATH_W) '../expr-lex.cpp'; else $(CYGPATH_W) '$(srcdir)/../expr-lex.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/expr-lex.Tpo $(DEPDIR)/expr-lex.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../expr-lex.cpp' object='expr-lex.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o expr-lex.obj `if test -f '../expr-lex.cpp'; then $(CYGPATH_W) '../expr-lex.cpp'; else $(CYGPATH_W) '$(srcdir)/../expr-lex.cpp'; fi`
-
-expr.o: ../expr.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT expr.o -MD -MP -MF $(DEPDIR)/expr.Tpo -c -o expr.o `test -f '../expr.cpp' || echo '$(srcdir)/'`../expr.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/expr.Tpo $(DEPDIR)/expr.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../expr.cpp' object='expr.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o expr.o `test -f '../expr.cpp' || echo '$(srcdir)/'`../expr.cpp
-
-expr.obj: ../expr.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT expr.obj -MD -MP -MF $(DEPDIR)/expr.Tpo -c -o expr.obj `if test -f '../expr.cpp'; then $(CYGPATH_W) '../expr.cpp'; else $(CYGPATH_W) '$(srcdir)/../expr.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/expr.Tpo $(DEPDIR)/expr.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../expr.cpp' object='expr.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o expr.obj `if test -f '../expr.cpp'; then $(CYGPATH_W) '../expr.cpp'; else $(CYGPATH_W) '$(srcdir)/../expr.cpp'; fi`
-
-exprNode.o: ../exprNode.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT exprNode.o -MD -MP -MF $(DEPDIR)/exprNode.Tpo -c -o exprNode.o `test -f '../exprNode.cpp' || echo '$(srcdir)/'`../exprNode.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/exprNode.Tpo $(DEPDIR)/exprNode.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../exprNode.cpp' object='exprNode.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o exprNode.o `test -f '../exprNode.cpp' || echo '$(srcdir)/'`../exprNode.cpp
-
-exprNode.obj: ../exprNode.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT exprNode.obj -MD -MP -MF $(DEPDIR)/exprNode.Tpo -c -o exprNode.obj `if test -f '../exprNode.cpp'; then $(CYGPATH_W) '../exprNode.cpp'; else $(CYGPATH_W) '$(srcdir)/../exprNode.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/exprNode.Tpo $(DEPDIR)/exprNode.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../exprNode.cpp' object='exprNode.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o exprNode.obj `if test -f '../exprNode.cpp'; then $(CYGPATH_W) '../exprNode.cpp'; else $(CYGPATH_W) '$(srcdir)/../exprNode.cpp'; fi`
 
 interframe.o: ../interframe.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT interframe.o -MD -MP -MF $(DEPDIR)/interframe.Tpo -c -o interframe.o `test -f '../interframe.cpp' || echo '$(srcdir)/'`../interframe.cpp

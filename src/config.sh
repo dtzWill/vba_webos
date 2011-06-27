@@ -9,6 +9,8 @@ export CFLAGS="-O3 $PRE_FLAGS -ftree-vectorize -ffast-math -DARM_CORE -DFINAL_VE
 export CFLAGS="$CFLAGS -I$WEBOS_PDK/include -I$WEBOS_PDK/include/SDL"
 export CFLAGS="$CFLAGS -flto"
 
+#export CFLAGS="$CFLAGS -g -O0"
+
 export CPPFLAGS=$CFLAGS
 export CXXFLAGS=$CFLAGS
 
