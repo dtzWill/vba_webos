@@ -21,9 +21,11 @@
 #include <string.h>
 #include <zlib.h>
 
+#ifdef HAVE_PNG
 extern "C" {
 #include <png.h>
 }
+#endif
 
 #if 0
 #include "unrarlib.h"
@@ -53,6 +55,11 @@ static int (*utilGzCloseFunc)(gzFile) = NULL;
 
 bool utilWritePNGFile(const char *fileName, int w, int h, u8 *pix)
 {
+#ifndef HAVE_PNG
+  systemMessage(MSG_ERROR_CREATING_FILE, N_("PNG not supported!"));
+
+  return false;
+#else
   u8 writeBuffer[512 * 3];
   
   FILE *fp = fopen(fileName,"wb");
@@ -175,6 +182,7 @@ bool utilWritePNGFile(const char *fileName, int w, int h, u8 *pix)
   fclose(fp);
 
   return true;  
+#endif
 }
 
 void utilPutDword(u8 *p, u32 value)
