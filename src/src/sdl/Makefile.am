@@ -75,7 +75,7 @@ VisualBoyAdvance_SOURCES = \
 	../unzip.cpp		\
 	../unzip.h
 
-VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2 -lsrv_um -lIMGegl
+VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2
 
 #strip the binary
 VisualBoyAdvance_LDFLAGS = -s
