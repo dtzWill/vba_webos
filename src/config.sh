@@ -7,20 +7,19 @@ export WEBOS_SDK=/opt/PalmSDK
 
 export CFLAGS="-O3 $PRE_FLAGS -ftree-vectorize -ffast-math -DARM_CORE -DFINAL_VERSION"
 export CFLAGS="$CFLAGS -I$WEBOS_PDK/include -I$WEBOS_PDK/include/SDL"
+export CFLAGS="$CFLAGS -flto"
+
 export CPPFLAGS=$CFLAGS
 export CXXFLAGS=$CFLAGS
+
 export LIBS="-L$WEBOS_PDK/device/lib"
 export LIBS="$LIBS -lGLESv2 -lSDL -lSDL_ttf -lSDL_image -lpdl -lstdc++"
 export LIBS="$LIBS -Wl,--allow-shlib-undefined"
 export LIBS="$LIBS $WEBOS_PDK/arm-gcc/arm-none-linux-gnueabi/libc/usr/lib/libstdc++.a"
+export LIBS="$LIBS -flto"
+
 export PATH=$WEBOS_PDK/arm-gcc/bin:$PATH
 
-# LTO
-export CFLAGS="$CPPFLAGS -flto"
-export CPPFLAGS="$CPPFLAGS -flto"
-export CXXFLAGS="$CPPFLAGS -flto"
-
-export LIBS="$LIBS -flto -fwhole-program"
 
 arm-none-linux-gnueabi-gcc
 ./configure --disable-dev --disable-profiling --host=arm-none-linux-gnueabi
