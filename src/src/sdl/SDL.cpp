@@ -148,11 +148,11 @@ struct EmulatedSystem emulator = {
  *  State variables (outside the GB emulation core)
  *-----------------------------------------------------------------------------*/
 
-int orientation = ORIENTATION_LANDSCAPE_R;
+int orientation = ORIENTATION_PORTRAIT;
 
 int gl_filter = GL_LINEAR;
 
-int use_on_screen = true;
+int use_on_screen = false;
 
 int autosave = true;
 
