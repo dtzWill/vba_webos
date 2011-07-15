@@ -440,6 +440,17 @@ eMenuResponse optionsMenu()
   return menuResponse;
 }
 
+static int base_height(size_t options_count)
+{
+  int base_height =
+    (
+      NATIVE_RES_HEIGHT
+      - options_count * OPTION_SPACING
+      + OPTION_SPACING - OPTION_SIZE
+    ) / 2;
+  return base_height;
+}
+
 void initializeMenu()
 {
   menu_font = TTF_OpenFont( FONT, 18 );
@@ -453,7 +464,7 @@ void initializeMenu()
 
   //Top-level menu
   int x = 0;
-  int base = ( NATIVE_RES_HEIGHT - TOP_LEVEL_COUNT * OPTION_SPACING ) / 2;
+  int base = base_height(TOP_LEVEL_COUNT);
   topMenu = (menuOption*)malloc( TOP_LEVEL_COUNT*sizeof(menuOption));
   if (emulating)
     topMenu[x++] = createButton( "Save states",           changeToSaveState,    base+x*OPTION_SPACING);
@@ -476,7 +487,7 @@ void initializeMenu()
   
   //Options menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - OPTIONS_COUNT * OPTION_SPACING ) / 2;
+  base = base_height(OPTIONS_COUNT);
   optionMenu = (menuOption*)malloc(OPTIONS_COUNT*sizeof(menuOption));
   optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  base+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
@@ -498,7 +509,7 @@ void initializeMenu()
   
   //Skin menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - ( OPTION_SPACING * 3 + SKIN_SPACING ) ) / 2;
+  base = base_height(3) - SKIN_SPACING/2;
   skinMenu = (menuOption*)malloc(3*sizeof(menuOption));
   skinMenu[x++] = createToggle( "Display skin",   "On",     "Off",   base+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
@@ -507,7 +518,7 @@ void initializeMenu()
 
   //Help menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - HELP_COUNT * OPTION_SPACING ) / 2;
+  base = base_height(HELP_COUNT);
   helpMenu = (menuOption*)malloc(HELP_COUNT*sizeof(menuOption));
   helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     base+x*OPTION_SPACING );
   helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, base+x*OPTION_SPACING );
