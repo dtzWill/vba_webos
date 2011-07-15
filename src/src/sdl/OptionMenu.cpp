@@ -29,20 +29,20 @@
 
 #define OPTION_SIZE 40
 #define OPTION_SPACING 50
-#define OPTION_WIDTH 300
+#define OPTION_WIDTH (NATIVE_RES_WIDTH - 20)
 
 //Toggle stuff
 #define TOGGLE_TXT_X 10
-#define TOGGLE_ON_X 160
-#define TOGGLE_OFF_X 240
+#define TOGGLE_ON_X (NATIVE_RES_WIDTH/2)
+#define TOGGLE_OFF_X (NATIVE_RES_WIDTH*3/4)
 #define TOGGLE_Y 5
 
 //Skin stuff
 #define SKIN_TXT_X TOGGLE_TXT_X
 #define SKIN_NUM_X TOGGLE_ON_X
 #define SKIN_Y TOGGLE_Y
-#define SKIN_PREVIEW_HEIGHT (320/2 + 20)
-#define SKIN_PREVIEW_WIDTH (480/2 + 20)
+#define SKIN_PREVIEW_HEIGHT (NATIVE_RES_WIDTH/2 + 20)
+#define SKIN_PREVIEW_WIDTH (NATIVE_RES_HEIGHT/2 + 20)
 #define SKIN_SPACING (SKIN_PREVIEW_HEIGHT + 10)
 
 #define TOP_LEVEL_COUNT ( emulating ? 7 : 4 )
@@ -453,7 +453,7 @@ void initializeMenu()
 
   //Top-level menu
   int x = 0;
-  int base = ( 480 - TOP_LEVEL_COUNT * OPTION_SPACING ) / 2;
+  int base = ( NATIVE_RES_HEIGHT - TOP_LEVEL_COUNT * OPTION_SPACING ) / 2;
   topMenu = (menuOption*)malloc( TOP_LEVEL_COUNT*sizeof(menuOption));
   if (emulating)
     topMenu[x++] = createButton( "Save states",           changeToSaveState,    base+x*OPTION_SPACING);
@@ -476,7 +476,7 @@ void initializeMenu()
   
   //Options menu
   x = 0;
-  base = ( 480 - OPTIONS_COUNT * OPTION_SPACING ) / 2;
+  base = ( NATIVE_RES_HEIGHT - OPTIONS_COUNT * OPTION_SPACING ) / 2;
   optionMenu = (menuOption*)malloc(OPTIONS_COUNT*sizeof(menuOption));
   optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  base+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
@@ -498,7 +498,7 @@ void initializeMenu()
   
   //Skin menu
   x = 0;
-  base = ( 480 - ( OPTION_SPACING * 3 + SKIN_SPACING ) ) / 2;
+  base = ( NATIVE_RES_HEIGHT - ( OPTION_SPACING * 3 + SKIN_SPACING ) ) / 2;
   skinMenu = (menuOption*)malloc(3*sizeof(menuOption));
   skinMenu[x++] = createToggle( "Display skin",   "On",     "Off",   base+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
@@ -507,7 +507,7 @@ void initializeMenu()
 
   //Help menu
   x = 0;
-  base = ( 480 - HELP_COUNT * OPTION_SPACING ) / 2;
+  base = ( NATIVE_RES_HEIGHT - HELP_COUNT * OPTION_SPACING ) / 2;
   helpMenu = (menuOption*)malloc(HELP_COUNT*sizeof(menuOption));
   helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     base+x*OPTION_SPACING );
   helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, base+x*OPTION_SPACING );
