@@ -268,10 +268,6 @@ void updateSkinSurface( menuOption * opt )
   if ( opt->surface )
     SDL_FreeSurface( opt->surface );
 
-  char skin_num[20];
-  snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, getSkinName( skin ) );
-  skin_num[sizeof(skin_num)-1] = '\0';
-
   //Black rectangle
   SDL_Surface * rect_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
       0xff0000, 0x00ff00, 0x0000ff, 0);
@@ -280,16 +276,25 @@ void updateSkinSurface( menuOption * opt )
 
   //Render each piece...
   SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, opt->text, textColor );
-  SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
-
   apply_surface( SKIN_TXT_X, TOGGLE_Y, s_txt,  rect_surface );
-  apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, rect_surface );
+  SDL_FreeSurface( s_txt );
+  if (skin)
+  {
+    char skin_num[20];
+    snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, getSkinName( skin ) );
+    skin_num[sizeof(skin_num)-1] = '\0';
+    SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
+    apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, rect_surface );
+    SDL_FreeSurface( s_num  );
+  }
 
   opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, 
       OPTION_SIZE + 10 + SKIN_PREVIEW_HEIGHT, 24, 
       0xff0000, 0x00ff00, 0x0000ff, 0);
 
-  SDL_Surface * skin_preview = IMG_Load( skin->image_path );
+  SDL_Surface * skin_preview = NULL;
+  if (skin)
+    skin_preview = IMG_Load( skin->image_path );
   if ( skin_preview )
   {
     //Scale the image by half:
@@ -318,8 +323,6 @@ void updateSkinSurface( menuOption * opt )
   }
   apply_surface( 0, 0, rect_surface, opt->surface );
 
-  SDL_FreeSurface( s_txt );
-  SDL_FreeSurface( s_num  );
   SDL_FreeSurface( rect_surface );
 }
 
