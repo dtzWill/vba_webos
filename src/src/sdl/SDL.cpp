@@ -150,7 +150,7 @@ struct EmulatedSystem emulator = {
 
 int orientation = ORIENTATION_PORTRAIT;
 
-int gl_filter = GL_LINEAR;
+int gl_filter = GL_NEAREST;
 
 int use_on_screen = false;
 
