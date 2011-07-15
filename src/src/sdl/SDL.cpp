@@ -101,7 +101,7 @@ static int rewindTimer = 0;
 #define REWIND_SIZE 400000
 
 bool wasPaused = false;
-int autoFrameSkip = 0;
+int autoFrameSkip = 1;
 int frameskipadjust = 0;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
