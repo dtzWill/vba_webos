@@ -430,7 +430,7 @@ void systemGbPrint(u8 *data,int pages,int feed,int palette, int contrast)
 {
 }
 
-void systemScreenMessage(const char *msg)
+void systemScreenMessage(const char *msg, ...)
 {
 }
 

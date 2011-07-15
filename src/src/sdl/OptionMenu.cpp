@@ -28,8 +28,14 @@
 #include <SDL_ttf.h>
 
 #define OPTION_SIZE 40
-#define OPTION_SPACING 50
 #define OPTION_WIDTH (NATIVE_RES_WIDTH - 20)
+#ifdef PALM_PIXI
+#define OPTION_SPACING 44
+#define HELP_LINE_SPACING 3
+#else
+#define OPTION_SPACING 50
+#define HELP_LINE_SPACING 10
+#endif
 
 //Toggle stuff
 #define TOGGLE_TXT_X 10
@@ -143,7 +149,7 @@ void updateSkinSurface( menuOption * opt );
 /*-----------------------------------------------------------------------------
  *  Constructors for menu items
  *-----------------------------------------------------------------------------*/
-menuOption createButton( char * text, void (*action)(void), int y )
+menuOption createButton( const char * text, void (*action)(void), int y )
 {
   menuOption opt;
   opt.text = strdup( text );
@@ -171,7 +177,7 @@ menuOption createButton( char * text, void (*action)(void), int y )
   return opt;
 }
 
-menuOption createToggle( char * text, char * on, char * off, int y, void (*set)(bool), bool (*get)(void) )
+menuOption createToggle( const char * text, const char * on, const char * off, int y, void (*set)(bool), bool (*get)(void) )
 {
   menuOption opt;
   opt.text = strdup( text );
@@ -268,10 +274,6 @@ void updateSkinSurface( menuOption * opt )
   if ( opt->surface )
     SDL_FreeSurface( opt->surface );
 
-  char skin_num[20];
-  snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, getSkinName( skin ) );
-  skin_num[sizeof(skin_num)-1] = '\0';
-
   //Black rectangle
   SDL_Surface * rect_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, OPTION_SIZE, 24, 
       0xff0000, 0x00ff00, 0x0000ff, 0);
@@ -280,16 +282,25 @@ void updateSkinSurface( menuOption * opt )
 
   //Render each piece...
   SDL_Surface * s_txt = TTF_RenderText_Blended( menu_font, opt->text, textColor );
-  SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
-
   apply_surface( SKIN_TXT_X, TOGGLE_Y, s_txt,  rect_surface );
-  apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, rect_surface );
+  SDL_FreeSurface( s_txt );
+  if (skin)
+  {
+    char skin_num[20];
+    snprintf( skin_num, sizeof(skin_num), "%d : %s", skin_index+1, getSkinName( skin ) );
+    skin_num[sizeof(skin_num)-1] = '\0';
+    SDL_Surface * s_num = TTF_RenderText_Blended( menu_font, skin_num,  onColor );
+    apply_surface( SKIN_NUM_X,  TOGGLE_Y, s_num, rect_surface );
+    SDL_FreeSurface( s_num  );
+  }
 
   opt->surface = SDL_CreateRGBSurface( SDL_SWSURFACE, OPTION_WIDTH, 
       OPTION_SIZE + 10 + SKIN_PREVIEW_HEIGHT, 24, 
       0xff0000, 0x00ff00, 0x0000ff, 0);
 
-  SDL_Surface * skin_preview = IMG_Load( skin->image_path );
+  SDL_Surface * skin_preview = NULL;
+  if (skin)
+    skin_preview = IMG_Load( skin->image_path );
   if ( skin_preview )
   {
     //Scale the image by half:
@@ -318,8 +329,6 @@ void updateSkinSurface( menuOption * opt )
   }
   apply_surface( 0, 0, rect_surface, opt->surface );
 
-  SDL_FreeSurface( s_txt );
-  SDL_FreeSurface( s_num  );
   SDL_FreeSurface( rect_surface );
 }
 
@@ -437,6 +446,17 @@ eMenuResponse optionsMenu()
   return menuResponse;
 }
 
+static int base_height(size_t options_count)
+{
+  int base_height =
+    (
+      NATIVE_RES_HEIGHT
+      - options_count * OPTION_SPACING
+      + OPTION_SPACING - OPTION_SIZE
+    ) / 2;
+  return base_height;
+}
+
 void initializeMenu()
 {
   menu_font = TTF_OpenFont( FONT, 18 );
@@ -450,7 +470,7 @@ void initializeMenu()
 
   //Top-level menu
   int x = 0;
-  int base = ( NATIVE_RES_HEIGHT - TOP_LEVEL_COUNT * OPTION_SPACING ) / 2;
+  int base = base_height(TOP_LEVEL_COUNT);
   topMenu = (menuOption*)malloc( TOP_LEVEL_COUNT*sizeof(menuOption));
   if (emulating)
     topMenu[x++] = createButton( "Save states",           changeToSaveState,    base+x*OPTION_SPACING);
@@ -473,7 +493,7 @@ void initializeMenu()
   
   //Options menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - OPTIONS_COUNT * OPTION_SPACING ) / 2;
+  base = base_height(OPTIONS_COUNT);
   optionMenu = (menuOption*)malloc(OPTIONS_COUNT*sizeof(menuOption));
   optionMenu[x++] = createToggle( "Orientation",   "Port",   "Land",  base+x*OPTION_SPACING,
       menuSetOrientation, menuGetOrientation );
@@ -495,7 +515,7 @@ void initializeMenu()
   
   //Skin menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - ( OPTION_SPACING * 3 + SKIN_SPACING ) ) / 2;
+  base = base_height(3) - SKIN_SPACING/2;
   skinMenu = (menuOption*)malloc(3*sizeof(menuOption));
   skinMenu[x++] = createToggle( "Display skin",   "On",     "Off",   base+x*OPTION_SPACING,
       menuSetOnscreen, menuGetOnscreen );
@@ -504,7 +524,7 @@ void initializeMenu()
 
   //Help menu
   x = 0;
-  base = ( NATIVE_RES_HEIGHT - HELP_COUNT * OPTION_SPACING ) / 2;
+  base = base_height(HELP_COUNT);
   helpMenu = (menuOption*)malloc(HELP_COUNT*sizeof(menuOption));
   helpMenu[x++] = createButton( "Getting Started", changeToHelpROMsState,     base+x*OPTION_SPACING );
   helpMenu[x++] = createButton( "Controls",        changeToHelpControlsState, base+x*OPTION_SPACING );
@@ -781,7 +801,7 @@ bool showLines( SDL_Surface * s, line * lines, int numlines, bool center )
         else
             x = 20;
         apply_surface( x, offset, nr[i], s );
-        offset += nr[i]->h + 10;
+        offset += nr[i]->h + HELP_LINE_SPACING;
     }
     TTF_CloseFont( font_normal );
 

@@ -990,11 +990,16 @@ void system10Frames(int rate)
   theApp.autoFrameSkipLastTime = time;
 }
 
-void systemScreenMessage(const char *msg)
+void systemScreenMessage(const char *msg, ...)
 {
   theApp.screenMessage = true;
   theApp.screenMessageTime = GetTickCount();
-  theApp.screenMessageBuffer = msg;
+
+  CString msg_tchar(msg);
+  va_list valist;
+  va_start(valist, msg);
+  theApp.screenMessageBuffer.FormatV(msg_tchar, valist);
+  va_end(valist);
 
   if(theApp.screenMessageBuffer.GetLength() > 40)
     theApp.screenMessageBuffer = theApp.screenMessageBuffer.Left(40);

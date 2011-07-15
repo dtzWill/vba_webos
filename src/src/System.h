@@ -78,7 +78,7 @@ extern void systemSoundPause();
 extern void systemSoundResume();
 extern void systemSoundReset();
 extern bool systemSoundInit();
-extern void systemScreenMessage(const char *);
+extern void systemScreenMessage(const char *, ...);
 extern void systemUpdateMotionSensor();
 extern int  systemGetSensorX();
 extern int  systemGetSensorY();
