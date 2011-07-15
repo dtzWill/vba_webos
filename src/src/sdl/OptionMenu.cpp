@@ -28,8 +28,14 @@
 #include <SDL_ttf.h>
 
 #define OPTION_SIZE 40
-#define OPTION_SPACING 50
 #define OPTION_WIDTH (NATIVE_RES_WIDTH - 20)
+#ifdef PALM_PIXI
+#define OPTION_SPACING 44
+#define HELP_LINE_SPACING 3
+#else
+#define OPTION_SPACING 50
+#define HELP_LINE_SPACING 10
+#endif
 
 //Toggle stuff
 #define TOGGLE_TXT_X 10
@@ -795,7 +801,7 @@ bool showLines( SDL_Surface * s, line * lines, int numlines, bool center )
         else
             x = 20;
         apply_surface( x, offset, nr[i], s );
-        offset += nr[i]->h + 10;
+        offset += nr[i]->h + HELP_LINE_SPACING;
     }
     TTF_CloseFont( font_normal );
 
