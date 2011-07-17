@@ -4,3 +4,106 @@ Original source is available here: http://vba.ngemu.com/downloads.shtml
 The source for the port is available here: http://git.webos-internals.org/?p=games/visualboyadvance.git
 
 See http://www.webos-internals.org/wiki/Application:VBA for the latest information on this port.
+
+Building
+========
+
+What follows is a rough outline of what it takes to build visualboyadvance for
+WebOS. Basically, you need:
+ - A suitable toolchain
+ - libraries and header files for WebOS, for example from the PDK
+ - An environment that configures the build system appropriately
+
+Toolchain
+=========
+If your program is going to be dynamically linked, and you want to use the
+CodeSourcery toolchains, you'll need to stick with an older release, to avoid
+producing binaries that depend on a newer libc ABI then what exists on the
+device. The arm2007q3 release works for targeting WebOS 1.4.5. You'll
+eventually install a symbolic link to the toolchain directory into your PDK
+directory.
+
+You can get that release from here:
+http://www.codesourcery.com/sgpp/lite/arm/portal/release313
+
+PDK
+===
+I installed my PDK by following these instructions, and you can too:
+http://www.webos-internals.org/wiki/PDK_on_Linux
+
+I also had to edit the CFLAGS or LDFLAGS in .../bin/sdk-config in the PDK to
+return sane values, but I don't remember what I changed exactly. If you
+encounter any build errors, be sure to consider whether sdl-config is the
+source of the problem.
+
+Environment
+===========
+Finally, your environment should contain variables that tell the build system
+to use the toolchain and PDK files. You don't want this in your bashrc, or you
+won't be able to natively compile packages. Instead, put the settings in a
+Pixi-specific rc file that sources your bashrc, so that bash can be started
+with a command like:
+bash --rcfile path/to/your/rcfile
+
+Then you can add a new profile to your terminal emulator to start bash like
+that, which you can switch to whenever you want a PDK compilation environment.
+You can also change the shell's prompt color to indicate that your environment
+is set up for cross-compilation. The prompt uses ANSI escape sequences to
+colorize the prompt, you can find out more about that here:
+http://en.wikipedia.org/wiki/ANSI_escape_code
+
+For more information about the required settings, see:
+https://developer.palm.com/content/api/dev-guide/pdk/building-for-the-device.html
+Below is an example rc file that sets up a Palm Pixi build environment. You
+will need to revise the PalmPDK variable, at least, to point to where you
+installed the PDK.
+
+#!/bin/bash
+
+# Since this replaces .bashrc, we need to explicitly inherit from it
+. "$HOME/.bashrc"
+
+# change the prompt color
+PS1="${PS1/01;32m/00;35m}"
+
+export PalmPDK=/opt/Palm/PDK-1.4.5
+
+export PATH=$PATH:${PalmPDK}/arm-gcc/bin
+
+export CC="arm-none-linux-gnueabi-gcc"
+export CXX="arm-none-linux-gnueabi-g++"
+
+export INCLUDEDIR="${PalmPDK}/include"
+# extralib is a folder where I put libraries that I grabbed from WebOS 1.4.5,
+# and extrainclude contains matching headers that I got from my distribution
+# (since they're arch-independent). I had to do this for libpng and libz
+# (a.k.a. zlib). Note that to get a binary into the official app store, extra
+# libraries like this would need to be statically linked.
+export LIBDIRS="-L${PalmPDK}/device/lib \
+                -L${PalmPDK}/device/extralib"
+
+export CPPFLAGS="-I${INCLUDEDIR} \
+                 -I${INCLUDEDIR}/SDL \
+                 -I${PalmPDK}/extrainclude \
+                 "
+export LDFLAGS="${LIBDIRS} -Wl,--allow-shlib-undefined"
+
+PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp'
+export CFLAGS="$PIXI_FLAGS"
+export CXXFLAGS="$PIXI_FLAGS"
+
+
+Compilation
+===========
+Finally, to build the package:
+cd src/ &&
+./autogen.sh --host=arm-none-linux-gnueabi --with-sdl-prefix="${PalmPDK}" &&
+make
+
+Deployment
+==========
+
+To build the package, change to the pkg directory, and run:
+make preware_pixi
+
+You can install it on your Pixi using the palm-install utility from the SDK.
