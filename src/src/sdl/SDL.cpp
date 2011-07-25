@@ -119,6 +119,8 @@ class FrameDeadline
     void reset(u32 newTime, unsigned rate = 0);
     /// Move the deadline forward by one frame
     void nextFrame();
+    /// slip the deadline forward by a fixed interval
+    void slip(u32 interval);
     /// Get the current deadline
     u32 getNextDeadline();
   private:
@@ -130,6 +132,7 @@ class FrameDeadline
     unsigned frameCount;
 };
 FrameDeadline autoFrameSkipDeadline(60);
+u32 sdlBufferEmptyDelay = 0;
 
 int showSpeed = 0;
 int showSpeedTransparent = 1;
@@ -1547,6 +1550,11 @@ void FrameDeadline::nextFrame()
   }
 }
 
+void FrameDeadline::slip(u32 interval)
+{
+  lastTime += interval;
+}
+
 /*
  * Because the time resolution is only milliseconds, and 1000/rate could be
  * non-integer, frameCount is used to calculate the deadline instead of
@@ -1591,7 +1599,10 @@ void systemFrame()
     // per rendered frame if sufficient, instead of just skipping every other
     // frame.
     autoFrameSkipDeadline.nextFrame();
+    autoFrameSkipDeadline.slip(sdlBufferEmptyDelay);
   }
+  // reset the delay now that we've consumed it
+  sdlBufferEmptyDelay = 0;
 
   // wasPaused isn't reset until system10Frames is called, meaning that this
   // will get hit for more than one frame, but that's only a problem for
@@ -1680,6 +1691,21 @@ void soundCallback(void *,u8 *stream,int len)
     SDL_SemPost (sdlBufferEmpty);
 }
 
+/// Run wait_func on sync_primitive and measure the delay
+template <typename T, typename funcptr>
+Uint32 timed_wait(funcptr wait_func, T sync_primitive)
+{
+  Uint32 before = SDL_GetTicks();
+  wait_func(sync_primitive);
+  Uint32 after = SDL_GetTicks();
+  return after - before;
+}
+// Run SDL_SemWait and measure the delay
+static Uint32 timed_SDL_SemWait(SDL_sem *sdlSem)
+{
+  return timed_wait(&SDL_SemWait, sdlSem);
+}
+
 void systemWriteDataToSoundBuffer()
 {
   // Patch #1382692 by deathpudding.
@@ -1691,7 +1717,7 @@ void systemWriteDataToSoundBuffer()
     bool lock = (!speedup && !throttle) ? true : false;
 
     if (lock)
-      SDL_SemWait (sdlBufferEmpty);
+      sdlBufferEmptyDelay += timed_SDL_SemWait (sdlBufferEmpty);
 
     SDL_SemWait (sdlBufferLock);
     int copied = sdlBufferCapacity - sdlSoundLen;
@@ -1703,7 +1729,7 @@ void systemWriteDataToSoundBuffer()
       SDL_SemPost (sdlBufferFull);
 
       /* wait for buffer to be dumped by soundCallback() */
-      SDL_SemWait (sdlBufferEmpty);
+      sdlBufferEmptyDelay += timed_SDL_SemWait (sdlBufferEmpty);
       SDL_SemPost (sdlBufferEmpty);
 
       SDL_SemWait (sdlBufferLock);
