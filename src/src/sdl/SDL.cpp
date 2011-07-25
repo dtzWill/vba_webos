@@ -102,13 +102,34 @@ static int rewindTimer = 0;
 
 bool wasPaused = false;
 int autoFrameSkip = 0;
-int frameskipadjust = 0;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
 
 int throttle = 0;
 u32 throttleLastTime = 0;
-u32 autoFrameSkipLastTime = 0;
+
+/**
+ * Calculates frame deadlines for the frameskip code.
+ */
+class FrameDeadline
+{
+  public:
+    FrameDeadline(unsigned rate);
+    /// Reset the next frame's start time to newTime
+    void reset(u32 newTime, unsigned rate = 0);
+    /// Move the deadline forward by one frame
+    void nextFrame();
+    /// Get the current deadline
+    u32 getNextDeadline();
+  private:
+    /// Target framerate, used to calculate next deadlines
+    unsigned rate;
+    /// time of last reset
+    u32 lastTime;
+    /// frames since last reset
+    unsigned frameCount;
+};
+FrameDeadline autoFrameSkipDeadline(60);
 
 int showSpeed = 0;
 int showSpeedTransparent = 1;
@@ -1371,7 +1392,8 @@ void pickRom()
 
 void runRom()
 {
-  autoFrameSkipLastTime = throttleLastTime = systemGetClock();
+  throttleLastTime = systemGetClock();
+  autoFrameSkipDeadline.reset(throttleLastTime);
 
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
@@ -1498,41 +1520,90 @@ void systemShowSpeed(int speed)
   }
 }
 
+FrameDeadline::FrameDeadline(unsigned rate)
+  :
+    rate(rate),
+    lastTime(0),
+    frameCount(0)
+{
+}
+
+void FrameDeadline::reset(u32 newTime, unsigned newRate)
+{
+  lastTime = newTime;
+  frameCount = 0;
+  if (newRate)
+    rate = newRate;
+}
+
+void FrameDeadline::nextFrame()
+{
+  frameCount++;
+  // When 1s has passed, move lastTime forward and reset frame count
+  if (frameCount >= rate)
+  {
+    frameCount = 0;
+    lastTime += 1000;
+  }
+}
+
+/*
+ * Because the time resolution is only milliseconds, and 1000/rate could be
+ * non-integer, frameCount is used to calculate the deadline instead of
+ * incrementing lastTime on every frame, which would cause accumulated roundoff
+ * error.
+ */
+u32 FrameDeadline::getNextDeadline()
+{
+  // Since this is a deadline for completing the frame, add 1 to frameCount
+  return lastTime + (frameCount+1)*1000/rate;
+}
+
 void systemFrame()
 {
+  static const unsigned maxFrameSkip = 9;
+
+  u32 now = systemGetClock();
+
+  // calculate whether or not to skip another frame
+  if(!wasPaused && autoFrameSkip && !throttle) {
+    u32 deadline = autoFrameSkipDeadline.getNextDeadline();
+    // Total accumulated time to spare before next deadline
+    int margin = deadline - now;
+    if(margin > 0)
+      systemFrameSkip = 0;
+    else if (systemFrameSkip < maxFrameSkip)
+      // we're late, skip the next frame
+      systemFrameSkip++;
+    else
+    {
+      // The maximum number of skipped frames has been hit, so we just give
+      // up. The deadline needs to be reset to prevent us from trying to
+      // catch up to the old deadline now that we've let it slip. Because the
+      // sound callback is used to throttle the rest of the emulation, it's
+      // impossible to catch up.
+      autoFrameSkipDeadline.reset(now);
+      systemFrameSkip = 0;
+    }
+
+    // The deadline is incremented by one frame instead of simply resetting it
+    // to the current time because this allows the emulation to skip <1 frame
+    // per rendered frame if sufficient, instead of just skipping every other
+    // frame.
+    autoFrameSkipDeadline.nextFrame();
+  }
+
+  // wasPaused isn't reset until system10Frames is called, meaning that this
+  // will get hit for more than one frame, but that's only a problem for
+  // ~166ms, during which time extra frames will be skipped.
+  // Resetting the flag here would break the throttle in system10Frames.
+  if (wasPaused || speedup)
+    autoFrameSkipDeadline.reset(now);
 }
 
 void system10Frames(int rate)
 {
-  u32 time = systemGetClock();  
-  if(!wasPaused && autoFrameSkip && !throttle) {
-    u32 diff = time - autoFrameSkipLastTime;
-    int speed = 100;
-
-    if(diff)
-      speed = (1000000/rate)/diff;
-    
-    if(speed >= 98) {
-      frameskipadjust++;
-
-      if(frameskipadjust >= 3) {
-        frameskipadjust=0;
-        if(systemFrameSkip > 0)
-          systemFrameSkip--;
-      }
-    } else {
-      if(speed  < 80)
-        frameskipadjust -= 2;
-      else if(systemFrameSkip < 9)
-        frameskipadjust--;
-
-      if(frameskipadjust <= -2) {
-        frameskipadjust += 2;
-        if(systemFrameSkip < 9)
-          systemFrameSkip++;
-      }
-    }    
-  }
+  u32 time = systemGetClock();
   if(!wasPaused && throttle) {
     if(!speedup) {
       u32 diff = time - throttleLastTime;
@@ -1561,7 +1632,6 @@ void system10Frames(int rate)
   }
 
   wasPaused = false;
-  autoFrameSkipLastTime = time;
 }
 
 void systemScreenCapture(int a)

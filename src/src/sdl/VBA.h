@@ -145,7 +145,6 @@ extern int turbo_on;
  *-----------------------------------------------------------------------------*/
 extern bool wasPaused;
 extern int autoFrameSkip;
-extern int frameskipadjust;
 extern int showRenderedFrames;
 extern int renderedFrames;
 

@@ -365,7 +365,6 @@ void menuSetAutoSkip( bool on )
   autoFrameSkip = on;
   //Reset frameskip-related variables
   systemFrameSkip = 0;
-  frameskipadjust = 0;
 }
 
 void menuSetSound( bool sound )   { soundMute = !sound;                          }
