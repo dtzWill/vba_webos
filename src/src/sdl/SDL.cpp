@@ -174,7 +174,14 @@ u32  screenMessageTime = 0;
 SDL_sem *sdlBufferLock  = NULL;
 SDL_sem *sdlBufferFull  = NULL;
 SDL_sem *sdlBufferEmpty = NULL;
-u8 sdlBuffer[4096];
+
+static const Uint8 sdlAudioSampleSize = 2;
+static const Uint8 sdlAudioChannels = 2;
+// sample count in the audio buffer that the callback fills
+static const Uint16 sdlAudioSamples = 1024;
+u8 sdlBuffer[sdlAudioSampleSize*sdlAudioChannels*sdlAudioSamples];
+size_t sdlBufferCapacity = sizeof(sdlBuffer);
+// fill count of sdlBuffer
 int sdlSoundLen = 0;
 
 char *arg0;
@@ -1610,16 +1617,16 @@ void systemWriteDataToSoundBuffer()
   if (SDL_GetAudioStatus () != SDL_AUDIO_PLAYING)
     SDL_PauseAudio (0);
 
-  if ((sdlSoundLen + soundBufferLen) >= 2048*2) {
+  if ((sdlSoundLen + soundBufferLen) >= sdlBufferCapacity) {
     bool lock = (!speedup && !throttle) ? true : false;
 
     if (lock)
       SDL_SemWait (sdlBufferEmpty);
 
     SDL_SemWait (sdlBufferLock);
-    int copied = 2048*2 - sdlSoundLen;
+    int copied = sdlBufferCapacity - sdlSoundLen;
     memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, copied);
-    sdlSoundLen = 2048*2;
+    sdlSoundLen = sdlBufferCapacity;
     SDL_SemPost (sdlBufferLock);
 
     if (lock) {
@@ -1668,8 +1675,8 @@ bool systemSoundInit()
     break;
   }
   audio.format=AUDIO_S16SYS;
-  audio.channels = 2;
-  audio.samples = 1024;
+  audio.channels = sdlAudioChannels;
+  audio.samples = sdlAudioSamples;
   audio.callback = soundCallback;
   audio.userdata = NULL;
   if(SDL_OpenAudio(&audio, NULL)) {
