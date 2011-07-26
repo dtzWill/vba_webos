@@ -1685,7 +1685,12 @@ void soundCallback(void *,u8 *stream,int len)
   }
   // If there's an underrun, wait for the emulation thread to catch up
   else
+  {
     underrun = sdlBufferFilled[current] + 1;
+    // try to minimize glitching by reusing stale audio
+    size_t last = (sdlBufferConsumeNext - 1) % sdlNumBuffers;
+    memcpy (stream, sdlBuffer[last], len);
+  }
   SDL_SemPost (sdlBufferLock);
 
 #ifdef SOUND_SYNC_DEBUG
