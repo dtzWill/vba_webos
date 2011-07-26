@@ -107,6 +107,9 @@ int renderedFrames = 0;
 int throttle = 0;
 u32 throttleLastTime = 0;
 
+// This isn't the right place to set this, but it's the same for GB and GBA
+static const size_t frameRate = 60;
+
 /**
  * Calculates frame deadlines for the frameskip code.
  */
@@ -130,7 +133,7 @@ class FrameDeadline
     /// frames since last reset
     unsigned frameCount;
 };
-FrameDeadline autoFrameSkipDeadline(60);
+FrameDeadline autoFrameSkipDeadline(frameRate);
 u32 sdlBufferEmptyDelay = 0;
 
 int showSpeed = 0;
@@ -1568,7 +1571,12 @@ void systemFrame()
     // Total accumulated time to spare before next deadline
     int margin = deadline - now;
     if(margin > 0)
+    {
       systemFrameSkip = 0;
+      size_t frameLength = 1000/frameRate;
+      if (margin > frameLength)
+        SDL_Delay(margin - frameLength);
+    }
     else if (systemFrameSkip < maxFrameSkip)
       // we're late, skip the next frame
       systemFrameSkip++;
