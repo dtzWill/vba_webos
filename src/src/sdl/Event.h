@@ -30,6 +30,7 @@ enum {
 
 
 void sdlPollEvents();
+void sdlWaitEvent();
 void sdlCheckKeys();
 bool systemReadJoypads();
 u32 systemReadJoypad(int which);

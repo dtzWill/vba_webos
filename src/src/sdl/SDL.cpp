@@ -1420,10 +1420,11 @@ void runRom()
       }
 
       rewindSaveNeeded = false;
+
+      sdlPollEvents();
     } else {
-      SDL_Delay(500);
+      sdlWaitEvent();
     }
-    sdlPollEvents();
     
     displayBindingMessage();
   }

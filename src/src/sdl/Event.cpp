@@ -389,339 +389,354 @@ void sdlCheckKeys()
     SDL_JoystickEventState(SDL_ENABLE);
 }
 
+void sdlHandleEvent(const SDL_Event& event)
+{
+  switch(event.type) {
+  case SDL_QUIT:
+    if( emulating )
+    {
+        //FIRST thing we do when request to save--make sure we write the battery!
+        sdlWriteBattery();
+    }
+    emulating = false;
+    running = false;
+    break;
+  case SDL_ACTIVEEVENT:
+    if(pauseWhenInactive && (event.active.state & SDL_APPINPUTFOCUS)) {
+      active = event.active.gain;
+      if(active) {
+        if(!paused) {
+          if(emulating)
+            soundResume();
+        }
+      } else {
+        wasPaused = true;
+        if(pauseWhenInactive) {
+          if(emulating)
+          {
+            soundPause();
+            //write battery when pausing.
+            //Doesn't hurt, and guarantees we get a good save in.
+            sdlWriteBattery();
+          }
+        }
+
+        memset(delta,255,sizeof(delta));
+      }
+    }
+    break;
+  case SDL_MOUSEBUTTONUP:
+  case SDL_MOUSEBUTTONDOWN:
+  {
+    //These are switched and transformed because we're in landscape
+    int x = event.button.y;
+    int y = destWidth -event.button.x;
+    int state = event.button.state;
+
+    controllerEvent ev = controllerHitCheck( x, y );
+    applyControllerEvent( ev, state );
+
+    break;
+  }
+  case SDL_MOUSEMOTION:
+  {
+    //These are switched and transformed because we're in landscape
+    int x = event.motion.y;
+    int y = destWidth - event.motion.x;
+    int xrel = event.motion.yrel;
+    int yrel = -event.motion.xrel;
+
+    //We make this work by considering a motion event
+    //as releasing where we came FROM
+    //and a down event where it is now.
+    //XXX: Note that if from==now no harm, it'll end up down still
+    controllerEvent ev = controllerHitCheck( x, y );
+    controllerEvent old_ev = controllerHitCheck( x - xrel, y - yrel );
+
+    //Where the mouse is now
+    applyControllerEvent( old_ev, false );
+    applyControllerEvent( ev, true );
+
+    break;
+  }
+  case SDL_JOYHATMOTION:
+    sdlUpdateJoyHat(event.jhat.which,
+                    event.jhat.hat,
+                    event.jhat.value);
+    break;
+  case SDL_JOYBUTTONDOWN:
+  case SDL_JOYBUTTONUP:
+    sdlUpdateJoyButton(event.jbutton.which,
+                       event.jbutton.button,
+                       event.jbutton.state == SDL_PRESSED);
+    break;
+  case SDL_JOYAXISMOTION:
+    sdlUpdateJoyAxis(event.jaxis.which,
+                     event.jaxis.axis,
+                     event.jaxis.value);
+    break;
+  case SDL_KEYDOWN:
+    if ( keyBindingMode == NOT_BINDING )
+    {
+        sdlUpdateKey(event.key.keysym.sym, true);
+    }
+    break;
+  case SDL_KEYUP:
+    if ( keyBindingMode != NOT_BINDING )
+    {
+        int key = event.key.keysym.sym;
+        if ( key == SDLK_EQUALS || key == SDLK_QUESTION )
+        {
+            //cancel;
+            keyBindingMode = NOT_BINDING;
+            systemScreenMessage( "Cancelled binding!" );
+            break;
+        }
+
+        //Check that this is a valid key.
+        //XXX: right now we don't support
+        //orange, shift, or sym as keys b/c they are meta keys.
+        int valid = 0
+            || ( key >= SDLK_a && key <= SDLK_z ) //Alpha
+            || key == SDLK_BACKSPACE
+            || key == SDLK_RETURN
+            || key == SDLK_COMMA
+            || key == SDLK_PERIOD
+            || key == SDLK_SPACE
+            || key == SDLK_AT;
+
+        //If so, bind it.
+        if ( valid )
+        {
+            bindingJoypad[keyBindingMode] = key;
+            keyBindingMode++;
+        }
+
+        //Display message for next key.
+        systemScreenMessage( bindingNames[keyBindingMode] );
+
+        if ( keyBindingMode == BINDING_DONE )
+        {
+            //write to file.
+            //XXX: Write to alternate file? Don't overwrite this existing one?
+            FILE * f  = fopen( "VisualBoyAdvance.cfg", "w" );
+
+            for ( int i = 0; i < BINDING_DONE; i++ )
+            {
+                fprintf( f, "%s=%04x\n", bindingCfgNames[i], bindingJoypad[i] );
+            }
+
+            fclose( f );
+
+            //make this the current joy
+            memcpy( &joypad[0][0], bindingJoypad, 12*sizeof( u16 ) );
+
+            //we're done here!
+            keyBindingMode = NOT_BINDING;
+
+        }
+
+        break;
+    }
+    switch(event.key.keysym.sym) {
+//    XXX: bind these to something useful
+//    case SDLK_r:
+//      if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//         (event.key.keysym.mod & KMOD_CTRL)) {
+//        if(emulating) {
+//          emulator.emuReset();
+//
+//          systemScreenMessage("Reset");
+//        }
+//      }
+//      break;
+//    case SDLK_b:
+//      if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//         (event.key.keysym.mod & KMOD_CTRL)) {
+//        if(emulating && emulator.emuReadMemState && rewindMemory
+//           && rewindCount) {
+//          rewindPos = --rewindPos & 7;
+//          emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos],
+//                                   REWIND_SIZE);
+//          rewindCount--;
+//          rewindCounter = 0;
+//          systemScreenMessage("Rewind");
+//        }
+//      }
+//      break;
+//    case SDLK_p:
+//      if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//         (event.key.keysym.mod & KMOD_CTRL)) {
+//        paused = !paused;
+//        SDL_PauseAudio(paused);
+//        if(paused)
+//          wasPaused = true;
+//      }
+//      break;
+    case SDLK_ESCAPE:
+    {
+      //make sure we have a save...
+      sdlWriteBattery();
+
+      eMenuResponse r = optionsMenu();
+      switch ( r )
+      {
+        default:
+          fprintf( stderr, "Unhandled menu response!\n" );
+        case MENU_RESPONSE_RESUME:
+          break;
+        case MENU_RESPONSE_ROMSELECTOR:
+          emulating = 0;
+          break;
+      }
+      break;
+    }
+//    case SDLK_1:
+//    case SDLK_2:
+//    case SDLK_3:
+//    case SDLK_4:
+//      if(!(event.key.keysym.mod & MOD_NOALT) &&
+//         (event.key.keysym.mod & KMOD_ALT)) {
+//        char *disableMessages[4] =
+//          { "autofire A disabled",
+//            "autofire B disabled",
+//            "autofire R disabled",
+//            "autofire L disabled"};
+//        char *enableMessages[4] =
+//          { "autofire A",
+//            "autofire B",
+//            "autofire R",
+//            "autofire L"};
+//        int mask = 1 << (event.key.keysym.sym - SDLK_1);
+//  if(event.key.keysym.sym > SDLK_2)
+//    mask <<= 6;
+//        if(autoFire & mask) {
+//          autoFire &= ~mask;
+//          systemScreenMessage(disableMessages[event.key.keysym.sym - SDLK_1]);
+//        } else {
+//          autoFire |= mask;
+//          systemScreenMessage(enableMessages[event.key.keysym.sym - SDLK_1]);
+//        }
+//      } if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//           (event.key.keysym.mod & KMOD_CTRL)) {
+//        int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
+//        layerSettings ^= mask;
+//        layerEnable = DISPCNT & layerSettings;
+//        CPUUpdateRenderBuffers(false);
+//      }
+//      break;
+//    case SDLK_5:
+//    case SDLK_6:
+//    case SDLK_7:
+//    case SDLK_8:
+//      if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//         (event.key.keysym.mod & KMOD_CTRL)) {
+//        int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
+//        layerSettings ^= mask;
+//        layerEnable = DISPCNT & layerSettings;
+//      }
+//      break;
+//    case SDLK_n:
+//      if(!(event.key.keysym.mod & MOD_NOCTRL) &&
+//         (event.key.keysym.mod & KMOD_CTRL)) {
+//        if(paused)
+//          paused = false;
+//        pauseNextFrame = true;
+//      }
+//      break;
+    case SDLK_0:
+      //Toggle orientation
+      orientation = ( orientation + 1 ) % 3;
+      updateOrientation();
+      break;
+    case SDLK_ASTERISK:
+      //Toggle sound
+      soundMute = !soundMute;
+      break;
+    case SDLK_PLUS:
+      //toggle on-screen controls...
+      use_on_screen = !use_on_screen;
+      updateOrientation();
+      break;
+    case SDLK_QUOTE:
+      //toggle filters...
+      if ( gl_filter == GL_LINEAR )
+      {
+          gl_filter = GL_NEAREST;
+      }
+      else if ( gl_filter == GL_NEAREST )
+      {
+          gl_filter = GL_LINEAR;
+      }
+
+      GL_InitTexture();
+      break;
+    case SDLK_MINUS:
+      //toggle show speed
+      showSpeed = !showSpeed;
+      break;
+    case SDLK_SLASH:
+      //toggle skins..
+      nextSkin();
+      break;
+    case SDLK_1:
+    case SDLK_2:
+    case SDLK_3:
+      {
+          //save states 1-3
+          int state = event.key.keysym.sym - SDLK_1;
+          sdlWriteState( state );
+          break;
+      }
+    case SDLK_4:
+    case SDLK_5:
+    case SDLK_6:
+      {
+          //load states 1-3
+          int state = event.key.keysym.sym - SDLK_4;
+          sdlReadState( state );
+          break;
+      }
+    case SDLK_AMPERSAND:
+      autosave = !autosave;
+      if ( autosave )
+      {
+          systemScreenMessage( "Auto save enabled" );
+      }
+      else
+      {
+          systemScreenMessage( "Auto save disabled" );
+      }
+      break;
+    case SDLK_QUESTION:
+    case SDLK_EQUALS:
+      //Enter key-binding mode.
+      keyBindingMode = NOT_BINDING;
+      keyBindingMode++;
+    default:
+      break;
+    }
+    sdlUpdateKey(event.key.keysym.sym, false);
+    break;
+  }
+}
+
 void sdlPollEvents()
 {
   SDL_Event event;
   while(SDL_PollEvent(&event)) {
-    switch(event.type) {
-    case SDL_QUIT:
-      if( emulating )
-      {
-          //FIRST thing we do when request to save--make sure we write the battery!
-          sdlWriteBattery();
-      }
-      emulating = false;
-      running = false;
-      break;
-    case SDL_ACTIVEEVENT:
-      if(pauseWhenInactive && (event.active.state & SDL_APPINPUTFOCUS)) {
-        active = event.active.gain;
-        if(active) {
-          if(!paused) {
-            if(emulating)
-              soundResume();
-          }
-        } else {
-          wasPaused = true;
-          if(pauseWhenInactive) {
-            if(emulating)
-            {
-              soundPause();
-              //write battery when pausing.
-              //Doesn't hurt, and guarantees we get a good save in.
-              sdlWriteBattery();
-            }
-          }
-          
-          memset(delta,255,sizeof(delta));
-        }
-      }
-      break;
-    case SDL_MOUSEBUTTONUP:
-    case SDL_MOUSEBUTTONDOWN:
-    {
-      //These are switched and transformed because we're in landscape
-      int x = event.button.y;
-      int y = destWidth -event.button.x;
-      int state = event.button.state;
-
-      controllerEvent ev = controllerHitCheck( x, y );
-      applyControllerEvent( ev, state );
-
-      break;
-    }
-    case SDL_MOUSEMOTION:
-    {
-      //These are switched and transformed because we're in landscape
-      int x = event.motion.y;
-      int y = destWidth - event.motion.x;
-      int xrel = event.motion.yrel;
-      int yrel = -event.motion.xrel;
-
-      //We make this work by considering a motion event
-      //as releasing where we came FROM
-      //and a down event where it is now.
-      //XXX: Note that if from==now no harm, it'll end up down still
-      controllerEvent ev = controllerHitCheck( x, y );
-      controllerEvent old_ev = controllerHitCheck( x - xrel, y - yrel );
-
-      //Where the mouse is now
-      applyControllerEvent( old_ev, false );
-      applyControllerEvent( ev, true );
-
-      break;
-    }
-    case SDL_JOYHATMOTION:
-      sdlUpdateJoyHat(event.jhat.which,
-                      event.jhat.hat,
-                      event.jhat.value);
-      break;
-    case SDL_JOYBUTTONDOWN:
-    case SDL_JOYBUTTONUP:
-      sdlUpdateJoyButton(event.jbutton.which,
-                         event.jbutton.button,
-                         event.jbutton.state == SDL_PRESSED);
-      break;
-    case SDL_JOYAXISMOTION:
-      sdlUpdateJoyAxis(event.jaxis.which,
-                       event.jaxis.axis,
-                       event.jaxis.value);
-      break;
-    case SDL_KEYDOWN:
-      if ( keyBindingMode == NOT_BINDING )
-      {
-          sdlUpdateKey(event.key.keysym.sym, true);
-      }
-      break;
-    case SDL_KEYUP:
-      if ( keyBindingMode != NOT_BINDING )
-      {
-          int key = event.key.keysym.sym;
-          if ( key == SDLK_EQUALS || key == SDLK_QUESTION )
-          {
-              //cancel;
-              keyBindingMode = NOT_BINDING;
-              systemScreenMessage( "Cancelled binding!" );
-              break;
-          }
-
-          //Check that this is a valid key.
-          //XXX: right now we don't support
-          //orange, shift, or sym as keys b/c they are meta keys.
-          int valid = 0
-              || ( key >= SDLK_a && key <= SDLK_z ) //Alpha
-              || key == SDLK_BACKSPACE
-              || key == SDLK_RETURN
-              || key == SDLK_COMMA
-              || key == SDLK_PERIOD
-              || key == SDLK_SPACE
-              || key == SDLK_AT;
-
-          //If so, bind it.
-          if ( valid )
-          {
-              bindingJoypad[keyBindingMode] = key;
-              keyBindingMode++;
-          }
-
-          //Display message for next key.
-          systemScreenMessage( bindingNames[keyBindingMode] );
-
-          if ( keyBindingMode == BINDING_DONE )
-          {
-              //write to file.
-              //XXX: Write to alternate file? Don't overwrite this existing one?
-              FILE * f  = fopen( "VisualBoyAdvance.cfg", "w" );
-
-              for ( int i = 0; i < BINDING_DONE; i++ )
-              {
-                  fprintf( f, "%s=%04x\n", bindingCfgNames[i], bindingJoypad[i] );
-              }
-
-              fclose( f );
-
-              //make this the current joy
-              memcpy( &joypad[0][0], bindingJoypad, 12*sizeof( u16 ) );
-              
-              //we're done here!
-              keyBindingMode = NOT_BINDING;
-
-          }
-                   
-          break;
-      }
-      switch(event.key.keysym.sym) {
-          //      XXX: bind these to something useful
-//      case SDLK_r:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(emulating) {
-//            emulator.emuReset();
-//
-//            systemScreenMessage("Reset");
-//          }
-//        }
-//        break;
-//      case SDLK_b:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(emulating && emulator.emuReadMemState && rewindMemory 
-//             && rewindCount) {
-//            rewindPos = --rewindPos & 7;
-//            emulator.emuReadMemState(&rewindMemory[REWIND_SIZE*rewindPos], 
-//                                     REWIND_SIZE);
-//            rewindCount--;
-//            rewindCounter = 0;
-//            systemScreenMessage("Rewind");
-//          }
-//        }
-//        break;
-//      case SDLK_p:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          paused = !paused;
-//          SDL_PauseAudio(paused);
-//          if(paused)
-//            wasPaused = true;
-//        }
-//        break;
-      case SDLK_ESCAPE:
-      { 
-        //make sure we have a save...
-        sdlWriteBattery();
-
-        eMenuResponse r = optionsMenu();
-        switch ( r )
-        {
-          default:
-            fprintf( stderr, "Unhandled menu response!\n" );
-          case MENU_RESPONSE_RESUME:
-            break;
-          case MENU_RESPONSE_ROMSELECTOR:
-            emulating = 0;
-            break;
-        }
-        break;
-      }
-//      case SDLK_1:
-//      case SDLK_2:
-//      case SDLK_3:
-//      case SDLK_4:
-//        if(!(event.key.keysym.mod & MOD_NOALT) &&
-//           (event.key.keysym.mod & KMOD_ALT)) {
-//          char *disableMessages[4] = 
-//            { "autofire A disabled",
-//              "autofire B disabled",
-//              "autofire R disabled",
-//              "autofire L disabled"};
-//          char *enableMessages[4] = 
-//            { "autofire A",
-//              "autofire B",
-//              "autofire R",
-//              "autofire L"};
-//          int mask = 1 << (event.key.keysym.sym - SDLK_1);
-//    if(event.key.keysym.sym > SDLK_2)
-//      mask <<= 6;
-//          if(autoFire & mask) {
-//            autoFire &= ~mask;
-//            systemScreenMessage(disableMessages[event.key.keysym.sym - SDLK_1]);
-//          } else {
-//            autoFire |= mask;
-//            systemScreenMessage(enableMessages[event.key.keysym.sym - SDLK_1]);
-//          }
-//        } if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//             (event.key.keysym.mod & KMOD_CTRL)) {
-//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-//          layerSettings ^= mask;
-//          layerEnable = DISPCNT & layerSettings;
-//          CPUUpdateRenderBuffers(false);
-//        }
-//        break;
-//      case SDLK_5:
-//      case SDLK_6:
-//      case SDLK_7:
-//      case SDLK_8:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          int mask = 0x0100 << (event.key.keysym.sym - SDLK_1);
-//          layerSettings ^= mask;
-//          layerEnable = DISPCNT & layerSettings;
-//        }
-//        break;
-//      case SDLK_n:
-//        if(!(event.key.keysym.mod & MOD_NOCTRL) &&
-//           (event.key.keysym.mod & KMOD_CTRL)) {
-//          if(paused)
-//            paused = false;
-//          pauseNextFrame = true;
-//        }
-//        break;
-      case SDLK_0:
-        //Toggle orientation
-        orientation = ( orientation + 1 ) % 3;
-        updateOrientation();
-        break;
-      case SDLK_ASTERISK:
-        //Toggle sound
-        soundMute = !soundMute;
-        break;
-      case SDLK_PLUS:
-        //toggle on-screen controls...
-        use_on_screen = !use_on_screen;
-        updateOrientation();
-        break;
-      case SDLK_QUOTE:
-        //toggle filters...
-        if ( gl_filter == GL_LINEAR )
-        {
-            gl_filter = GL_NEAREST;
-        }
-        else if ( gl_filter == GL_NEAREST )
-        {
-            gl_filter = GL_LINEAR;
-        }
-
-        GL_InitTexture();
-        break;
-      case SDLK_MINUS:
-        //toggle show speed
-        showSpeed = !showSpeed;
-        break;
-      case SDLK_SLASH:
-        //toggle skins..
-        nextSkin();
-        break;
-      case SDLK_1:
-      case SDLK_2:
-      case SDLK_3:
-        {
-            //save states 1-3
-            int state = event.key.keysym.sym - SDLK_1;
-            sdlWriteState( state );
-            break;
-        }
-      case SDLK_4:
-      case SDLK_5:
-      case SDLK_6:
-        {
-            //load states 1-3
-            int state = event.key.keysym.sym - SDLK_4;
-            sdlReadState( state );
-            break;
-        }
-      case SDLK_AMPERSAND:
-        autosave = !autosave;
-        if ( autosave )
-        {
-            systemScreenMessage( "Auto save enabled" );
-        }
-        else
-        {
-            systemScreenMessage( "Auto save disabled" );
-        }
-        break;
-      case SDLK_QUESTION:
-      case SDLK_EQUALS:
-        //Enter key-binding mode.
-        keyBindingMode = NOT_BINDING;
-        keyBindingMode++;
-      default:
-        break;
-      }
-      sdlUpdateKey(event.key.keysym.sym, false);
-      break;
-    }
+    sdlHandleEvent(event);
   }
+}
+
+void sdlWaitEvent()
+{
+  SDL_Event event;
+  int result = SDL_WaitEvent(&event);
+  if (!result)
+    fprintf(stderr, "Ignoring error from SDL_WaitEvent!\n");
+  else
+    sdlHandleEvent(event);
 }
 
 bool systemReadJoypads()
