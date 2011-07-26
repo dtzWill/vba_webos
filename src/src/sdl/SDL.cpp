@@ -45,6 +45,9 @@
 #include "Options.h"
 #include "GLUtil.h"
 
+#include <algorithm>
+using std::min;
+
 /*-----------------------------------------------------------------------------
  *  Game state
  *-----------------------------------------------------------------------------*/
@@ -68,7 +71,6 @@ int sensorX = 2047;
 int sensorY = 2047;
 
 int filter = 0;
-u8 *delta = NULL;
 
 int sdlPrintUsage = 0;
 int disableMMX = 0;
@@ -102,13 +104,39 @@ static int rewindTimer = 0;
 
 bool wasPaused = false;
 int autoFrameSkip = 1;
-int frameskipadjust = 0;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
 
 int throttle = 0;
 u32 throttleLastTime = 0;
-u32 autoFrameSkipLastTime = 0;
+
+// This isn't the right place to set this, but it's the same for GB and GBA
+static const size_t frameRate = 60;
+
+/**
+ * Calculates frame deadlines for the frameskip code.
+ */
+class FrameDeadline
+{
+  public:
+    FrameDeadline(unsigned rate);
+    /// Reset the next frame's start time to newTime
+    void reset(u32 newTime, unsigned rate = 0);
+    /// Move the deadline forward by one frame
+    void nextFrame();
+    /// slip the deadline forward by a fixed interval
+    void slip(u32 interval);
+    /// Get the current deadline
+    u32 getNextDeadline();
+  private:
+    /// Target framerate, used to calculate next deadlines
+    unsigned rate;
+    /// time of last reset
+    u32 lastTime;
+    /// frames since last reset
+    unsigned frameCount;
+};
+FrameDeadline autoFrameSkipDeadline(frameRate);
 
 int showSpeed = 0;
 int showSpeedTransparent = 1;
@@ -172,10 +200,21 @@ u32  screenMessageTime = 0;
 // Patch #1382692 by deathpudding.
 // (pulled from vba 1.8.0)
 SDL_sem *sdlBufferLock  = NULL;
-SDL_sem *sdlBufferFull  = NULL;
-SDL_sem *sdlBufferEmpty = NULL;
-u8 sdlBuffer[4096];
-int sdlSoundLen = 0;
+
+static const Uint8 sdlAudioSampleSize = 2;
+static const Uint8 sdlAudioChannels = 2;
+// sample count in the audio buffer that the callback fills
+static const Uint16 sdlAudioSamples = 512;
+static const size_t sdlNumBuffers = 4;
+static const size_t sdlBufferCapacity = sdlAudioChannels*sdlAudioSamples*sdlAudioSampleSize;
+// A simple queue for exchanging audio data.
+u8 sdlBuffer[sdlNumBuffers][sdlBufferCapacity];
+// fill count of each element in the queue
+size_t sdlBufferFilled[sdlNumBuffers] = {0};
+size_t sdlBufferFillNext = 0;
+size_t sdlBufferConsumeNext = 0;
+// Print out overrun and underrun events
+// #define SOUND_SYNC_DEBUG
 
 char *arg0;
 
@@ -1352,11 +1391,6 @@ void pickRom()
 
   srcPitch = srcWidth * 2;
 
-  if(delta == NULL) {
-      delta = (u8*)malloc(322*242*4);
-      memset(delta, 255, 322*242*4);
-  }
-
   emulating = 1;
   renderedFrames = 0;
 
@@ -1364,7 +1398,8 @@ void pickRom()
 
 void runRom()
 {
-  autoFrameSkipLastTime = throttleLastTime = systemGetClock();
+  throttleLastTime = systemGetClock();
+  autoFrameSkipDeadline.reset(throttleLastTime);
 
   SDL_WM_SetCaption("VisualBoyAdvance", NULL);
 
@@ -1388,10 +1423,11 @@ void runRom()
       }
 
       rewindSaveNeeded = false;
+
+      sdlPollEvents();
     } else {
-      SDL_Delay(500);
+      sdlWaitEvent();
     }
-    sdlPollEvents();
     
     displayBindingMessage();
   }
@@ -1404,12 +1440,6 @@ void runRom()
     sdlWriteBattery();
     emulator.emuCleanUp();
   }
-
-  if(delta) {
-    free(delta);
-    delta = NULL;
-  }
-  
 }
 
 void systemMessage(int num, const char *msg, ...)
@@ -1491,41 +1521,100 @@ void systemShowSpeed(int speed)
   }
 }
 
+FrameDeadline::FrameDeadline(unsigned rate)
+  :
+    rate(rate),
+    lastTime(0),
+    frameCount(0)
+{
+}
+
+void FrameDeadline::reset(u32 newTime, unsigned newRate)
+{
+  lastTime = newTime;
+  frameCount = 0;
+  if (newRate)
+    rate = newRate;
+}
+
+void FrameDeadline::nextFrame()
+{
+  frameCount++;
+  // When 1s has passed, move lastTime forward and reset frame count
+  if (frameCount >= rate)
+  {
+    frameCount = 0;
+    lastTime += 1000;
+  }
+}
+
+void FrameDeadline::slip(u32 interval)
+{
+  lastTime += interval;
+}
+
+/*
+ * Because the time resolution is only milliseconds, and 1000/rate could be
+ * non-integer, frameCount is used to calculate the deadline instead of
+ * incrementing lastTime on every frame, which would cause accumulated roundoff
+ * error.
+ */
+u32 FrameDeadline::getNextDeadline()
+{
+  // Since this is a deadline for completing the frame, add 1 to frameCount
+  return lastTime + (frameCount+1)*1000/rate;
+}
+
 void systemFrame()
 {
+  static const unsigned maxFrameSkip = 9;
+
+  u32 now = systemGetClock();
+
+  // calculate whether or not to skip another frame
+  if(!wasPaused && autoFrameSkip && !throttle) {
+    u32 deadline = autoFrameSkipDeadline.getNextDeadline();
+    // Total accumulated time to spare before next deadline
+    int margin = deadline - now;
+    if(margin > 0)
+    {
+      systemFrameSkip = 0;
+      size_t frameLength = 1000/frameRate;
+      if (margin > frameLength)
+        SDL_Delay(margin - frameLength);
+    }
+    else if (systemFrameSkip < maxFrameSkip)
+      // we're late, skip the next frame
+      systemFrameSkip++;
+    else
+    {
+      // The maximum number of skipped frames has been hit, so we just give
+      // up. The deadline needs to be reset to prevent us from trying to
+      // catch up to the old deadline now that we've let it slip. Because the
+      // sound callback is used to throttle the rest of the emulation, it's
+      // impossible to catch up.
+      autoFrameSkipDeadline.reset(now);
+      systemFrameSkip = 0;
+    }
+
+    // The deadline is incremented by one frame instead of simply resetting it
+    // to the current time because this allows the emulation to skip <1 frame
+    // per rendered frame if sufficient, instead of just skipping every other
+    // frame.
+    autoFrameSkipDeadline.nextFrame();
+  }
+
+  // wasPaused isn't reset until system10Frames is called, meaning that this
+  // will get hit for more than one frame, but that's only a problem for
+  // ~166ms, during which time extra frames will be skipped.
+  // Resetting the flag here would break the throttle in system10Frames.
+  if (wasPaused || speedup)
+    autoFrameSkipDeadline.reset(now);
 }
 
 void system10Frames(int rate)
 {
-  u32 time = systemGetClock();  
-  if(!wasPaused && autoFrameSkip && !throttle) {
-    u32 diff = time - autoFrameSkipLastTime;
-    int speed = 100;
-
-    if(diff)
-      speed = (1000000/rate)/diff;
-    
-    if(speed >= 98) {
-      frameskipadjust++;
-
-      if(frameskipadjust >= 3) {
-        frameskipadjust=0;
-        if(systemFrameSkip > 0)
-          systemFrameSkip--;
-      }
-    } else {
-      if(speed  < 80)
-        frameskipadjust -= 2;
-      else if(systemFrameSkip < 9)
-        frameskipadjust--;
-
-      if(frameskipadjust <= -2) {
-        frameskipadjust += 2;
-        if(systemFrameSkip < 9)
-          systemFrameSkip++;
-      }
-    }    
-  }
+  u32 time = systemGetClock();
   if(!wasPaused && throttle) {
     if(!speedup) {
       u32 diff = time - throttleLastTime;
@@ -1554,7 +1643,6 @@ void system10Frames(int rate)
   }
 
   wasPaused = false;
-  autoFrameSkipLastTime = time;
 }
 
 void systemScreenCapture(int a)
@@ -1584,25 +1672,34 @@ void soundCallback(void *,u8 *stream,int len)
   if(!emulating)
     return;
 
-  // Patch #1382692 by deathpudding.
-  // (ported from vba 1.8.0)
-  /* since this is running in a different thread, speedup and
-   * throttle can change at any time; save the value so locks
-   * stay in sync */
-  bool lock = (!speedup && !throttle) ? true : false;
-
-  if (lock)
-    SDL_SemWait (sdlBufferFull);
+  size_t underrun = false;
 
   SDL_SemWait (sdlBufferLock);
-  memcpy (stream, sdlBuffer, len);
-  sdlSoundLen = 0;
+  size_t current = sdlBufferConsumeNext;
+  size_t next = (sdlBufferConsumeNext + 1) % sdlNumBuffers;
+  if (sdlBufferFilled[current] >= len)
+  {
+    memcpy (stream, sdlBuffer[current], len);
+    sdlBufferFilled[current] = 0;
+    sdlBufferConsumeNext = next;
+  }
+  // If there's an underrun, wait for the emulation thread to catch up
+  else
+  {
+    underrun = sdlBufferFilled[current] + 1;
+    // try to minimize glitching by reusing stale audio
+    size_t last = (sdlBufferConsumeNext - 1) % sdlNumBuffers;
+    memcpy (stream, sdlBuffer[last], len);
+  }
   SDL_SemPost (sdlBufferLock);
 
-  if (lock)
-    SDL_SemPost (sdlBufferEmpty);
+#ifdef SOUND_SYNC_DEBUG
+  if (underrun)
+    fprintf(stderr, "Sound underrun on buffer %d, which is filled %d bytes, need %d!\n", current, underrun - 1, len);
+#endif
 }
 
+/// Copies soundBufferLen bytes from soundFinalWave into sdlBuffer
 void systemWriteDataToSoundBuffer()
 {
   // Patch #1382692 by deathpudding.
@@ -1610,43 +1707,42 @@ void systemWriteDataToSoundBuffer()
   if (SDL_GetAudioStatus () != SDL_AUDIO_PLAYING)
     SDL_PauseAudio (0);
 
-  if ((sdlSoundLen + soundBufferLen) >= 2048*2) {
-    bool lock = (!speedup && !throttle) ? true : false;
+  int overrun = false;
 
-    if (lock)
-      SDL_SemWait (sdlBufferEmpty);
+  SDL_SemWait (sdlBufferLock);
 
-    SDL_SemWait (sdlBufferLock);
-    int copied = 2048*2 - sdlSoundLen;
-    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, copied);
-    sdlSoundLen = 2048*2;
-    SDL_SemPost (sdlBufferLock);
-
-    if (lock) {
-      SDL_SemPost (sdlBufferFull);
-
-      /* wait for buffer to be dumped by soundCallback() */
-      SDL_SemWait (sdlBufferEmpty);
-      SDL_SemPost (sdlBufferEmpty);
-
-      SDL_SemWait (sdlBufferLock);
-      memcpy (sdlBuffer, ((u8 *)soundFinalWave) + copied,
-          soundBufferLen - copied);
-      sdlSoundLen = soundBufferLen - copied;
-      SDL_SemPost (sdlBufferLock);
+  size_t bytes_remaining = soundBufferLen;
+  u8 *src = reinterpret_cast<u8*>(soundFinalWave);
+  while (bytes_remaining)
+  {
+    size_t current = sdlBufferFillNext;
+    size_t next = (sdlBufferFillNext + 1) % sdlNumBuffers;
+    if (sdlBufferFilled[current] == sdlBufferCapacity)
+    {
+      overrun = current + 1;
+      // current is the older of the two buffers, so discard and overwrite with
+      // new sound data.
+      sdlBufferFilled[current] = 0;
+      // Advance the consumption pointer to the next buffer (now the older one)
+      sdlBufferConsumeNext = (sdlBufferConsumeNext + 1) % sdlNumBuffers;
     }
-    else {
-      SDL_SemWait (sdlBufferLock);
-      memcpy (sdlBuffer, ((u8 *) soundFinalWave) + copied, soundBufferLen);
-      SDL_SemPost (sdlBufferLock);
-    }
+    size_t current_free = sdlBufferCapacity - sdlBufferFilled[current];
+    int copied = min(current_free, bytes_remaining);
+    memcpy (sdlBuffer[current] + sdlBufferFilled[current], src, copied);
+    src += copied;
+    bytes_remaining -= copied;
+    sdlBufferFilled[current] += copied;
+
+    if (copied == current_free)
+      sdlBufferFillNext = next;
   }
-  else {
-    SDL_SemWait (sdlBufferLock);
-    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, soundBufferLen);
-     sdlSoundLen += soundBufferLen;
-    SDL_SemPost (sdlBufferLock);
-  }
+
+  SDL_SemPost (sdlBufferLock);
+
+#ifdef SOUND_SYNC_DEBUG
+  if (overrun)
+    fprintf(stderr, "Sound overrun on buffer %d!\n", overrun-1);
+#endif
 }
 
 bool systemSoundInit()
@@ -1668,8 +1764,8 @@ bool systemSoundInit()
     break;
   }
   audio.format=AUDIO_S16SYS;
-  audio.channels = 2;
-  audio.samples = 1024;
+  audio.channels = sdlAudioChannels;
+  audio.samples = sdlAudioSamples;
   audio.callback = soundCallback;
   audio.userdata = NULL;
   if(SDL_OpenAudio(&audio, NULL)) {
@@ -1680,23 +1776,20 @@ bool systemSoundInit()
   // Patch #1382692 by deathpudding.
   // (ported from vba 1.8.0)
   sdlBufferLock  = SDL_CreateSemaphore (1);
-  sdlBufferFull  = SDL_CreateSemaphore (0);
-  sdlBufferEmpty = SDL_CreateSemaphore (1);
-  sdlSoundLen = 0;
+
+  memset(sdlBufferFilled, 0, sizeof(sdlBufferFilled));
+  sdlBufferFillNext = 0;
+  sdlBufferConsumeNext = 0;
+
   systemSoundOn = true;
   return true;
 }
 
 void systemSoundShutdown()
 {
-  // Patch #1382692 by deathpudding.
-  SDL_CloseAudio (); //TODO: fix freeze
+  SDL_CloseAudio ();
   SDL_DestroySemaphore (sdlBufferLock);
-  SDL_DestroySemaphore (sdlBufferFull);
-  SDL_DestroySemaphore (sdlBufferEmpty);
   sdlBufferLock  = NULL;
-  sdlBufferFull  = NULL;
-  sdlBufferEmpty = NULL;
 }
 
 void systemSoundPause()
