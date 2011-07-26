@@ -420,8 +420,6 @@ void sdlHandleEvent(const SDL_Event& event)
             sdlWriteBattery();
           }
         }
-
-        memset(delta,255,sizeof(delta));
       }
     }
     break;

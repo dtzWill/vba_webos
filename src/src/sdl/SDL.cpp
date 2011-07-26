@@ -68,7 +68,6 @@ int sensorX = 2047;
 int sensorY = 2047;
 
 int filter = 0;
-u8 *delta = NULL;
 
 int sdlPrintUsage = 0;
 int disableMMX = 0;
@@ -1383,11 +1382,6 @@ void pickRom()
 
   srcPitch = srcWidth * 2;
 
-  if(delta == NULL) {
-      delta = (u8*)malloc(322*242*4);
-      memset(delta, 255, 322*242*4);
-  }
-
   emulating = 1;
   renderedFrames = 0;
 
@@ -1437,12 +1431,6 @@ void runRom()
     sdlWriteBattery();
     emulator.emuCleanUp();
   }
-
-  if(delta) {
-    free(delta);
-    delta = NULL;
-  }
-  
 }
 
 void systemMessage(int num, const char *msg, ...)

@@ -104,7 +104,6 @@ extern int sensorX;
 extern int sensorY;
 
 extern int filter;
-extern u8 *delta;
 
 extern int sdlPrintUsage;
 extern int disableMMX;
