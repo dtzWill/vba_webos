@@ -576,6 +576,10 @@ void sdlHandleEvent(const SDL_Event& event)
       //make sure we have a save...
       sdlWriteBattery();
 
+      paused = true;
+      SDL_PauseAudio(paused);
+      wasPaused = true;
+
       eMenuResponse r = optionsMenu();
       switch ( r )
       {
@@ -587,6 +591,9 @@ void sdlHandleEvent(const SDL_Event& event)
           emulating = 0;
           break;
       }
+
+      paused = false;
+      SDL_PauseAudio(paused);
       break;
     }
 //    case SDLK_1:
