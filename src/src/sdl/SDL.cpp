@@ -45,6 +45,9 @@
 #include "Options.h"
 #include "GLUtil.h"
 
+#include <algorithm>
+using std::min;
+
 /*-----------------------------------------------------------------------------
  *  Game state
  *-----------------------------------------------------------------------------*/
@@ -134,7 +137,6 @@ class FrameDeadline
     unsigned frameCount;
 };
 FrameDeadline autoFrameSkipDeadline(frameRate);
-u32 sdlBufferEmptyDelay = 0;
 
 int showSpeed = 0;
 int showSpeedTransparent = 1;
@@ -198,17 +200,21 @@ u32  screenMessageTime = 0;
 // Patch #1382692 by deathpudding.
 // (pulled from vba 1.8.0)
 SDL_sem *sdlBufferLock  = NULL;
-SDL_sem *sdlBufferFull  = NULL;
-SDL_sem *sdlBufferEmpty = NULL;
 
 static const Uint8 sdlAudioSampleSize = 2;
 static const Uint8 sdlAudioChannels = 2;
 // sample count in the audio buffer that the callback fills
-static const Uint16 sdlAudioSamples = 1024;
-u8 sdlBuffer[sdlAudioSampleSize*sdlAudioChannels*sdlAudioSamples];
-size_t sdlBufferCapacity = sizeof(sdlBuffer);
-// fill count of sdlBuffer
-int sdlSoundLen = 0;
+static const Uint16 sdlAudioSamples = 512;
+static const size_t sdlNumBuffers = 4;
+static const size_t sdlBufferCapacity = sdlAudioChannels*sdlAudioSamples*sdlAudioSampleSize;
+// A simple queue for exchanging audio data.
+u8 sdlBuffer[sdlNumBuffers][sdlBufferCapacity];
+// fill count of each element in the queue
+size_t sdlBufferFilled[sdlNumBuffers] = {0};
+size_t sdlBufferFillNext = 0;
+size_t sdlBufferConsumeNext = 0;
+// Print out overrun and underrun events
+// #define SOUND_SYNC_DEBUG
 
 char *arg0;
 
@@ -1596,10 +1602,7 @@ void systemFrame()
     // per rendered frame if sufficient, instead of just skipping every other
     // frame.
     autoFrameSkipDeadline.nextFrame();
-    autoFrameSkipDeadline.slip(sdlBufferEmptyDelay);
   }
-  // reset the delay now that we've consumed it
-  sdlBufferEmptyDelay = 0;
 
   // wasPaused isn't reset until system10Frames is called, meaning that this
   // will get hit for more than one frame, but that's only a problem for
@@ -1669,40 +1672,29 @@ void soundCallback(void *,u8 *stream,int len)
   if(!emulating)
     return;
 
-  // Patch #1382692 by deathpudding.
-  // (ported from vba 1.8.0)
-  /* since this is running in a different thread, speedup and
-   * throttle can change at any time; save the value so locks
-   * stay in sync */
-  bool lock = (!speedup && !throttle) ? true : false;
-
-  if (lock)
-    SDL_SemWait (sdlBufferFull);
+  size_t underrun = false;
 
   SDL_SemWait (sdlBufferLock);
-  memcpy (stream, sdlBuffer, len);
-  sdlSoundLen = 0;
+  size_t current = sdlBufferConsumeNext;
+  size_t next = (sdlBufferConsumeNext + 1) % sdlNumBuffers;
+  if (sdlBufferFilled[current] >= len)
+  {
+    memcpy (stream, sdlBuffer[current], len);
+    sdlBufferFilled[current] = 0;
+    sdlBufferConsumeNext = next;
+  }
+  // If there's an underrun, wait for the emulation thread to catch up
+  else
+    underrun = sdlBufferFilled[current] + 1;
   SDL_SemPost (sdlBufferLock);
 
-  if (lock)
-    SDL_SemPost (sdlBufferEmpty);
+#ifdef SOUND_SYNC_DEBUG
+  if (underrun)
+    fprintf(stderr, "Sound underrun on buffer %d, which is filled %d bytes, need %d!\n", current, underrun - 1, len);
+#endif
 }
 
-/// Run wait_func on sync_primitive and measure the delay
-template <typename T, typename funcptr>
-Uint32 timed_wait(funcptr wait_func, T sync_primitive)
-{
-  Uint32 before = SDL_GetTicks();
-  wait_func(sync_primitive);
-  Uint32 after = SDL_GetTicks();
-  return after - before;
-}
-// Run SDL_SemWait and measure the delay
-static Uint32 timed_SDL_SemWait(SDL_sem *sdlSem)
-{
-  return timed_wait(&SDL_SemWait, sdlSem);
-}
-
+/// Copies soundBufferLen bytes from soundFinalWave into sdlBuffer
 void systemWriteDataToSoundBuffer()
 {
   // Patch #1382692 by deathpudding.
@@ -1710,43 +1702,42 @@ void systemWriteDataToSoundBuffer()
   if (SDL_GetAudioStatus () != SDL_AUDIO_PLAYING)
     SDL_PauseAudio (0);
 
-  if ((sdlSoundLen + soundBufferLen) >= sdlBufferCapacity) {
-    bool lock = (!speedup && !throttle) ? true : false;
+  int overrun = false;
 
-    if (lock)
-      sdlBufferEmptyDelay += timed_SDL_SemWait (sdlBufferEmpty);
+  SDL_SemWait (sdlBufferLock);
 
-    SDL_SemWait (sdlBufferLock);
-    int copied = sdlBufferCapacity - sdlSoundLen;
-    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, copied);
-    sdlSoundLen = sdlBufferCapacity;
-    SDL_SemPost (sdlBufferLock);
-
-    if (lock) {
-      SDL_SemPost (sdlBufferFull);
-
-      /* wait for buffer to be dumped by soundCallback() */
-      sdlBufferEmptyDelay += timed_SDL_SemWait (sdlBufferEmpty);
-      SDL_SemPost (sdlBufferEmpty);
-
-      SDL_SemWait (sdlBufferLock);
-      memcpy (sdlBuffer, ((u8 *)soundFinalWave) + copied,
-          soundBufferLen - copied);
-      sdlSoundLen = soundBufferLen - copied;
-      SDL_SemPost (sdlBufferLock);
+  size_t bytes_remaining = soundBufferLen;
+  u8 *src = reinterpret_cast<u8*>(soundFinalWave);
+  while (bytes_remaining)
+  {
+    size_t current = sdlBufferFillNext;
+    size_t next = (sdlBufferFillNext + 1) % sdlNumBuffers;
+    if (sdlBufferFilled[current] == sdlBufferCapacity)
+    {
+      overrun = current + 1;
+      // current is the older of the two buffers, so discard and overwrite with
+      // new sound data.
+      sdlBufferFilled[current] = 0;
+      // Advance the consumption pointer to the next buffer (now the older one)
+      sdlBufferConsumeNext = (sdlBufferConsumeNext + 1) % sdlNumBuffers;
     }
-    else {
-      SDL_SemWait (sdlBufferLock);
-      memcpy (sdlBuffer, ((u8 *) soundFinalWave) + copied, soundBufferLen);
-      SDL_SemPost (sdlBufferLock);
-    }
+    size_t current_free = sdlBufferCapacity - sdlBufferFilled[current];
+    int copied = min(current_free, bytes_remaining);
+    memcpy (sdlBuffer[current] + sdlBufferFilled[current], src, copied);
+    src += copied;
+    bytes_remaining -= copied;
+    sdlBufferFilled[current] += copied;
+
+    if (copied == current_free)
+      sdlBufferFillNext = next;
   }
-  else {
-    SDL_SemWait (sdlBufferLock);
-    memcpy (sdlBuffer + sdlSoundLen, soundFinalWave, soundBufferLen);
-     sdlSoundLen += soundBufferLen;
-    SDL_SemPost (sdlBufferLock);
-  }
+
+  SDL_SemPost (sdlBufferLock);
+
+#ifdef SOUND_SYNC_DEBUG
+  if (overrun)
+    fprintf(stderr, "Sound overrun on buffer %d!\n", overrun-1);
+#endif
 }
 
 bool systemSoundInit()
@@ -1780,23 +1771,20 @@ bool systemSoundInit()
   // Patch #1382692 by deathpudding.
   // (ported from vba 1.8.0)
   sdlBufferLock  = SDL_CreateSemaphore (1);
-  sdlBufferFull  = SDL_CreateSemaphore (0);
-  sdlBufferEmpty = SDL_CreateSemaphore (1);
-  sdlSoundLen = 0;
+
+  memset(sdlBufferFilled, 0, sizeof(sdlBufferFilled));
+  sdlBufferFillNext = 0;
+  sdlBufferConsumeNext = 0;
+
   systemSoundOn = true;
   return true;
 }
 
 void systemSoundShutdown()
 {
-  // Patch #1382692 by deathpudding.
-  SDL_CloseAudio (); //TODO: fix freeze
+  SDL_CloseAudio ();
   SDL_DestroySemaphore (sdlBufferLock);
-  SDL_DestroySemaphore (sdlBufferFull);
-  SDL_DestroySemaphore (sdlBufferEmpty);
   sdlBufferLock  = NULL;
-  sdlBufferFull  = NULL;
-  sdlBufferEmpty = NULL;
 }
 
 void systemSoundPause()
