@@ -73,7 +73,7 @@ VisualBoyAdvance_SOURCES = \
 VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2
 
 #strip the binary
-VisualBoyAdvance_LDFLAGS = -s
+VisualBoyAdvance_LDFLAGS = -Wl,-S
 
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 

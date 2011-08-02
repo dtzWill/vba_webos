@@ -37,6 +37,16 @@
 #define AUTHOR_TAG "Support: webos@wdtz.org"
 #define OPTIONS_TEXT "MENU"
 
+#ifdef PALM_PRE
+#define NATIVE_RES_WIDTH 320
+#define NATIVE_RES_HEIGHT 480
+#endif
+
+#ifdef PALM_PIXI
+#define NATIVE_RES_WIDTH 320
+#define NATIVE_RES_HEIGHT 400
+#endif
+
 #define OPTIONS_CFG "options.cfg"
 
 #define SCROLL_FACTOR 20
@@ -94,7 +104,6 @@ extern int sensorX;
 extern int sensorY;
 
 extern int filter;
-extern u8 *delta;
 
 extern int sdlPrintUsage;
 extern int disableMMX;
@@ -135,7 +144,6 @@ extern int turbo_on;
  *-----------------------------------------------------------------------------*/
 extern bool wasPaused;
 extern int autoFrameSkip;
-extern int frameskipadjust;
 extern int showRenderedFrames;
 extern int renderedFrames;
 

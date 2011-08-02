@@ -9,6 +9,7 @@ all: cat_beta cat preware
 
 #Make sure the binary is up-to-date
 ../binaries/armv7/vba: ../src/src/sdl/VisualBoyAdvance
+	mkdir -p ../binaries/armv7
 	cp $< $@
 
 update: ../binaries/armv7/vba
@@ -39,6 +40,12 @@ pkg: update
 		exit 1; \
 	fi
 	cp pkg_base pkg_build -r
+	if echo $(ID) | grep -q pixi; then \
+		mkdir -p skins-320x400; \
+		cp -r skins-320x400 pkg_build/skins; \
+	else \
+		cp -r skins-320x480 pkg_build/skins; \
+	fi
 	cp ../binaries/armv7/vba pkg_build/
 	sed -i s/@APPID@/$(ID)/ pkg_build/appinfo.json
 	palm-package --use-v1-format pkg_build

@@ -53,7 +53,7 @@ typedef struct
   char * msg;
   SDL_Color color;
 } line;
-static line no_roms[] {
+static line no_roms[] = {
 { "Welcome to VBA!",                     textColor},
 { "Looks like you don't have any ROMs.", textColor},
 { "To play games, put the roms in ",     textColor},
@@ -142,18 +142,6 @@ void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination 
     apply_surface( x, y, source->w, source, destination );
 }
 
-//XXX: Figure out if there isn't something we can #ifdef for these
-//autoconf maybe?
-int sortComparD( const struct dirent ** a, const struct dirent ** b )
-{
-    return strcasecmp( (*a)->d_name, (*b)->d_name );
-}
-
-int sortCompar( const void * a, const void * b )
-{
-    return sortComparD( (const struct dirent **)a, (const struct dirent**)b );
-}
-
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
 static TTF_Font * font_small = NULL;
@@ -211,7 +199,7 @@ char * romSelector()
 
 
     struct dirent ** roms;
-    filecount = scandir( ROM_PATH, &roms, romFilter, sortComparD );
+    filecount = scandir( ROM_PATH, &roms, romFilter, alphasort );
     printf( "Rom count: %d\n", filecount );
 
     //Display general information
