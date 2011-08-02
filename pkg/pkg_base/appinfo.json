@@ -1,5 +1,5 @@
 {
-       "title": "VisualBoy Advance",
+       "title": "VisualBoy Advance@SUFFIX@",
        "id": "@APPID@",
        "version": "1.3.4",
        "release_date": "27-Sep-2010",
