@@ -27,3 +27,6 @@ PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp'
 export CFLAGS="$PRE_FLAGS"
 export CXXFLAGS="$PRE_FLAGS"
 
+export SRC_DIR=`dirname $0`
+export SRC_DIR=`readlink -f ${SRC_DIR}`
+export SDL_CONFIG=${SRC_DIR}/sdl-config
