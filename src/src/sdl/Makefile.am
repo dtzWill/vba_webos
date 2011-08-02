@@ -58,11 +58,6 @@ VisualBoyAdvance_SOURCES = \
 	../bios.h		\
 	../elf.cpp		\
 	../elf.h		\
-	../expr-lex.cpp		\
-	../expr.cpp		\
-	../expr.cpp.h		\
-	../exprNode.cpp		\
-	../exprNode.h		\
 	../getopt.c		\
 	../getopt.h		\
 	../getopt1.c		\
@@ -75,10 +70,10 @@ VisualBoyAdvance_SOURCES = \
 	../unzip.cpp		\
 	../unzip.h
 
-VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@
+VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@ -lGLESv2
 
 #strip the binary
-VisualBoyAdvance_LDFLAGS = -s -Wl,--allow-shlib-undefined
+VisualBoyAdvance_LDFLAGS = -Wl,-S
 
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 

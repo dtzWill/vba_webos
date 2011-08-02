@@ -104,7 +104,6 @@ extern int sensorX;
 extern int sensorY;
 
 extern int filter;
-extern u8 *delta;
 
 extern int sdlPrintUsage;
 extern int disableMMX;
@@ -145,7 +144,6 @@ extern int turbo_on;
  *-----------------------------------------------------------------------------*/
 extern bool wasPaused;
 extern int autoFrameSkip;
-extern int frameskipadjust;
 extern int showRenderedFrames;
 extern int renderedFrames;
 
