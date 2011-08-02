@@ -24,7 +24,7 @@ export CPPFLAGS="-I${INCLUDEDIR} \
                  -I${INCLUDEDIR}/SDL \
                  -I${PalmPDK}/extrainclude \
                  "
-export LDFLAGS="${LIBDIRS} -Wl,--allow-shlib-undefined"
+export LDFLAGS="${LIBDIRS} -Wl,--allow-shlib-undefined -static-libstdc++"
 
 PRE_FLAGS='-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp'
 PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp'
