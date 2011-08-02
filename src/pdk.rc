@@ -7,6 +7,10 @@ export PalmPDK=/opt/PalmPDK
 
 export PATH=$PATH:${PalmPDK}/arm-gcc/bin
 
+export CC=`which arm-none-linux-gnueabi-gcc`
+export CXX=`which arm-none-linux-gnueabi-g++`
+export RANLIB=`which arm-none-linux-gnueabi-ranlib`
+
 export INCLUDEDIR="${PalmPDK}/include"
 # extralib is a folder where I put libraries that I grabbed from WebOS 1.4.5,
 # and extrainclude contains matching headers that I got from my distribution
