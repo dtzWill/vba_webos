@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# change the prompt color
+PS1="${PS1/01;32m/00;35m}"
+
+export PalmPDK=/opt/PalmPDK
+
+export PATH=$PATH:${PalmPDK}/arm-gcc/bin
+
+export INCLUDEDIR="${PalmPDK}/include"
+# extralib is a folder where I put libraries that I grabbed from WebOS 1.4.5,
+# and extrainclude contains matching headers that I got from my distribution
+# (since they're arch-independent). I had to do this for libpng and libz
+# (a.k.a. zlib). Note that to get a binary into the official app store, extra
+# libraries like this would need to be statically linked.
+export LIBDIRS="-L${PalmPDK}/device/lib \
+                -L${PalmPDK}/device/extralib"
+
+export CPPFLAGS="-I${INCLUDEDIR} \
+                 -I${INCLUDEDIR}/SDL \
+                 -I${PalmPDK}/extrainclude \
+                 "
+export LDFLAGS="${LIBDIRS} -Wl,--allow-shlib-undefined"
+
+PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp'
+export CFLAGS="$PIXI_FLAGS"
+export CXXFLAGS="$PIXI_FLAGS"
+
