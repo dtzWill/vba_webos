@@ -22,7 +22,8 @@ export CPPFLAGS="-I${INCLUDEDIR} \
                  "
 export LDFLAGS="${LIBDIRS} -Wl,--allow-shlib-undefined"
 
+PRE_FLAGS='-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp'
 PIXI_FLAGS='-mcpu=arm1136jf-s -mfpu=vfp -mfloat-abi=softfp'
-export CFLAGS="$PIXI_FLAGS"
-export CXXFLAGS="$PIXI_FLAGS"
+export CFLAGS="$PRE_FLAGS"
+export CXXFLAGS="$PRE_FLAGS"
 
