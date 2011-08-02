@@ -103,7 +103,7 @@ static int rewindTimer = 0;
 #define REWIND_SIZE 400000
 
 bool wasPaused = false;
-int autoFrameSkip = 0;
+int autoFrameSkip = 1;
 int showRenderedFrames = 0;
 int renderedFrames = 0;
 
@@ -176,11 +176,11 @@ struct EmulatedSystem emulator = {
  *  State variables (outside the GB emulation core)
  *-----------------------------------------------------------------------------*/
 
-int orientation = ORIENTATION_LANDSCAPE_R;
+int orientation = ORIENTATION_PORTRAIT;
 
-int gl_filter = GL_LINEAR;
+int gl_filter = GL_NEAREST;
 
-int use_on_screen = true;
+int use_on_screen = false;
 
 int autosave = true;
 

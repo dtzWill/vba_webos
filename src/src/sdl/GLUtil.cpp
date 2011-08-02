@@ -15,6 +15,7 @@
  */
 
 #include "GLUtil.h"
+#include <GLES2/gl2ext.h>
 #include "Types.h"
 #include "esFunc.h"
 #include "VBA.h"
@@ -154,6 +155,8 @@ void GL_Init()
     //Enable alpha blending
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
+
+    glEnable(GL_WRITEONLY_RENDERING_QCOM);
 
     GLbyte vShaderStr[] =  
         "attribute vec4 a_position;   \n"
@@ -424,7 +427,22 @@ void drawSkin()
 
 void GL_RenderPix(u8 * pix)
 {
-    glClear( GL_COLOR_BUFFER_BIT );
+    // For Qualcomm's Adreno GPUs, the developer guide included with the Adreno
+    // SDK recommends performing texture uploads before glClear. Without this
+    // hint, the driver preserves the previous contents of the texture, which
+    // results in an unnecessary copy.
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D( GL_TEXTURE_2D,0,
+            0,0, srcWidth,srcHeight,
+            GL_RGBA,GL_UNSIGNED_SHORT_5_5_5_1,pix);
+
+    checkError();
+
+    // Sometimes an OpenGL driver (e.g. Qualcomm's) can spend extra work
+    // copying and preserving the previous contents of the depth buffer.
+    // Clearing the depth buffer may improve performance, by hinting to the
+    // OpenGL driver that it doesn't need do this.
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkError();
 
     /*-----------------------------------------------------------------------------
@@ -452,13 +470,6 @@ void GL_RenderPix(u8 * pix)
     glEnableVertexAttribArray( positionLoc );
     checkError();
     glEnableVertexAttribArray( texCoordLoc );
-    checkError();
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D( GL_TEXTURE_2D,0,
-            0,0, srcWidth,srcHeight,
-            GL_RGBA,GL_UNSIGNED_SHORT_5_5_5_1,pix);
-
     checkError();
 
     //sampler texture unit to 0
