@@ -1,4 +1,3 @@
-autoreconf --install --symlink
 
 #Note that I am using 2010q1 toolchain here, fwiw
 export PRE_FLAGS='-mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp -DARM_CORE -DPALM_PRE'
@@ -9,4 +8,5 @@ export CFLAGS="$EXTRA_CFLAGS $CFLAGS"
 export CXXFLAGS="$EXTRA_CFLAGS $CXXFLAGS"
 export LIBS="$LIBS -lGLESv2 -lSDL_ttf -lSDL_image -lpdl"
 
+autoreconf --install --symlink
 ./configure --disable-dev --disable-profiling "$@"
