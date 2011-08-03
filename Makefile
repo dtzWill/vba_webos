@@ -1,20 +1,18 @@
 
-all: build_pre build_pixi
+all: build_armv6 build_armv7
 
-.PHONY: build_pre build_pixi
-
-build_pre: binaries/armv7/vba
-build_pixi: binaries/armv6/vba
-
-binaries/%/vba: %/Makefile
+build_%: %/.configured
 	$(MAKE) -C $*
 	mkdir -p binaries/$*
 	cp $*/src/sdl/VisualBoyAdvance binaries/$*/vba
 
-%/Makefile: src/configure
+.PRECIOUS: armv6/.configured armv7/.configured
+%/.configured: src/configure
+	-rm $@
 	-rm -rf $*
 	mkdir -p $*
 	cd $* && $*=1 ../src/config.sh
+	touch $@
 
 src/configure: src/configure.in
 	cd src && ./autogen.sh
